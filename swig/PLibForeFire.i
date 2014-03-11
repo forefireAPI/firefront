@@ -1,5 +1,5 @@
 /* PLibForeFire */
-// %fragment(fragment="NumPy_Backward_Compatibility")
+
 %module forefire
 %{
 #define SWIG_FILE_WITH_INIT
@@ -7,12 +7,16 @@
 
 %}
 
+%fragment("NumPy_Backward_Compatibility", "header")
+{
+
+}
 %typemap(out) std::string {
     $result = PyString_FromString($1.c_str());
 }
 
 
-%include "numpy.i"
+%include <numpy.i>
 
 %init %{
 import_array();

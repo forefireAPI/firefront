@@ -207,6 +207,11 @@ int Command::startFire(const string& arg, size_t& numTabs){
         FFPoint pos1 = pos+diffP1.toPoint();
         FFPoint pos2 = pos+diffP2.toPoint();
         FFPoint pos3 = pos+diffP3.toPoint();
+        
+        vel1 *= 0.001;
+        vel2 *= 0.001;
+        vel3 *= 0.001;
+	
 
         FireNode* lastnode = domain->addFireNode(pos1, vel1, t, fdepth, kappa, currentSession.ff, 0);
         lastnode = domain->addFireNode(pos2, vel2, t, fdepth, kappa, currentSession.ff, lastnode);
