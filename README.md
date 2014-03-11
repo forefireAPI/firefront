@@ -11,3 +11,5 @@ The SCons python tool is used to make the library and executable, get it from  h
 A sample SConstruct file is included with the distribution, edit it and insert the path to the Netcdf (and Java headers for JNI bindings if required).
 
 to run it, type "./CommandShell -i examplescript" from the commandline
+
+The "swig" repository contains python bindings with numpy, matplotlib and swig.
