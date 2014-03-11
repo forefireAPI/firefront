@@ -61,7 +61,8 @@ sizeX = 300
 sizeY = 200
 
 
-ff.setString("caseDirectory","/Users/filippi/workspace/articles/FireJCP/cases/water/steadyModel/")
+ff.setString("fuelsTableFile","fuels.ff")
+ff.setString("ForeFireDataDirectory","test")
 
 ff.setDouble("spatialIncrement",.3)
 ff.setDouble("minimalPropagativeFrontDepth",0.1)
@@ -118,7 +119,7 @@ ff.execute("\t\tFireNode[loc=(260,60,0.);vel=(1.,-1.,0.);t=0.]")
 
 pathes = []
 step = 20
-for i in range(1,100):
+for i in range(1,20):
     print "goTo[t=%f]"%(i*step)
     ff.execute("goTo[t=%f]"%(i*step))
     pathes += printToPathe( ff.execute("print[]"))
