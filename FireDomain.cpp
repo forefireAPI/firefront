@@ -524,7 +524,217 @@ namespace libforefire{
 		return true;
 	}
 
-	bool FireDomain::addLayer(string lname){
+	bool FireDomain::addLayer(string type, string layername, string keyname){
+
+		if ( type == "BRatio" ){
+			BurningRatioLayer<double>* brlayer = new BurningRatioLayer<double>(layername, atmoNX, atmoNY, cells);
+			dataBroker->registerLayer(layername, brlayer);
+			return true;
+		}
+
+
+		if ( !params->isValued(keyname) ){
+			cout << "Unknown parameter "<<keyname<<" for "<<layername << " layer of type "<< type <<", please set parameter"<<endl;
+			return false;
+		}
+
+		double timespan = 0;
+	    size_t  nnx = 1;
+	    size_t nny = 1;
+	    size_t nnz = 1;
+	    size_t nnk = 1;
+
+	    double spanx = NECorner.x -SWCorner.x;
+	    double spany = NECorner.y -SWCorner.y;
+
+	    if ( type == "data" ){
+		    double* values = new double[1];
+		    values[0] = params->getDouble(keyname);
+	    	return addScalarLayer( type,  layername,SWCorner.getX(), SWCorner.getY(), getTime(), spanx , spany, timespan,  nnx,	 nny, nnz,  nnk,  values);
+	    }else{
+		    int* values = new int[1];
+		    values[0] = params->getInt(keyname);
+	    	return addIndexLayer( type,  layername,SWCorner.getX(), SWCorner.getY(), getTime(), spanx , spany, timespan,  nnx,	 nny, nnz,  nnk,  values);
+	    }
+
+	}
+
+	bool FireDomain::addScalarLayer(string type, string name, double &x0, double &y0, double& t0, double& width, double& height, double& timespan, size_t& nnx,	size_t& nny, size_t& nnz, size_t& nnk, double* values){
+		FFPoint origin = FFPoint(x0, y0);
+		FFPoint span = FFPoint(width, height);
+
+		XYZTDataLayer<double>* newLayer = new XYZTDataLayer<double>(name, origin,t0, span, timespan, nnx, nny, nnz, nnk, values);
+			dataBroker->registerLayer(name, newLayer);
+
+
+
+		return true;
+	}
+	bool FireDomain::addIndexLayer(string type, string name, double &x0, double &y0, double& t0, double& width, double& height, double& timespan, size_t& nnx,	size_t& nny, size_t& nnz, size_t& nnk, int* values){
+			FFPoint origin = FFPoint(x0, y0);
+			FFPoint span = FFPoint(width, height);
+
+
+			if ( type == "flux" ){
+				size_t mindex = values[0];
+				string fmname = name;
+				FluxModel* model = fluxModelInstanciation(mindex, fmname);
+				if ( model != 0 ){
+					/* Instantiating a flux layer related to this model */
+					FluxLayer<double>* newlayer = new FluxLayer<double>(name,SWCorner, NECorner,atmoNX, atmoNY, getCells(), values, origin, t0, span,	timespan, nnx, nny, nnz, nnk);
+					dataBroker->registerFluxLayer(name, newlayer);
+					return true;
+				}
+
+			}
+			if ( type == "propagation" ){
+				size_t mindex = getFreePropModelIndex();
+				PropagationModel* model = propModelInstanciation(mindex, name);
+				if ( model == 0 ) return false;
+				/* Instantiating a flux layer related to this model */
+				propagativeLayer = new PropagativeLayer<double>(name, mindex);
+				return true;
+			}
+			if ( type == "table" ){
+
+					FuelDataLayer<double>* newlayer = new FuelDataLayer<double>(name,	origin, t0, span, timespan, nnx, nny, nnz, nnk,				values);
+
+					dataBroker->registerLayer(name, newlayer);
+			}
+
+			return false;
+		}
+	/*
+	double * getLayer
+	int i,j,k;
+		jboolean isCopy;
+
+
+		const char * msg = penv->GetStringUTFChars(jstr,0);
+		string smsg(msg);
+
+		if ( executor == 0 ) {
+			executor = new Command();
+		}
+
+		// Testing to see if the wanted matrix is a flux
+		 		FluxLayer<double>* myFluxLayer = executor->getDomain()->getFluxLayer(msg);
+		if ( myFluxLayer ){
+
+			//executor->getDomain()->getDataBroker()->computeActiveSurfacesFlux(40000);
+			FFArray<double>* srcD;
+			// getting the pointer
+			myFluxLayer->getMatrix(&srcD, executor->getTime());
+	//		myFluxLayer->getInstantaneousFlux(&srcD, executor->getTime());
+
+			if (srcD == 0) return NULL;
+			int nx =   srcD->getDim("x");
+			int ny =   srcD->getDim("y");
+			int nz =   srcD->getDim("z");
+
+			jdoubleArray elemProto = penv->NewDoubleArray(nz);
+			jdoubleArray elem = penv->NewDoubleArray(nz);
+			jobjectArray row = penv->NewObjectArray(ny,penv->GetObjectClass(elem), NULL);
+
+			jobjectArray resultDD = penv->NewObjectArray(nx,penv->GetObjectClass(row), NULL);
+
+			penv->DeleteLocalRef(row);
+			row = NULL;
+			penv->DeleteLocalRef(elem);
+			elem = NULL;
+
+			for (i = 0; i < nx; i++) {
+				jobjectArray row = penv->NewObjectArray(ny,penv->GetObjectClass(elemProto), NULL);
+
+				for (j = 0; j < ny; j++) {
+					elem = penv->NewDoubleArray(nz);
+					jdouble* elemElems = penv->GetDoubleArrayElements(elem, &isCopy);
+					for (k = 0; k < nz; k++) {
+						elemElems[k] =  (*srcD)(i,j,k);
+					}
+					penv->SetDoubleArrayRegion( elem, 0, nz, elemElems);
+					penv->SetObjectArrayElement(row, j, elem);
+					if (isCopy == JNI_TRUE) {
+						penv->ReleaseDoubleArrayElements( elem, elemElems, JNI_ABORT);
+					}
+
+					penv->DeleteLocalRef(elem);
+					elem = NULL;
+				}
+				penv->SetObjectArrayElement(resultDD, i, row);
+
+
+
+				penv->DeleteLocalRef(row);
+				row = NULL;
+			}
+
+			penv->DeleteLocalRef(elemProto);
+			elemProto = NULL;
+
+			return resultDD;
+
+		} else {
+			// If not, treating it as a generic data layer
+			DataLayer<double>* myLayer = executor->getDomain()->getDataLayer(msg);
+			if ( myLayer ){
+				FFArray<double>* srcD;
+				// getting the pointer
+				myLayer->getMatrix(&srcD, executor->getTime());
+
+				if (srcD == 0) return NULL;
+				int nx =   srcD->getDim("x");
+				int ny =   srcD->getDim("y");
+				int nz =   srcD->getDim("z");
+
+				jdoubleArray elemProto = penv->NewDoubleArray(nz);
+				jdoubleArray elem = penv->NewDoubleArray(nz);
+				jobjectArray row = penv->NewObjectArray(ny,penv->GetObjectClass(elem), NULL);
+
+				jobjectArray resultDD = penv->NewObjectArray(nx,penv->GetObjectClass(row), NULL);
+
+				penv->DeleteLocalRef(row);
+				row = NULL;
+				penv->DeleteLocalRef(elem);
+				elem = NULL;
+
+				for (i = 0; i < nx; i++) {
+					jobjectArray row = penv->NewObjectArray(ny,penv->GetObjectClass(elemProto), NULL);
+
+					for (j = 0; j < ny; j++) {
+						elem = penv->NewDoubleArray(nz);
+						jdouble* elemElems = penv->GetDoubleArrayElements(elem, &isCopy);
+						for (k = 0; k < nz; k++) {
+							elemElems[k] =  (*srcD)(i,j,k);
+						}
+						penv->SetDoubleArrayRegion( elem, 0, nz, elemElems);
+						penv->SetObjectArrayElement(row, j, elem);
+						if (isCopy == JNI_TRUE) {
+							penv->ReleaseDoubleArrayElements( elem, elemElems, JNI_ABORT);
+						}
+
+						penv->DeleteLocalRef(elem);
+						elem = NULL;
+					}
+					penv->SetObjectArrayElement(resultDD, i, row);
+
+
+
+					penv->DeleteLocalRef(row);
+					row = NULL;
+				}
+
+				penv->DeleteLocalRef(elemProto);
+				elemProto = NULL;
+
+				return resultDD;
+
+			}
+			return NULL;
+		}
+	*/
+
+	bool FireDomain::addFluxLayer(string lname){
 		/* searching if there exists a flux model with associated name */
 		/* affecting it to free index */
 
@@ -1004,6 +1214,10 @@ namespace libforefire{
 	// Computing the flux at a given location according to a given flux model
 	double FireDomain::getModelValueAt(int& modelIndex
 									   , FFPoint& loc, const double& bt, const double& et, const double& at){
+		if(fluxModelsTable[0] == NULL){
+			cout <<"Warning, no heat flux layer registered"<<endl;
+			return 0;
+		}
 		return fluxModelsTable[modelIndex]->getValueAt(loc, bt, et, at);
 	}
 
@@ -1011,10 +1225,13 @@ namespace libforefire{
 	bool FireDomain::isBurning(FFPoint& loc, const double& t){
 		/* the location is considered to be burning if the heat released
 		 * by the fire is superior to a prescribed value (~500 W.m-2) */
+
 		double at = getArrivalTime(loc);
 		if ( t >= at ){
 			int mind = dataBroker->heatFluxLayer->getFunctionIndexAt(loc, t);
+
 			double heatFlux = getModelValueAt(mind, loc, t, t, at);
+
 			if ( heatFlux > burningTresholdFlux ) return true;
 		}
 		return false;
@@ -1932,7 +2149,8 @@ namespace libforefire{
 			FireNode::setRelax(params->getDouble("relax"));
 		if ( params->isValued("minSpeed") )
 			FireNode::setMinSpeed(params->getDouble("minSpeed"));
-
+		if ( params->isValued("minimalPropagativeFrontDepth") )
+			FireNode::setMinSpeed(params->getDouble("minimalPropagativeFrontDepth"));
 		/*---------------------------------*/
 		/* Defining the spatial properties */
 		/*---------------------------------*/
@@ -1992,6 +2210,7 @@ namespace libforefire{
 		double BMapsResolution = getBurningMapResolution(spatialIncrement
 														 , params->getDouble("minimalPropagativeFrontDepth"));
 		localBMapSizeX = (size_t) (dx/BMapsResolution + 1);
+		params->setDouble("bmapResolution", BMapsResolution);
 		params->setSize("localBMapSizeX", localBMapSizeX);
 		localBMapSizeY = (size_t) (dy/BMapsResolution + 1);
 		params->setSize("localBMapSizeY", localBMapSizeY);

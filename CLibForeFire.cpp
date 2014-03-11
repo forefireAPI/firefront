@@ -163,7 +163,7 @@ void CheckLayer(const char* lname){
 	FluxLayer<double>* myLayer = session->fd->getFluxLayer(tmpname);
 
 	if ( myLayer == 0 ){
-		if ( !session->fd->addLayer(tmpname) ){
+		if ( !session->fd->addFluxLayer(tmpname) ){
 			cout<<"WARNING: layer for "<<tmpname
 					<<" could not be found within ForeFire framework, "
 					<<"this should cause serious problems when coupling"<<endl;

@@ -206,28 +206,19 @@ size_t FluxLayer<T>::getPosInMap(FFPoint& loc, const double& t){
 	mapNt>1 ? tt = ((int) (t-mapStartTime)/mapDt) : tt = 0;
 
 	if ( i < 0 or i > (int) mapNx-1 ){
-		cout<<loc.getX()<<" is not within the 'x' domain"
-				<<" of validity of layer "<<this->getKey()
-				<<" ("<<mapSWCornerX<<"->"<<mapNECornerX<<")"<<endl;
+
 		return 0;
 	}
 	if ( j < 0 or j > (int) mapNy-1 ){
-		cout<<loc.getY()<<" is not within the 'y' domain"
-				<<" of validity of layer "<<this->getKey()
-				<<" ("<<mapSWCornerY<<"->"<<mapNECornerY<<")"<<endl;
-		raise(SIGTERM);
+
 		return 0;
 	}
 	if ( k < 0 or k > (int) mapNz-1 ){
-		cout<<loc.getZ()<<" is not within the 'z' domain"
-				<<" of validity of layer "<<this->getKey()
-				<<" ("<<mapSWCornerZ<<"->"<<mapNECornerZ<<")"<<endl;
+
 		return 0;
 	}
 	if ( tt < 0 or tt > (int) mapNt-1 ){
-		cout<<t<<" is not within the 't' domain"
-				<<" of validity of layer "<<this->getKey()
-				<<" ("<<mapStartTime<<"->"<<mapEndTime<<")"<<endl;
+
 		return 0;
 	}
 	return (size_t) i*mapNy*mapNz*mapNt + j*mapNz*mapNt + k*mapNt + tt;
@@ -252,13 +243,11 @@ T FluxLayer<T>::getValueAt(FFPoint loc, const double& t){
 template<typename T>
 T FluxLayer<T>::getNearestData(FFPoint loc, double t){
 	if ( loc.getX() < SWCorner.getX() or loc.getX() > NECorner.getX() ){
-		cout<<"WARNING: "<<loc.getX()<<" outside of X domain for "
-				<<this->getKey()<<" ("<<SWCorner.getX()<<", "<<NECorner.getX()<<")"<<endl;
+
 		return 0;
 	}
 	if ( loc.getY() < SWCorner.getY() or loc.getY() > NECorner.getY() ){
-		cout<<"WARNING: "<<loc.getY()<<" outside of Y domain for "
-				<<this->getKey()<<" ("<<SWCorner.getY()<<", "<<NECorner.getY()<<")"<<endl;
+
 		return 0;
 	}
 
@@ -322,13 +311,12 @@ void FluxLayer<T>::getMatrix(FFArray<T>** matrix, const double& t){
 	    }
 	    params->setDouble(fluxName+".activeArea",totalcount*cells[0][0].getBmapElementArea());
 
-
-		// computing the mean flux between 'latestCallGetMatrix' and t
 		for ( size_t i = 0; i < nx; i++ ){
 			for ( size_t j = 0; j < ny; j++ ){
 				(*flux)(i,j) = cells[i][j].applyModelsOnBmap(fluxName, latestCallGetMatrix, t);
 			}
 		}
+
 		latestCallGetMatrix = t;
 	}
 	// Affecting the computed matrix to the desired array

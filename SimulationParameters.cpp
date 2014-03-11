@@ -110,9 +110,9 @@ SimulationParameters::SimulationParameters(){
 	parameters.insert(make_pair("frontScanDistance", "1000"));
 	parameters.insert(make_pair("burningTresholdFlux", "2000"));
 	parameters.insert(make_pair("normalScheme","medians"));
-	parameters.insert(make_pair("curvatureComputation", "0"));
+	parameters.insert(make_pair("curvatureComputation", "1"));
 	parameters.insert(make_pair("curvatureScheme","circumradius"));
-	parameters.insert(make_pair("frontDepthComputation", "0"));
+	parameters.insert(make_pair("frontDepthComputation", "1"));
 	parameters.insert(make_pair("frontDepthScheme","normalDir"));
 	parameters.insert(make_pair("minimalPropagativeFrontDepth","1."));
 	parameters.insert(make_pair("maxFrontDepth","20."));

@@ -97,6 +97,7 @@ double BalbiUnsteady::getSpeed(double* valueOf){
 	double lRhod = valueOf[Rhod];
 	double lRhol = valueOf[Rhol];
 	double lMd  = valueOf[Md];
+
 	double lMl  = valueOf[Ml];
 	double lsd  = valueOf[sd];
 	double lsl  = valueOf[sl];
@@ -136,6 +137,7 @@ double BalbiUnsteady::getSpeed(double* valueOf){
 	double u0 = nu*u00;
 	double opticalDepth = 4./(Betad*lsd);
 	double epsd = 1.-exp(-valueOf[fdepth]/opticalDepth);
+//	cout <<opticalDepth<<" and "<<valueOf[fdepth]<<" here "<<epsd<<endl;
 
 	double tanGamma =  valueOf[slope] + valueOf[normalWind]/u0;
 	double gamma = atan(tanGamma);
@@ -150,11 +152,9 @@ double BalbiUnsteady::getSpeed(double* valueOf){
 					/(1.+valueOf[fdepth]*cos(gamma)/(tau*r0)));
 		double Rt = R0 + A*geomFactor;
 		R = 0.5*( Rt + sqrt( Rt*Rt + 4.*r0*R0/cos(gamma) ) );
-/*
-		cout<<"R0="<<R0<<", A="<<A<<", fdepth="<<valueOf[fdepth]<<", tau="<<tau
-				<<", gamma="<<gamma<<", r0="<<r0<<", geomFactor="<<geomFactor
-				<<", Rt="<<Rt<<", R="<<R<<endl;
-*/
+
+	//	cout<<"R0="<<R0<<", A="<<A<<", fdepth="<<valueOf[fdepth]<<", tau="<<tau				<<", gamma="<<gamma<<", r0="<<r0<<", geomFactor="<<geomFactor				<<", Rt="<<Rt<<", R="<<R<<endl;
+
 	} else {
 		R = R0;
 	}

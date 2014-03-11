@@ -335,7 +335,11 @@ public:
 	static int registerFluxModelInstantiator(string, FluxModelInstantiator);
 	FluxModel* fluxModelInstanciation(const int&, string);
 	void registerFluxModel(const int&, FluxModel*);
-	bool addLayer(string);
+	bool addFluxLayer(string);
+	bool addLayer(string , string ,string);
+	bool addScalarLayer(string lname, string type, double &x0, double &y0, double& t0, double& width, double& height, double& timespan, size_t& nnx,	size_t& nny, size_t& nnz, size_t& nnk, double* values);
+	bool addIndexLayer(string lname, string type, double &x0, double &y0, double& t0, double& width, double& height, double& timespan, size_t& nnx,	size_t& nny, size_t& nnz, size_t& nnk, int* values);
+
 	size_t getFreeFluxModelIndex();
 
 	/*! \brief constants of the simulation */

@@ -104,7 +104,10 @@ public:
 		NECornerZ = SWCornerZ + extent.getZ();
 		endTime = startTime + timespan;
 		fuelMap = new int[size];
-		for ( size_t i = 0; i<size; i++ ) fuelMap[i] = fmap[i];
+
+		for ( size_t i = 0; i<size; i++ ){
+			fuelMap[i] = fmap[i];
+		}
 
 		dx = extent.getX()/nx;
 		dy = extent.getY()/ny;
@@ -222,12 +225,25 @@ size_t FuelDataLayer<T>::getPos(FFPoint& loc, double& t){
 template<typename T>
 void FuelDataLayer<T>::getMatrix(
 		FFArray<T>** lmatrix, const double& time){
+
+
 		double res = 100;
+
 
 		double ddx = res;
 		int nnx = (NECornerX-SWCornerX)/res;
 		double ddy = res;
 		int nny = (NECornerY-SWCornerY)/res;
+
+
+
+		if(nny*nnx < 1000*1000 ){
+
+			nnx = nx;
+			nny = ny;
+			ddx = (NECornerX-SWCornerX)/nnx;
+			ddy = (NECornerY-SWCornerY)/nny;
+		}
 
 		int nnz = 1;
 		int nnt = 1;

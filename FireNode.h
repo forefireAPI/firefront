@@ -78,6 +78,7 @@ class FireNode : public ForeFireAtom, Visitable {
 	static double relax; /*!< relaxation for the velocity */
 
 	static double minSpeed; /*!< minimum speed allowed */
+	static double minFrontDepth;
 
 public:
 
@@ -150,6 +151,8 @@ public:
 
 	/*!  \brief smoothing in the speed computation */
 	static void setSmoothing(double);
+	static void setMinDepth(double);
+
 
 	/*!  \brief relaxation in the speed computation */
 	static void setRelax(double);

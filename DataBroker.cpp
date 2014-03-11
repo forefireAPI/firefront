@@ -228,6 +228,7 @@ void DataBroker::registerLayer(string name, DataLayer<double>* layer) {
 	/* inserting the layer into the map of layers */
 	ilayer = layersMap.find(name);
 	if (ilayer != layersMap.end()) {
+
 		if (params->getParameter("runmode") == "standalone") {
 			cout << "Redefining layer for variable " << name << " !" << endl;
 			DataLayer<double>* oldlayer = ilayer->second;
@@ -253,12 +254,15 @@ void DataBroker::registerLayer(string name, DataLayer<double>* layer) {
 		windULayer = layer;
 	if (name.find("windV") != string::npos)
 		windVLayer = layer;
-	if (name.find("fuel") != string::npos)
+	if (name.find("fuel") != string::npos){
+		cout<<"new fuel layer"<<endl;
 		fuelLayer = layer;
+	}
 
 }
 
 void DataBroker::registerFluxLayer(string name, FluxLayer<double>* layer) {
+
 	flayer = fluxLayersMap.find(name);
 	if (flayer != fluxLayersMap.end()) {
 		FluxLayer<double>* oldlayer = flayer->second;
@@ -271,8 +275,10 @@ void DataBroker::registerFluxLayer(string name, FluxLayer<double>* layer) {
 	registerLayer(name, layer);
 
 	/* looking for possible match with predefined layers */
-	if (name.find("heatFlux") != string::npos)
+	if (name.find("heatFlux") != string::npos){
+
 		heatFluxLayer = layer;
+	}
 }
 
 void DataBroker::setAtmosphericDomain(const FFPoint& SWCorner,
@@ -411,17 +417,7 @@ void DataBroker::addConstantLayer(string name, const double& val) {
 	registerLayer(name, newLayer);
 }
 
-void DataBroker::addLayer(string name, double &x0, double &y0, double& t0,
-		double& width, double& height, double& timespan, size_t& nnx,
-		size_t& nny, size_t& nnz, double* values) {
-	size_t nn1 = 1;
 
-	FFPoint origin = FFPoint(x0, y0);
-	FFPoint span = FFPoint(width, height);
-	XYZTDataLayer<double>* newLayer = new XYZTDataLayer<double>(name, origin,
-			t0, span, timespan, nnx, nny, nnz, nn1, values);
-	registerLayer(name, newLayer);
-}
 
 void DataBroker::loadFromNCFile(string filename) {
 
@@ -552,7 +548,7 @@ void DataBroker::insureLayersExistence() {
 				FireNode::setFrontDepthComputation(fdepth);
 				/* checking that a heat flux layer is present for burn checks.
 				 * If not, instantiating a HeatFluxBasicModel */
-				if (heatFluxLayer == 0 and !domain->addLayer("heatFlux")) {
+				if (heatFluxLayer == 0 and !domain->addFluxLayer("heatFlux")) {
 					cout
 							<< "WARNING: heat flux layer could not be found within ForeFire framework, this should"
 							<< " cause serious problems for the simulation as front depth is required"
@@ -837,6 +833,7 @@ void DataBroker::readTableFromAsciiFile(string filename,
 
 	/* Opening the file */
 	ifstream file(filename.c_str());
+
 	if (!file) {
 		cout << "WARNING: could not load file for fuel properties " << filename
 				<< endl;
@@ -871,6 +868,7 @@ void DataBroker::readTableFromAsciiFile(string filename,
 				istringstream iss(vals[pos]);
 				if (iss >> dval) {
 					table[fuelNum].insert(make_pair(paramNames[pos], dval));
+					//cout << "at "<<fuelNum<< "  param "<<paramNames[pos] <<" = "<<dval<<endl;
 				} else {
 					cout << "could not cast " << vals[pos]
 							<< " into a suitable value " << "for parameter "

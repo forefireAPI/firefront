@@ -36,9 +36,10 @@ bool FireNode::fdepth = false;
 bool FireNode::ccurvature = false;
 FireNode::NormalScheme FireNode::nmlScheme = FireNode::medians;
 FireNode::CurvatureScheme FireNode::curvScheme = FireNode::circumradius;
-double FireNode::smoothing = 5;
-double FireNode::relax = 0.2;
-double FireNode::minSpeed = -10;//1.E-3;
+double FireNode::smoothing = 1;
+double FireNode::relax = 0.1;
+double FireNode::minSpeed = -1;
+double FireNode::minFrontDepth = 0.001;
 
 // default constructor
 FireNode::FireNode(FireDomain* fd) : ForeFireAtom(0.), location()
@@ -191,10 +192,13 @@ void FireNode::timeAdvance(){
 			}
 			// obtaining the speed from the propagation model
 			double localSpeed = domain->getPropagationSpeed(this);
-			double prevSpeed, nextSpeed;
-			getPrev()->getState() == moving ? prevSpeed = getPrev()->getSpeed() : prevSpeed = localSpeed;
-			getNext()->getState() == moving ? nextSpeed = getNext()->getSpeed() : nextSpeed = localSpeed;
-			double newSpeed = ( prevSpeed + smoothing*localSpeed + nextSpeed )/(smoothing+2.);
+			double newSpeed = localSpeed;
+			if(newSpeed > minSpeed){
+				double prevSpeed, nextSpeed;
+				getPrev()->getState() == moving ? prevSpeed = getPrev()->getSpeed() : prevSpeed = 0;
+				getNext()->getState() == moving ? nextSpeed = getNext()->getSpeed() : nextSpeed = 0;
+				newSpeed = ( prevSpeed + smoothing*localSpeed + nextSpeed )/(smoothing+2.);
+				}
 			if ( speed > FFConstants::epsilonv ) {
 				speed = (1.-relax)*speed + relax*newSpeed;
 			} else {
@@ -205,7 +209,7 @@ void FireNode::timeAdvance(){
 
 		}
 
-		if ( speed > minSpeed ){
+		if (( speed > minSpeed )and(frontDepth > minFrontDepth)){
 			double dt = ds/speed;
 			if ( dt > dtMax ){
 				ds = dtMax*speed;
@@ -356,6 +360,9 @@ void FireNode::setCurvatureComputation(const int& cc){
 	if ( cc != 0 ) ccurvature = true;
 }
 
+void FireNode::setMinDepth(double mdepth){
+	minFrontDepth = mdepth;
+}
 void FireNode::setSmoothing(double smooth){
 	smoothing = smooth;
 }
@@ -661,7 +668,7 @@ double FireNode::computeCurvature(){
 	} else if ( curvScheme == angle ) {
 
 		/* Computing the angle between segments thanks to Al-Kashi */
-		double a = getLoc().distance2D(prevPos);
+		double a = getLoc()      .distance2D(prevPos);
 		double b = getLoc().distance2D(nextPos);
 		double c = nextPos.distance2D(prevPos);
 		double dalpha = Pi - acos((a*a+b*b-c*c)/(2.*a*b));
