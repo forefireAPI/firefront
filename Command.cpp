@@ -180,7 +180,8 @@ int Command::startFire(const string& arg, size_t& numTabs){
             int year, yday;
             double secs;
             
-            simParam->ISODateDecomposition(date, secs, year, yday);
+             simParam->ISODateDecomposition(date, secs, year, yday) ;
+
             t = simParam->SecsBetween(simParam->getDouble("refTime"), simParam->getInt("refYear"), simParam->getInt("refDay"), secs, year, yday);
             
             cout << endl << endl << "REF DATE : " << simParam->FormatISODate(simParam->getDouble("refTime"), simParam->getInt("refYear"), simParam->getInt("refDay"))
@@ -208,10 +209,10 @@ int Command::startFire(const string& arg, size_t& numTabs){
         FFPoint pos2 = pos+diffP2.toPoint();
         FFPoint pos3 = pos+diffP3.toPoint();
         
-        vel1 *= 0.001;
-        vel2 *= 0.001;
-        vel3 *= 0.001;
-	
+        vel1 *= 0.1;
+        vel2 *= 0.1;
+        vel3 *= 0.1;
+
 
         FireNode* lastnode = domain->addFireNode(pos1, vel1, t, fdepth, kappa, currentSession.ff, 0);
         lastnode = domain->addFireNode(pos2, vel2, t, fdepth, kappa, currentSession.ff, lastnode);
@@ -788,7 +789,7 @@ int Command::loadData(const string& arg, size_t& numTabs){
     
 	if (std::ifstream(path.c_str()).fail())
 	{
-		cout << "File doesn't exist or no longer available" << endl;
+		cout << "File "<< path<<" doesn't exist or no longer available" << endl;
 		return error;
 	}
 

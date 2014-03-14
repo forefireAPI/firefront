@@ -2147,10 +2147,12 @@ namespace libforefire{
 			FireNode::setSmoothing(params->getDouble("smoothing"));
 		if ( params->isValued("relax") )
 			FireNode::setRelax(params->getDouble("relax"));
-		if ( params->isValued("minSpeed") )
+		if ( params->isValued("minSpeed") ){
+
 			FireNode::setMinSpeed(params->getDouble("minSpeed"));
+		}
 		if ( params->isValued("minimalPropagativeFrontDepth") )
-			FireNode::setMinSpeed(params->getDouble("minimalPropagativeFrontDepth"));
+			FireNode::setMinDepth(params->getDouble("minimalPropagativeFrontDepth"));
 		/*---------------------------------*/
 		/* Defining the spatial properties */
 		/*---------------------------------*/

@@ -147,7 +147,7 @@ double BalbiNov2011Curv::getSpeed(double* valueOf){
 		double curvAdim = valueOf[curvature]*sin(gamma)*u00*u00
 				*(1.+valueOf[slope]*valueOf[slope])/(gravity*(T/lTa-1.));
 		double curvCor = 1. - curvAdim;
-		cout<<"curvature correction is "<<curvCor<<endl;
+
 		double geomFactor = curvCor*r0*((1+sin(gamma)-cos(gamma))/(1.+cos(gamma)));
 		double Rt = R0 + A*geomFactor;
 		R = 0.5*( Rt + sqrt( Rt*Rt + 4.*r0*R0/cos(gamma) ) );

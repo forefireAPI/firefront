@@ -15,6 +15,10 @@
     $result = PyString_FromString($1.c_str());
 }
 
+%pythoncode %{
+
+%}
+
 
 %include <numpy.i>
 

@@ -147,12 +147,18 @@ double BalbiUnsteady::getSpeed(double* valueOf){
 	double R;
 
 	if ( gamma > 0 ){
-		double curvCor = 1. - valueOf[curvature]/sqrt(1.+valueOf[curvature]*valueOf[curvature]);
-		double geomFactor = curvCor*(valueOf[fdepth]/tau)*((1+sin(gamma)-cos(gamma))
-					/(1.+valueOf[fdepth]*cos(gamma)/(tau*r0)));
-		double Rt = R0 + A*geomFactor;
-		R = 0.5*( Rt + sqrt( Rt*Rt + 4.*r0*R0/cos(gamma) ) );
+		double curvCor = 1. - 1*(valueOf[curvature]/sqrt(1.+valueOf[curvature]*valueOf[curvature]));
 
+		curvCor *= curvCor;
+		curvCor *= curvCor;
+		return curvCor/10;
+		double geomFactor = curvCor*(valueOf[fdepth]/tau)*((1+sin(gamma)-cos(gamma))/(1.+valueOf[fdepth]*cos(gamma)/(tau*r0)));
+	//	double geomFactor2 = (valueOf[fdepth]/tau)*((1+sin(gamma)-cos(gamma))/(1.+valueOf[fdepth]*cos(gamma)/(tau*r0)));
+		double Rt = R0 + A*geomFactor;
+	//	double Rt2 = R0 + A*geomFactor2;
+		R = 0.5*( Rt + sqrt( Rt*Rt + 4.*r0*R0/cos(gamma) ) );
+	//	double R2 = ( 0.5*( Rt2 + sqrt( Rt2*Rt2 + 4.*r0*R0/cos(gamma) ) ));
+	//	cout << curvCor << " and " << valueOf[curvature] <<" R is "<< R << " R2 " << R2 <<endl;
 	//	cout<<"R0="<<R0<<", A="<<A<<", fdepth="<<valueOf[fdepth]<<", tau="<<tau				<<", gamma="<<gamma<<", r0="<<r0<<", geomFactor="<<geomFactor				<<", Rt="<<Rt<<", R="<<R<<endl;
 
 	} else {

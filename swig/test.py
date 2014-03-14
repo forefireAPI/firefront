@@ -66,7 +66,7 @@ ff.setString("ForeFireDataDirectory","test")
 
 ff.setDouble("spatialIncrement",.3)
 ff.setDouble("minimalPropagativeFrontDepth",0.1)
-ff.setDouble("perimeterResolution",2)
+ff.setDouble("perimeterResolution",12)
 ff.setInt("atmoNX",sizeX)
 ff.setInt("atmoNY",sizeY)
 
@@ -84,6 +84,7 @@ ff.setDouble("nominalHeatFlux",100000)
 ff.setDouble("burningDuration",80)
 ff.setDouble("maxFrontDepth",50)
 ff.setDouble("minSpeed",0.0001)
+angle");"
 
 ff.execute("FireDomain[sw=(0.,0.,0.);ne=(%f,%f,0.);t=0.]"%(sizeX,sizeY))
 

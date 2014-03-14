@@ -73,6 +73,7 @@ ForeFireV1HeatFluxModel::ForeFireV1HeatFluxModel(
 	chi_b = 1.;
 	if ( params->isValued("FFfluxes.chi_b") )
 		chi_b = params->getDouble("FFfluxes.chi_b");
+	 cout << "new V1 Heat Fl Model "<< endl;
 }
 
 /* destructor (shoudn't be modified) */

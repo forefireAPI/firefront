@@ -51,7 +51,7 @@ string SimulationParameters::FormatISODate(double secs, int year, int yday){
     strftime(s, 22, "%Y-%m-%dT%H:%M:%SZ", timeInfo);
     return string(s);
 }
-
+/*
 bool SimulationParameters::ISODateDecomposition(string date, double &secs, int &year, int &yday)
 {
     // Exemple of Date : 2013-01-01T01:01:30Z
@@ -59,11 +59,47 @@ bool SimulationParameters::ISODateDecomposition(string date, double &secs, int &
         return false;
     
     struct tm tm;
+
+    memset(&tm, 0, sizeof tm);
+
     strptime(date.c_str(), "%Y-%m-%dT%H:%M:%SZ", &tm);
-    
+
+    cout << "day of year "<<tm.tm_yday<<endl;
+
     secs = tm.tm_sec + tm.tm_hour * 3600 + tm.tm_min * 60;
     year = tm.tm_year + 1900;
     yday = tm.tm_yday + 1;
+
+    return true;
+}
+*/
+
+bool SimulationParameters::ISODateDecomposition(string date, double &secs, int &year, int &yday)
+{
+    // Example of Date : 2013-01-01T01:01:30Z
+    if (date.size() != 20)
+        return false;
+    /*
+    struct tm tm;
+    strptime(date.c_str(), "%Y-%m-%dT%H:%M:%SZ", &tm);
+
+    secs = tm.tm_sec + tm.tm_hour * 3600 + tm.tm_min * 60;
+    year = tm.tm_year + 1900;
+    yday = tm.tm_yday + 1;
+    */
+
+	year = atoi(date.substr(0, 4).c_str());
+    secs = (atoi(date.substr(11, 2).c_str()) * 3600) + (atoi(date.substr(14, 2).c_str()) * 60) + atoi(date.substr(17, 2).c_str());
+
+	unsigned int daysPerMonth[] = {31, ((((year % 4) == 0) && (((year % 100) != 0) || ((year % 400) == 0))) ? 29 : 28), 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+	int month = atoi(date.substr(5, 2).c_str()) - 1;
+
+    yday = atoi(date.substr(8, 2).c_str());
+
+	for (int i = 0; i < month; i++)
+	{
+		yday += daysPerMonth[i];
+	}
     
     return true;
 }
@@ -79,7 +115,7 @@ double SimulationParameters::SecsBetween(double t1, int y1, int yday1, double t2
     yday2--;
     int tt2 = t2 + yday2*86400 + (y2-70)*31536000 + ((y2-69)/4)*86400 - ((y2-1)/100)*86400 + ((y2+299)/400)*86400;
     time_t rawtime2 = (time_t) tt2;
-    
+   // cout << "t1 "<< t1<< "t2  "<< t2<< " y1 "<< y1<< " y2 "<< y2 << " yday 1 "<<  yday1<< " yday 2 "<<  yday2 << rawtime1 << " yo "<<rawtime2 <<endl;
     return fabs(difftime(rawtime1, rawtime2));
 }
 
@@ -112,11 +148,11 @@ SimulationParameters::SimulationParameters(){
 	parameters.insert(make_pair("normalScheme","medians"));
 	parameters.insert(make_pair("curvatureComputation", "1"));
 	parameters.insert(make_pair("curvatureScheme","circumradius"));
-	parameters.insert(make_pair("frontDepthComputation", "1"));
+	parameters.insert(make_pair("frontDepthComputation", "0"));
 	parameters.insert(make_pair("frontDepthScheme","normalDir"));
 	parameters.insert(make_pair("minimalPropagativeFrontDepth","1."));
 	parameters.insert(make_pair("maxFrontDepth","20."));
-	parameters.insert(make_pair("initialFrontDepth", "0"));
+	parameters.insert(make_pair("initialFrontDepth", "20"));
 	parameters.insert(make_pair("initialBurningDuration", "30"));
 	parameters.insert(make_pair("bmapLayer","0"));
 

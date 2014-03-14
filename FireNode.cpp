@@ -210,6 +210,7 @@ void FireNode::timeAdvance(){
 		}
 
 		if (( speed > minSpeed )and(frontDepth > minFrontDepth)){
+
 			double dt = ds/speed;
 			if ( dt > dtMax ){
 				ds = dtMax*speed;
