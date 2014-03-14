@@ -209,7 +209,7 @@ void FireNode::timeAdvance(){
 
 		}
 
-		if (( speed > minSpeed )and(frontDepth > minFrontDepth)){
+		if (( speed > minSpeed )and(!fdepth or(frontDepth > minFrontDepth))){
 
 			double dt = ds/speed;
 			if ( dt > dtMax ){
