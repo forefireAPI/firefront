@@ -2561,10 +2561,13 @@ namespace libforefire{
 		propagativeLayer = 0;
 		for ( size_t i = 0; i < NUM_MAX_PROPMODELS; i++ ) propModelsTable[i] = 0;
 		ostringstream infile;
+        /*
 		infile<<params->getParameter("caseDirectory")<<'/'
 		<<params->getParameter("ForeFireDataDirectory")<<'/'
 		<<params->getParameter("NetCDFfile");
-
+        */
+        infile << params->GetPath(params->getParameter("NetCDFfile"));
+        
 		dataBroker->initializePropagativeLayer(infile.str());
 
 		/* initializations for the flux models */

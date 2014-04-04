@@ -119,6 +119,21 @@ double SimulationParameters::SecsBetween(double t1, int y1, int yday1, double t2
     return fabs(difftime(rawtime1, rawtime2));
 }
 
+string SimulationParameters::GetPath(string arg)
+{
+    // If the first character of the path is "/", then it's an absolute path
+    if (arg.at(0) == '/') {
+        return arg;
+    }
+    
+    // Else converts the relative path to an absolute path
+    // Example : 
+    // If  caseDirectory = /home/svn/web/apiDEV/out  AND  ForeFireDataDirectory = 2012-05-03
+    // Then  ../../../layers => /home/svn/web/apiDEV/out/2012-05-03/../../../layers
+    // And so understood as  /home/svn/web/layers
+    return GetInstance()->getParameter("caseDirectory") + '/' + GetInstance()->getParameter("ForeFireDataDirectory") + '/' + arg;
+}
+
 SimulationParameters::SimulationParameters(){
 
 	parameters.insert(make_pair("caseDirectory", (getenv("PWD")==NULL?".":getenv("PWD"))));
@@ -159,7 +174,7 @@ SimulationParameters::SimulationParameters(){
 	parameters.insert(make_pair("atmoNX", "100"));
 	parameters.insert(make_pair("atmoNY", "100"));
 	parameters.insert(make_pair("atmoNZ", "20"));
-
+    
 	parameters.insert(make_pair("refLongitude", "0"));
 	parameters.insert(make_pair("refLatitude", "0"));
     parameters.insert(make_pair("refYear", "0"));

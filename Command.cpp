@@ -783,9 +783,8 @@ int Command::loadData(const string& arg, size_t& numTabs){
     }
     
     SimulationParameters *simParam = SimulationParameters::GetInstance();
-    
-    string path(simParam->getParameter("caseDirectory"));
-    path += '/' + simParam->getParameter("ForeFireDataDirectory") + '/' + args[0];
+    string path = simParam->GetPath(args[0]);
+    cout << endl << "Nc file : " << path << endl;
     
 	if (std::ifstream(path.c_str()).fail())
 	{
@@ -801,7 +800,7 @@ int Command::loadData(const string& arg, size_t& numTabs){
 		return error;
 	}
     
-    simParam->setParameter("NetCDFfile", args[0]);
+    simParam->setParameter("NetCDFfile", path);
 
 	for (int layer = 0; layer < ncFile->num_vars(); layer++)
 	{
@@ -851,6 +850,8 @@ int Command::loadData(const string& arg, size_t& numTabs){
 	}
 
 	ExecuteCommand(com);
+    //domain->addLayer("data", "windU", "windU");
+    //domain->addLayer("data", "windV", "windV");
 	return normal;
 }
 

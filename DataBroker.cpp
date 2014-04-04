@@ -88,9 +88,12 @@ void DataBroker::commonInitialization() {
 	/* Getting the fuel parameters' table */
 	/*------------------------------------*/
 	ostringstream infile;
+    /*
 	infile << params->getParameter("caseDirectory") << '/'
 			<< params->getParameter("ForeFireDataDirectory") << '/'
 			<< params->getParameter("fuelsTableFile");
+    */
+    infile << params->GetPath(params->getParameter("fuelsTableFile"));
 	readTableFromAsciiFile(infile.str(), fuelPropertiesTable);
 }
 
@@ -321,7 +324,7 @@ void DataBroker::initializeAtmosphericLayers(const double& time,
 }
 
 void DataBroker::initializePropagativeLayer(string filename) {
-
+    cout << endl << "In DataBroker::initializePropagativeLayer(string filename)" << endl;
 	NcFile* NcdataFile = new NcFile(filename.c_str(), NcFile::ReadOnly);
 	if (NcdataFile->is_valid()) {
 		const char* type = "type";
@@ -358,7 +361,7 @@ void DataBroker::initializePropagativeLayer(string filename) {
 }
 
 void DataBroker::initializeFluxLayers(string filename) {
-
+    cout << endl << "In DataBroker::initializeFluxLayers(string filename)" << endl;
 	NcFile* NcdataFile = new NcFile(filename.c_str(), NcFile::ReadOnly);
 	if (NcdataFile->is_valid()) {
 		const char* type = "type";
@@ -420,7 +423,7 @@ void DataBroker::addConstantLayer(string name, const double& val) {
 
 
 void DataBroker::loadFromNCFile(string filename) {
-
+    cout << endl << "In DataBroker::loadFromNCFile(string filename)" << endl;
 	/* Loading all the properties in the netCDF file */
 	NcFile* NcdataFile = new NcFile(filename.c_str(), NcFile::ReadOnly);
 	propGetterMap::const_iterator pg;
@@ -429,9 +432,8 @@ void DataBroker::loadFromNCFile(string filename) {
 		/* loading the properties except for the fuel */
 		for (int layer = 0; layer < NcdataFile->num_vars(); layer++) {
 			string varName(NcdataFile->get_var(layer)->name());
-
 			NcAtt* att;
-			att = NcdataFile->get_var(layer)->get_att(type);
+            att = NcdataFile->get_var(layer)->get_att(type);
 			string layerType(att->as_string(0));
 			delete att;
 			pg = propPropertiesGetters.find(varName);
@@ -1075,6 +1077,7 @@ double* DataBroker::readAndTransposeFortranProjectedField(NcVar* val,
 PropagativeLayer<double>* DataBroker::constructPropagativeLayerFromFile(
 		NcFile* NcdataFile, string property) {
 
+    cout << endl << "In DataBroker::constructPropagativeLayerFromFile  --  property : " << property << endl;
 	/* Getting the information on the mesh */
 	/*-------------------------------------*/
 	// Getting information on the extension of the domain

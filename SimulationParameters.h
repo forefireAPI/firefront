@@ -85,6 +85,9 @@ public:
     
     /*! returns the number of seconds between two dates */
     static double SecsBetween(double t1, int y1, int yday1, double t2, int y2, int yday2);
+    
+    /*! returns the correct absolute path from a relative or absolute path */
+    static string GetPath(string arg);
 };
 
 }
