@@ -66,7 +66,6 @@ template<typename T> class FuelDataLayer : public DataLayer<T> {
 	/* Defining the fuel properties requested by the propagation model */
 	vector<map<string, double> > fuelPropertiesTable;
 
-	static const size_t MAXNUMFUELS = 256;
 	size_t fuelsNum;
 
 	/*! \brief Interpolation method: lowest order */
@@ -75,7 +74,8 @@ template<typename T> class FuelDataLayer : public DataLayer<T> {
 	size_t getPos(FFPoint& loc, double& time);
 
 public:
-
+    
+	static const size_t MAXNUMFUELS = 1024;
 	/*! \brief Default constructor */
 	FuelDataLayer() : DataLayer<T>() {};
 	/*! \brief Constructor for a lone fuel */
@@ -225,7 +225,6 @@ size_t FuelDataLayer<T>::getPos(FFPoint& loc, double& t){
 template<typename T>
 void FuelDataLayer<T>::getMatrix(
 		FFArray<T>** lmatrix, const double& time){
-
 
 		double res = 100;
 

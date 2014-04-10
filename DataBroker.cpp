@@ -195,7 +195,7 @@ void DataBroker::extractFuelProperties(vector<map<string, double> > propsTable,
 
 	try {
 		model->fuelPropertiesTable = new FFArray<double>("fuelProperties", 0.,
-				propsTable.size(), model->numFuelProperties);
+				FuelDataLayer<double>::MAXNUMFUELS, model->numFuelProperties);
 		size_t curfuel = 0;
 		map<string, double>::iterator iindex;
 		map<string, double>::iterator iparam;
@@ -831,6 +831,7 @@ FuelDataLayer<double>* DataBroker::constructFuelLayerFromFile(
 void DataBroker::readTableFromAsciiFile(string filename,
 		vector<map<string, double> >& table) {
 
+    cout << endl << "In DataBroker::readTableFromAsciiFile" << endl;
 	vector<string> paramNames;
 
 	/* Opening the file */
@@ -849,7 +850,7 @@ void DataBroker::readTableFromAsciiFile(string filename,
 	 * First line corresponds to the keys of the parameters. */
 	getline(file, line);
 	tokenize(line, paramNames, delimiter);
-
+    
 	/* Retrieving the data in the other lines */
 	size_t fuelNum = 0;
 	vector<string> vals;
@@ -883,11 +884,13 @@ void DataBroker::readTableFromAsciiFile(string filename,
 		vals.clear();
 	}
 	file.close();
+    cout << endl << "Exit DataBroker::readTableFromAsciiFile" << endl;
 }
 
 FluxLayer<double>* DataBroker::constructFluxLayerFromFile(NcFile* NcdataFile,
 		string property) {
 
+    cout << endl << "In DataBroker::constructFluxLayerFromFile" << endl;
 	/* Getting the information on the mesh */
 	/*-------------------------------------*/
 	// Getting information on the extension of the domain
@@ -964,6 +967,7 @@ FluxLayer<double>* DataBroker::constructFluxLayerFromFile(NcFile* NcdataFile,
 				domain->getCells(), data, SWCorner, timeOrigin, spatialExtent,
 				Lt, nx, ny, nz, nt);
 		delete[] data;
+        cout << endl << "Exit DataBroker::constructFluxLayerFromFile" << endl;
 		return newlayer;
 
 	} else {
@@ -987,6 +991,7 @@ FluxLayer<double>* DataBroker::constructFluxLayerFromFile(NcFile* NcdataFile,
 				atmoSWCorner, atmoNECorner, atmosphericNx, atmosphericNy,
 				domain->getCells(), data, SWC, t0, ext, Dt, nx, ny, nz, nt);
 		delete[] data;
+        cout << endl << "Exit DataBroker::constructFluxLayerFromFile" << endl;
 		return newlayer;
 
 	}
