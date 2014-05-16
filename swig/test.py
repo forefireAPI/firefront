@@ -53,9 +53,6 @@ def printToPathe(linePrinted):
 
 
 ff = forefire.PLibForeFire()
-#ff.execute("include[/Users/filippi/workspace/articles/FireJCP/cases/water/steadyModel/waterBarrier.ff]")
-#ff.execute("include[/Users/filippi/workspace/LibForeFire/Examples/03_Canyon/01_forefire/FireSimulation.ff]")
-
 
 sizeX = 300
 sizeY = 200
@@ -66,7 +63,7 @@ ff.setString("ForeFireDataDirectory","test")
 
 ff.setDouble("spatialIncrement",.3)
 ff.setDouble("minimalPropagativeFrontDepth",0.1)
-ff.setDouble("perimeterResolution",12)
+ff.setDouble("perimeterResolution",1)
 ff.setInt("atmoNX",sizeX)
 ff.setInt("atmoNY",sizeY)
 
@@ -84,7 +81,7 @@ ff.setDouble("nominalHeatFlux",100000)
 ff.setDouble("burningDuration",80)
 ff.setDouble("maxFrontDepth",50)
 ff.setDouble("minSpeed",0.0001)
-angle");"
+
 
 ff.execute("FireDomain[sw=(0.,0.,0.);ne=(%f,%f,0.);t=0.]"%(sizeX,sizeY))
 
@@ -95,7 +92,6 @@ ff.addLayer("data","windU","windU")
 ff.addLayer("data","windV","windV")
 ff.addLayer("BRatio","BRatio","BRatio")
 ff.addLayer("flux","heatFluxBasic","defaultHeatType")
-#ff.addLayer("propagation","BalbiNov2011","propagationModel")
 ff.addLayer("propagation","BalbiUnsteady","propagationModel")
 
 fuelmap = np.zeros((sizeX,sizeY,1), dtype=np.int32)
