@@ -36,6 +36,9 @@ DataLayer<double>* DataBroker::altitudeLayer = 0;
 DataLayer<double>* DataBroker::slopeLayer = 0;
 DataLayer<double>* DataBroker::windULayer = 0;
 DataLayer<double>* DataBroker::windVLayer = 0;
+
+XYZTDataLayer<double>* DataBroker::PwindULayer = 0;
+XYZTDataLayer<double>* DataBroker::PwindVLayer = 0;
 FluxLayer<double>* DataBroker::heatFluxLayer = 0;
 
 SimulationParameters* DataBroker::params = SimulationParameters::GetInstance();
@@ -324,7 +327,7 @@ void DataBroker::initializeAtmosphericLayers(const double& time,
 }
 
 void DataBroker::initializePropagativeLayer(string filename) {
-    cout << endl << "In DataBroker::initializePropagativeLayer(string filename)" << endl;
+
 	NcFile* NcdataFile = new NcFile(filename.c_str(), NcFile::ReadOnly);
 	if (NcdataFile->is_valid()) {
 		const char* type = "type";
@@ -361,7 +364,7 @@ void DataBroker::initializePropagativeLayer(string filename) {
 }
 
 void DataBroker::initializeFluxLayers(string filename) {
-    cout << endl << "In DataBroker::initializeFluxLayers(string filename)" << endl;
+
 	NcFile* NcdataFile = new NcFile(filename.c_str(), NcFile::ReadOnly);
 	if (NcdataFile->is_valid()) {
 		const char* type = "type";
@@ -423,7 +426,7 @@ void DataBroker::addConstantLayer(string name, const double& val) {
 
 
 void DataBroker::loadFromNCFile(string filename) {
-    cout << endl << "In DataBroker::loadFromNCFile(string filename)" << endl;
+
 	/* Loading all the properties in the netCDF file */
 	NcFile* NcdataFile = new NcFile(filename.c_str(), NcFile::ReadOnly);
 	propGetterMap::const_iterator pg;
@@ -436,6 +439,19 @@ void DataBroker::loadFromNCFile(string filename) {
             att = NcdataFile->get_var(layer)->get_att(type);
 			string layerType(att->as_string(0));
 			delete att;
+			if (varName == "wind") {
+								// wind is given by the NetCDF file
+								cout << "databroker::loadfromncfile wind all params"<< endl;
+								XYZTDataLayer<double> * wul = constructXYZTLayerFromFile(
+										NcdataFile, varName.c_str(),0);
+								registerLayer("windU", wul);
+								XYZTDataLayer<double> * wvl = constructXYZTLayerFromFile(
+																		NcdataFile, varName.c_str(),1);
+								registerLayer("windV", wvl);
+								PwindULayer = wul;
+								PwindVLayer = wvl;
+
+							}
 			pg = propPropertiesGetters.find(varName);
 
 			if (pg != propPropertiesGetters.end()) {
@@ -443,7 +459,7 @@ void DataBroker::loadFromNCFile(string filename) {
 				if (varName == "altitude") {
 					// altitude is given by the NetCDF file
 					XYZTDataLayer<double> * alt = constructXYZTLayerFromFile(
-							NcdataFile, varName.c_str());
+							NcdataFile, varName.c_str(),-1);
 
 					registerLayer(varName, alt);
 				/*	XYZTDataLayer<double> * valt = constructXYZTLayerFromFile(
@@ -453,16 +469,16 @@ void DataBroker::loadFromNCFile(string filename) {
 				} else if (varName == "windU") {
 					// wind is given by the NetCDF file
 					XYZTDataLayer<double> * wul = constructXYZTLayerFromFile(
-							NcdataFile, varName.c_str());
+							NcdataFile, varName.c_str(),-1);
 					registerLayer(varName, wul);
 				} else if (varName == "windV") {
 					// wind is given by the NetCDF file
 					XYZTDataLayer<double> * wvl = constructXYZTLayerFromFile(
-							NcdataFile, varName.c_str());
+							NcdataFile, varName.c_str(),-1);
 					registerLayer(varName, wvl);
 				} else if (varName == "fieldSpeed") {
 					dummyLayer = constructXYZTLayerFromFile(NcdataFile,
-							varName.c_str());
+							varName.c_str(),-1);
 					registerLayer(varName, dummyLayer);
 				}
 			} else if (layerType.find("data") != string::npos) {
@@ -471,7 +487,7 @@ void DataBroker::loadFromNCFile(string filename) {
 						varName) != neededProperties.end()) {
 					XYZTDataLayer<double>* newlayer =
 							constructXYZTLayerFromFile(NcdataFile,
-									varName.c_str());
+									varName.c_str(),-1);
 					registerLayer(varName, newlayer);
 				}
 			} else if (layerType.find("parameter") != string::npos) {
@@ -658,7 +674,7 @@ double DataBroker::getNetCDFTimeSpan(NcVar* var) {
 }
 
 XYZTDataLayer<double>* DataBroker::constructXYZTLayerFromFile(
-		NcFile* NcdataFile, string property) {
+		NcFile* NcdataFile, string property, int dimTSelected = -1) {
 
 	/* Getting the information on the mesh */
 	/*-------------------------------------*/
@@ -704,18 +720,24 @@ XYZTDataLayer<double>* DataBroker::constructXYZTLayerFromFile(
 	/* Getting the data */
 	/*------------------*/
 
+		 if (dimTSelected>-1){
+			 	 nt = 1;
+
+		    }
 	double* data = readAndTransposeFortranProjectedField(values, nt, nz, ny, nx,
-			version>0);
+			version>0,dimTSelected);
 
 	if (isRelevantData(SWCorner, spatialExtent)) {
 
 		/* Instanciating the data layer */
 		/*------------------------------*/
+
 		XYZTDataLayer<double>* newlayer = new XYZTDataLayer<double>(property,
 				SWCorner, timeOrigin, spatialExtent, Lt, nx, ny, nz, nt, data);
-
 		delete[] data;
-		return newlayer;
+				return newlayer;
+
+
 
 	} else {
 
@@ -791,7 +813,7 @@ FuelDataLayer<double>* DataBroker::constructFuelLayerFromFile(
 	/* Getting the data */
 	/*------------------*/
 	int* fuelMap = readAndTransposeIntFortranProjectedField(values, nt, nz, ny,
-			nx, version>0);
+			nx, version>0,-1);
 
 	if (isRelevantData(SWCorner, spatialExtent)) {
 
@@ -831,7 +853,7 @@ FuelDataLayer<double>* DataBroker::constructFuelLayerFromFile(
 void DataBroker::readTableFromAsciiFile(string filename,
 		vector<map<string, double> >& table) {
 
-    cout << endl << "In DataBroker::readTableFromAsciiFile" << endl;
+
 	vector<string> paramNames;
 
 	/* Opening the file */
@@ -884,13 +906,13 @@ void DataBroker::readTableFromAsciiFile(string filename,
 		vals.clear();
 	}
 	file.close();
-    cout << endl << "Exit DataBroker::readTableFromAsciiFile" << endl;
+
 }
 
 FluxLayer<double>* DataBroker::constructFluxLayerFromFile(NcFile* NcdataFile,
 		string property) {
 
-    cout << endl << "In DataBroker::constructFluxLayerFromFile" << endl;
+
 	/* Getting the information on the mesh */
 	/*-------------------------------------*/
 	// Getting information on the extension of the domain
@@ -956,7 +978,7 @@ FluxLayer<double>* DataBroker::constructFluxLayerFromFile(NcFile* NcdataFile,
 	/* Getting the data */
 	/*------------------*/
 	int* data = readAndTransposeIntFortranProjectedField(flux, nt, nz, ny, nx,
-			version>0);
+			version>0,-1);
 
 	if (isRelevantData(SWCorner, spatialExtent)) {
 
@@ -967,7 +989,6 @@ FluxLayer<double>* DataBroker::constructFluxLayerFromFile(NcFile* NcdataFile,
 				domain->getCells(), data, SWCorner, timeOrigin, spatialExtent,
 				Lt, nx, ny, nz, nt);
 		delete[] data;
-        cout << endl << "Exit DataBroker::constructFluxLayerFromFile" << endl;
 		return newlayer;
 
 	} else {
@@ -991,7 +1012,6 @@ FluxLayer<double>* DataBroker::constructFluxLayerFromFile(NcFile* NcdataFile,
 				atmoSWCorner, atmoNECorner, atmosphericNx, atmosphericNy,
 				domain->getCells(), data, SWC, t0, ext, Dt, nx, ny, nz, nt);
 		delete[] data;
-        cout << endl << "Exit DataBroker::constructFluxLayerFromFile" << endl;
 		return newlayer;
 
 	}
@@ -1000,7 +1020,7 @@ FluxLayer<double>* DataBroker::constructFluxLayerFromFile(NcFile* NcdataFile,
 
 int* DataBroker::readAndTransposeIntFortranProjectedField(NcVar* val,
 		const size_t &nt, const size_t &nz, const size_t &ny, const size_t &nx,
-		bool transpose = true) {
+		bool transpose = true, int selectedT =-1) {
 
 	int* tmp = new int[nt * nz * ny * nx];
 
@@ -1035,15 +1055,21 @@ int* DataBroker::readAndTransposeIntFortranProjectedField(NcVar* val,
 }
 double* DataBroker::readAndTransposeFortranProjectedField(NcVar* val,
 		const size_t &nt, const size_t &nz, const size_t &ny, const size_t &nx,
-		bool transpose = true) {
+		bool transpose = true,  int selectedT = -1) {
+	size_t nnt = nt;
+	 if (selectedT>-1){
+		 	 nnt = 1;
+	    	val->set_cur(selectedT,0,0,0);
+	    }
 
-	double* tmp = new double[nt * nz * ny * nx];
+
+	double* tmp = new double[nnt * nz * ny * nx];
 
 
 	if (!transpose){
 
 		cout<< "not transposing field "<<endl;
-		if (!val->get(tmp, nt, nz, ny, nx)) {
+		if (!val->get(tmp, nnt, nz, ny, nx)) {
 				cout << "error in getting the NC field" << endl;
 				delete tmp;
 				return NULL;
@@ -1052,13 +1078,13 @@ double* DataBroker::readAndTransposeFortranProjectedField(NcVar* val,
 
 	}
 
-	if (!val->get(tmp, nt, nz, ny, nx)) {
+	if (!val->get(tmp, nnt, nz, ny, nx)) {
 		cout << "error in getting the double data NC field" << endl;
 		delete tmp;
 		return NULL;
 	}
-	double* data = new double[nt * nz * ny * nx];
-	size_t size = nt * nz * ny * nx;
+	double* data = new double[nnt * nz * ny * nx];
+	size_t size = nnt * nz * ny * nx;
 	size_t indC, indF;
 	size_t ii, jj, kk, rest;
 
@@ -1082,8 +1108,7 @@ double* DataBroker::readAndTransposeFortranProjectedField(NcVar* val,
 PropagativeLayer<double>* DataBroker::constructPropagativeLayerFromFile(
 		NcFile* NcdataFile, string property) {
 
-    cout << endl << "In DataBroker::constructPropagativeLayerFromFile  --  property : " << property << endl;
-	/* Getting the information on the mesh */
+   /* Getting the information on the mesh */
 	/*-------------------------------------*/
 	// Getting information on the extension of the domain
 	const char* sdom = "domain";

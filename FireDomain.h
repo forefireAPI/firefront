@@ -414,6 +414,7 @@ public:
 	double getArrivalTime(FFPoint&);
 	double getArrivalTime(const size_t&, const size_t&);
 	FFPoint& getSWCorner();
+	FFPoint& getNECorner();
 	int getNumIterationAtmoModel();
 	void increaseNumIterationAtmoModel();
 	PropagativeLayer<double>* getPropagativeLayer();

@@ -76,7 +76,7 @@ class Command {
 	// Definition of the command map alias
 	typedef int (*cmd)(const string&, size_t&);
 	typedef map<string,cmd> commandMap;  /*!< map of aliases between strings and functions to be called */
-	static const int numberCommands = 16; /*!< number of possible commands */
+	static const int numberCommands = 17; /*!< number of possible commands */
 	static commandMap makeCmds(){
 		// Construction of the command translator
 		commandMap trans;
@@ -91,6 +91,7 @@ class Command {
 		trans["setParameter"] = &setParameter;
 		trans["setParameters"] = &setParameters;
 		trans["getParameter"] = &getParameter;
+		trans["trigger"] = &triggerValue;
 		trans["include"] = &include;
 		trans["help"] = &help;
 		trans["man"] = &man;
@@ -205,6 +206,8 @@ class Command {
 	/*! \brief command to get a given parameters */
 	static int getParameter(const string&, size_t&);
 	/*! \brief command to include a file */
+	static int triggerValue(const string&, size_t&);
+	/*! \brief command to trigger values that will modifie runtime model parameterisation */
 	static int include(const string&, size_t&);
 	/*! \brief help */
 	static int help(const string&, size_t&);

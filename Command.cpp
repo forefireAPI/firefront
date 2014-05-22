@@ -75,6 +75,7 @@ Command::CmdDictEntry Command::cmdDict[] =	{
 		,CmdDictEntry("setParameter[...]","sets a given parameter")
 		,CmdDictEntry("setParameters[...]","sets a given list of parameters")
 		,CmdDictEntry("getParameter[...]","return the parameter from a key")
+		,CmdDictEntry("trigger[...]","set a value at a certaind date to change model ")
 		,CmdDictEntry("include[...]","includes commands from a file")
 		,CmdDictEntry("print[...]","prints the state of the simulation")
 		,CmdDictEntry("save[]","saves the simulation in hdf format")
@@ -292,7 +293,6 @@ int Command::addFireNode(const string& arg, size_t& numTabs){
 		if ( kappa == floatError ) kappa = 0.;
 		string state = getString("state", arg);
 		if ( state == stringError or state == "moving" ) state = "init";
-
 		if ( numTabs != currentLevel + 1 ) {
 			cout<<currentSession.fd->getDomainID()<<": WARNING : asked for a FireNode "
 					<<" with wrong indentation, treating it the current fire front"<<endl;
@@ -724,6 +724,24 @@ int Command::getParameter(const string& arg, size_t& numTabs){
 	return normal;
 }
 
+int Command::triggerValue(const string& arg, size_t& numTabs){
+	FFVector a = getVector("vel", arg);
+	FFPoint b = getPoint("loc", arg);
+
+    if(currentSession.fd != 0){
+    	if(currentSession.fd->getDataBroker() != 0){
+    		if(currentSession.fd->getDataBroker()->PwindULayer != 0){
+    			currentSession.fd->getDataBroker()->PwindULayer->setProjectionDirVector(a,b);
+    		    }
+    		if(currentSession.fd->getDataBroker()->PwindVLayer != 0){
+    		    			currentSession.fd->getDataBroker()->PwindVLayer->setProjectionDirVector(a,b);
+    		    }
+    	    }
+    }
+
+
+
+}
 int Command::include(const string& arg, size_t& numTabs){
 	/* the commands are read from a defined file
 	 *  testing for the presence of the file */

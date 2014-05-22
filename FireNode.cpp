@@ -718,6 +718,7 @@ bool FireNode::isMerging(){
 bool FireNode::mergeAllowed(){
 	if ( getDomainID() != domain->getDomainID() ) return false;
 	if ( currentState == moving ) return true;
+	if ( currentState == final ) return true;
 	return false;
 }
 

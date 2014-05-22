@@ -165,11 +165,14 @@ SimulationParameters::SimulationParameters(){
 	parameters.insert(make_pair("curvatureScheme","circumradius"));
 	parameters.insert(make_pair("frontDepthComputation", "0"));
 	parameters.insert(make_pair("frontDepthScheme","normalDir"));
-	parameters.insert(make_pair("minimalPropagativeFrontDepth","1."));
-	parameters.insert(make_pair("maxFrontDepth","20."));
+	parameters.insert(make_pair("minimalPropagativeFrontDepth","10."));
+	parameters.insert(make_pair("maxFrontDepth","200."));
 	parameters.insert(make_pair("initialFrontDepth", "20"));
 	parameters.insert(make_pair("initialBurningDuration", "30"));
 	parameters.insert(make_pair("bmapLayer","0"));
+	parameters.insert(make_pair("minSpeed","0.005"));
+	parameters.insert(make_pair("relax","0.5"));
+	parameters.insert(make_pair("smoothing","1"));
 
 	parameters.insert(make_pair("atmoNX", "100"));
 	parameters.insert(make_pair("atmoNY", "100"));
@@ -189,9 +192,12 @@ SimulationParameters::SimulationParameters(){
 	parameters.insert(make_pair("NECornerX", "10"));
 	parameters.insert(make_pair("NECornerY", "10"));
 
-	parameters.insert(make_pair("perimeterResolution", "10"));
+	parameters.insert(make_pair("perimeterResolution", "40"));
 	parameters.insert(make_pair("spatialCFLmax", "0.3"));
-	parameters.insert(make_pair("spatialIncrement", "0.2"));
+	parameters.insert(make_pair("spatialIncrement", "2"));
+	parameters.insert(make_pair("spatialCFLmax", "0.3"));
+	parameters.insert(make_pair("spatialIncrement", "2"));
+
 
 	parameters.insert(make_pair("watchedProc", "-2"));
 	parameters.insert(make_pair("CommandOutputs", "0"));

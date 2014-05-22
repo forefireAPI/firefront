@@ -299,7 +299,9 @@ namespace libforefire{
 	FFPoint& FireDomain::getSWCorner(){
 		return SWCorner;
 	}
-
+	FFPoint& FireDomain::getNECorner(){
+		return NECorner;
+	}
 	double& FireDomain::SWCornerX(){
 		return SWCorner.getX();
 	}

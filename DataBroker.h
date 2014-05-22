@@ -88,6 +88,8 @@ class DataBroker {
 	static DataLayer<double>* windULayer; /*!< predefined layer for longitudinal wind (optimization) */
 	static DataLayer<double>* windVLayer; /*!< predefined layer for lateral wind (optimization) */
 
+
+
 	vector<map<string, double> > fuelPropertiesTable; /*!< values of the properties of the fuels */
 	void extractFuelProperties(vector<map<string, double> >, ForeFireModel*);
 
@@ -192,7 +194,7 @@ class DataBroker {
 	/*! \brief retrieving the time origin in an NcFile */
 	double getNetCDFTimeSpan(NcVar*);
 	/*! \brief loading a NCXYZTDataLayer from an NcFile */
-	XYZTDataLayer<double>* constructXYZTLayerFromFile(NcFile*, string);
+	XYZTDataLayer<double>* constructXYZTLayerFromFile(NcFile*, string,int);
 	/*! \brief loading a FuelDataLayer from an NcFile */
 	FuelDataLayer<double>* constructFuelLayerFromFile(NcFile*);
 	/*! \brief loading a PropagativeLayer from an NcFile */
@@ -204,13 +206,17 @@ class DataBroker {
 	bool isRelevantData(FFPoint&, FFPoint&);
 	double getNetCDFFileVersion(NcVar* var);
 	/*! \transpose data from fortran netcdf*/
-	double* readAndTransposeFortranProjectedField(NcVar* , const size_t& ,const size_t&  , const size_t& ,const size_t& ,bool   );
-	int*    readAndTransposeIntFortranProjectedField(NcVar* , const size_t& ,const size_t&  , const size_t& ,const size_t&, bool  );
+	double* readAndTransposeFortranProjectedField(NcVar* , const size_t& ,const size_t&  , const size_t& ,const size_t& ,bool  ,  int );
+	int*    readAndTransposeIntFortranProjectedField(NcVar* , const size_t& ,const size_t&  , const size_t& ,const size_t&, bool ,  int );
 
 public:
 
 	// Pre-defined layers
 	static FluxLayer<double>* heatFluxLayer; /*!< predefined layer for heat flux */
+
+
+	static XYZTDataLayer<double>* PwindULayer; /*!< predefined layer for longitudinal wind (optimization) */
+	static XYZTDataLayer<double>* PwindVLayer; /*!< predefined layer for lateral wind (optimization) */
 
 	/*! \brief default constructor */
 	DataBroker(FireDomain* = 0);

@@ -73,6 +73,7 @@ public:
 	virtual void dumpAsBinary(string, const double&
 			, FFPoint&, FFPoint&, size_t&, size_t&) = 0;
 
+
 };
 
 }

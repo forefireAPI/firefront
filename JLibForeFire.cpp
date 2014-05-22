@@ -143,7 +143,7 @@ JNIEXPORT jobjectArray JNICALL Java_fprop_coupling_CCoupling_getMatrix  (JNIEnv 
 			if (srcD == 0) return NULL;
 			int nx =   srcD->getDim("x");
 			int ny =   srcD->getDim("y");
-			int nz =   srcD->getDim("z");
+			int nz =  1;// srcD->getDim("z");
 
 			jdoubleArray elemProto = penv->NewDoubleArray(nz);
 			jdoubleArray elem = penv->NewDoubleArray(nz);
@@ -156,6 +156,12 @@ JNIEXPORT jobjectArray JNICALL Java_fprop_coupling_CCoupling_getMatrix  (JNIEnv 
 			penv->DeleteLocalRef(elem);
 			elem = NULL;
 
+			double dx = (executor->getDomain()->getNECorner().getX() - executor->getDomain()->getSWCorner().getX())/nx;
+			double dy = (executor->getDomain()->getNECorner().getY() - executor->getDomain()->getSWCorner().getY())/ny;
+
+			FFPoint p = FFPoint(executor->getDomain()->getSWCorner().getX(),executor->getDomain()->getSWCorner().getY(),0);
+
+
 			for (i = 0; i < nx; i++) {
 				jobjectArray row = penv->NewObjectArray(ny,penv->GetObjectClass(elemProto), NULL);
 
@@ -163,20 +169,21 @@ JNIEXPORT jobjectArray JNICALL Java_fprop_coupling_CCoupling_getMatrix  (JNIEnv 
 					elem = penv->NewDoubleArray(nz);
 					jdouble* elemElems = penv->GetDoubleArrayElements(elem, &isCopy);
 					for (k = 0; k < nz; k++) {
-						elemElems[k] =  (*srcD)(i,j,k);
+						elemElems[k] =  myLayer->getValueAt(p,0);//(*srcD)(i,j,k);
+
 					}
 					penv->SetDoubleArrayRegion( elem, 0, nz, elemElems);
 					penv->SetObjectArrayElement(row, j, elem);
 					if (isCopy == JNI_TRUE) {
 						penv->ReleaseDoubleArrayElements( elem, elemElems, JNI_ABORT);
 					}
-
+					p.y += dy;
 					penv->DeleteLocalRef(elem);
 					elem = NULL;
 				}
 				penv->SetObjectArrayElement(resultDD, i, row);
-
-
+				p.x += dx;
+				p.y = executor->getDomain()->getSWCorner().getY();
 
 				penv->DeleteLocalRef(row);
 				row = NULL;

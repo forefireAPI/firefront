@@ -21,7 +21,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 #ifndef NCXYZTDATALAYER_H_
 #define NCXYZTDATALAYER_H_
 
+
 #include "DataLayer.h"
+#include <math.h>
 
 using namespace std;
 
@@ -36,6 +38,7 @@ namespace libforefire {
  *  in a NetCDF format up to 4D. This class extracts one specific
  *  NetCDF variable of the file to store it in memory.
  */
+
 template<typename T> class XYZTDataLayer : public DataLayer<T> {
 
 	double SWCornerX; /*!< origin in the X direction */
@@ -59,6 +62,14 @@ template<typename T> class XYZTDataLayer : public DataLayer<T> {
 	double dz; /*!< increment in the Z direction */
 	double dt; /*!< increment in the T direction */
 
+	double projectionDirValue; /* value for direction Interpalation*/
+	double projectionScaleValue; /* value for direction Interpalation*/
+	int interDirID0 ;
+	int interDirID1;
+	double interDirRatio ;
+	double interDirScaler ;
+
+
 	FFArray<T>* array; /*!< pointer to the FFArray containing the data */
 
 	/*! \brief Interpolation method: lowest order */
@@ -69,6 +80,8 @@ template<typename T> class XYZTDataLayer : public DataLayer<T> {
 	T bilinearInterp(FFPoint, const double&);
 
 public:
+
+
 	/*! \brief Default constructor */
 	XYZTDataLayer() : DataLayer<T>() {
 		startTime = 0;
@@ -89,7 +102,12 @@ public:
 			dy = 0.;
 			dz = 0.;
 			dt = 0.;
-			interp = bilinear;
+			interDirID0 = 0 ;
+			 interDirID1 = 0 ;
+			 interDirRatio = 1  ;
+			 interDirScaler = 1  ;
+			 projectionDirValue = 0;
+			interp = InterpolationBilinear;
 
 	};
 	/*! \brief Constructor with a sole value */
@@ -113,7 +131,12 @@ public:
 		dy = 0.;
 		dz = 0.;
 		dt = 0.;
-		interp = bilinear;
+		interDirID0 = 5 ;
+		 interDirID1 = 5 ;
+		 interDirRatio = 1  ;
+		 interDirScaler = 1  ;
+		 projectionDirValue = 0;
+		interp = InterpolationBilinear;
 	}
 	/*! \brief Constructor with a given file and given variable */
 	XYZTDataLayer(string name, FFPoint& SWCorner, double& t0
@@ -134,19 +157,36 @@ public:
 		dy = extent.getY()/ny;
 		dz = extent.getZ()/nz;
 		dt = timespan/nt;
-		interp = bilinear;
+		interp = InterpolationBilinear;
+
+		interDirID0 = 2 ;
+		interDirID1 = 2 ;
+		interDirRatio = 1  ;
+		interDirScaler = 1  ;
+		 projectionDirValue = 0;
+
+
+		if(nt>1){
+			interp = InterpolationBilinearT;
+		}
+		if(nz>1)
+		{
+			interp = InterpolationBilinearDir;
+		}
+
 	}
 	/*! \brief destructor */
 	~XYZTDataLayer();
 
-	/*! \brief interpolation method enum type */
-	enum InterpolationMethod {
-		nearestData = 0,
-		bilinear = 1
-	};
+	/*! \brief interpolation method */
+	static const short InterpolationNearestData = 0;
+	static const short  InterpolationBilinear = 1;
+	static const short  InterpolationBilinearT = 2;
+	static const short  InterpolationBilinearDir = 3;
+	static const short  InterpolationBilinearZ = 4;
 
 	/*! \brief interpolation method */
-	InterpolationMethod interp;
+	short interp;
 
 	/*! \brief obtains the value at a given position in the array */
 	T getVal(size_t = 0, size_t = 0, size_t = 0, size_t = 0);
@@ -177,12 +217,16 @@ public:
 	void dumpAsBinary(string, const double&
 			, FFPoint&, FFPoint&, size_t&, size_t&);
 
+	void setProjectionDirVector(FFVector& ,FFPoint& );
+
 };
 
 template<typename T>
 XYZTDataLayer<T>::~XYZTDataLayer() {
 	delete array;
 }
+
+
 
 template<typename T>
 T XYZTDataLayer<T>::getVal(size_t pos){
@@ -230,21 +274,95 @@ size_t XYZTDataLayer<T>::getPos(FFPoint& loc, const double& t){
 
 template<typename T>
 T XYZTDataLayer<T>::getValueAt(FireNode* fn){
-	if ( size == 1 ) return (*array)(0, 0, 0, 0);
-	FFPoint loc = fn->getLoc();
-	double t = fn->getTime();
-	if ( interp == nearestData ) return getNearestData(fn->getLoc(), t);
-	if ( interp == bilinear ) return bilinearInterp(fn->getLoc(), t);
-	cout<<"WARNING: unknown interpolation method in "
-			<<"Array2DdataLayer<T>::getValueAt(FireNode*)"<<endl;
-	return (T) 0;
+	return getValueAt( fn->getLoc(), fn->getTime());
 }
 
 template<typename T>
 T XYZTDataLayer<T>::getValueAt(FFPoint loc, const double& t){
 	if ( size == 1 ) return (*array)(0, 0, 0, 0);
-	if ( interp == nearestData ) return getNearestData(loc, t);
-	if ( interp == bilinear ) return bilinearInterp(loc, t);
+	if ( interp == InterpolationNearestData ) {
+		return ((*array)(getPos(loc,t)));
+	}
+
+
+	    /* This method implements a multilinear interpolation */
+		/* At this time no interpolation in 'Z' is done       */
+
+		/* searching the coordinates of the nodes around      */
+		FFPoint indices = posToIndices(loc);
+
+		double ud = indices.getX() + FFConstants::epsilonx;
+		double vd = indices.getY() + FFConstants::epsilonx;
+
+		int uu = (int) ceil(ud-1);
+		int vv = (int) ceil(vd-1);
+
+		if ( uu < 0 ) uu = 0;
+		if ( uu > ((int) nx) - 2 ) uu = ((int) nx) - 2;
+		if ( vv < 0 ) vv = 0;
+		if ( vv > ((int) ny) - 2 ) vv = ((int) ny) - 2;
+
+		double udif = ud - ((double) uu);
+		double vdif = vd - ((double) vv);
+
+		double csw = (1.-udif) * (1.-vdif);
+		double cse = udif * (1 - vdif);
+		double cnw = (1 - udif) * vdif;
+		double cne = udif * vdif;
+
+
+		if ( interp == InterpolationBilinear )
+		{
+			T tsw = getVal(uu,vv);
+			T tnw = getVal(uu,vv+1);
+			T tne = getVal(uu+1,vv+1);
+			T tse = getVal(uu+1,vv);
+			return csw*tsw + cse*tse + cnw*tnw + cne*tne;
+
+		}
+
+		if ( interp == InterpolationBilinearT ){
+					int it = (int) (t-startTime)/dt;
+
+					T tsw1 = getVal(uu,vv,0,it);
+					T tnw1 = getVal(uu,vv+1,0,it);
+					T tne1 = getVal(uu+1,vv+1,0,it);
+					T tse1 = getVal(uu+1,vv,0,it);
+
+					T tsw2 = getVal(uu,vv,0,it+1);
+					T tnw2 = getVal(uu,vv+1,0,it+1);
+					T tne2 = getVal(uu+1,vv+1,0,it+1);
+					T tse2 = getVal(uu+1,vv,0,it+1);
+
+					T val1 = csw*tsw1 + cse*tse1 + cnw*tnw1 + cne*tne1;
+					T val2 = csw*tsw2 + cse*tse2 + cnw*tnw2 + cne*tne2;
+
+					/* interpolation in time */
+					double at = ( t - it*dt )/dt;
+					return at*val1 + (1.-at)*val2;
+
+				}
+
+		if ( interp == InterpolationBilinearDir ){
+
+					T tsw1 = getVal(uu,vv,interDirID0,0);
+					T tnw1 = getVal(uu,vv+1,interDirID0,0);
+					T tne1 = getVal(uu+1,vv+1,interDirID0,0);
+					T tse1 = getVal(uu+1,vv,interDirID0,0);
+
+					T tsw2 = getVal(uu,vv,interDirID1,0);
+					T tnw2 = getVal(uu,vv+1,interDirID1,0);
+					T tne2 = getVal(uu+1,vv+1,interDirID1,0);
+					T tse2 = getVal(uu+1,vv,interDirID1,0);
+
+					T val1 = csw*tsw1 + cse*tse1 + cnw*tnw1 + cne*tne1;
+					T val2 = csw*tsw2 + cse*tse2 + cnw*tnw2 + cne*tne2;
+
+					/* interpolation in dir + scale*/
+					return interDirScaler*(interDirRatio*val1 + (1.-interDirRatio)*val2);
+
+				}
+
 	cout<<"WARNING: unknown interpolation method in "
 			<<"Array2DdataLayer<T>::getValueAt(FireNode*)"<<endl;
 	return (T) 0;
@@ -252,12 +370,9 @@ T XYZTDataLayer<T>::getValueAt(FFPoint loc, const double& t){
 
 template<typename T>
 void XYZTDataLayer<T>::setValueAt(FFPoint loc, const double& t){
-	if ( size == 1 ) return (*array)(0, 0, 0, 0);
-	if ( interp == nearestData ) return getNearestData(loc, t);
-	if ( interp == bilinear ) return bilinearInterp(loc, t);
-	cout<<"WARNING: unknown interpolation method in "
-			<<"Array2DdataLayer<T>::getValueAt(FireNode*)"<<endl;
-	return (T) 0;
+
+	cout<<"WARNING: setting value not implemented in XYZDataLayer"<<endl;
+
 }
 
 
@@ -287,62 +402,7 @@ FFPoint XYZTDataLayer<T>::posToIndices(FFPoint& loc){
 	return ind;
 }
 
-template<typename T>
-T XYZTDataLayer<T>::bilinearInterp(FFPoint loc, const double& t){
-	/* This method implements a multilinear interpolation */
-	/* At this time no interpolation in 'Z' is done */
 
-	/* searching the coordinates of the nodes around */
-	FFPoint indices = posToIndices(loc);
-
-	double ud = indices.getX() + FFConstants::epsilonx;
-	double vd = indices.getY() + FFConstants::epsilonx;
-
-	int uu = (int) ceil(ud-1);
-	int vv = (int) ceil(vd-1);
-
-	if ( uu < 0 ) uu = 0;
-	if ( uu > ((int) nx) - 2 ) uu = ((int) nx) - 2;
-	if ( vv < 0 ) vv = 0;
-	if ( vv > ((int) ny) - 2 ) vv = ((int) ny) - 2;
-
-	double udif = ud - ((double) uu);
-	double vdif = vd - ((double) vv);
-
-	double csw = (1.-udif) * (1.-vdif);
-	double cse = udif * (1 - vdif);
-	double cnw = (1 - udif) * vdif;
-	double cne = udif * vdif;
-
-	if ( nt>1 ) {
-		int it = (int) (t-startTime)/dt;
-
-		T tsw1 = getVal(uu,vv,0,it);
-		T tnw1 = getVal(uu,vv+1,0,it);
-		T tne1 = getVal(uu+1,vv+1,0,it);
-		T tse1 = getVal(uu+1,vv,0,it);
-
-		T tsw2 = getVal(uu,vv,0,it+1);
-		T tnw2 = getVal(uu,vv+1,0,it+1);
-		T tne2 = getVal(uu+1,vv+1,0,it+1);
-		T tse2 = getVal(uu+1,vv,0,it+1);
-
-		T val1 = csw*tsw1 + cse*tse1 + cnw*tnw1 + cne*tne1;
-		T val2 = csw*tsw2 + cse*tse2 + cnw*tnw2 + cne*tne2;
-
-		/* interpolation in time */
-		double at = ( t - it*dt )/dt;
-		return at*val1 + (1.-at)*val2;
-
-	} else {
-		T tsw = getVal(uu,vv);
-		T tnw = getVal(uu,vv+1);
-		T tne = getVal(uu+1,vv+1);
-		T tse = getVal(uu+1,vv);
-		T val = csw*tsw + cse*tse + cnw*tnw + cne*tne;
-		return val;
-	}
-}
 
 template<typename T>
 void XYZTDataLayer<T>::getMatrix(
@@ -404,6 +464,26 @@ void XYZTDataLayer<T>::dumpAsBinary(string filename, const double& time
 	FileOut.write(reinterpret_cast<const char*>(&nny), sizeof(size_t));
 	FileOut.write(reinterpret_cast<const char*>(&vals), sizeof(vals));
 	FileOut.close();
+}
+
+template<typename T>
+void XYZTDataLayer<T>::setProjectionDirVector(FFVector& stimuliScaler, FFPoint& stimuliLocation){
+
+		double Pi = 3.14159265358;
+		interDirScaler = stimuliScaler.norm()/10;
+		double angle = 0;
+		if ( interDirScaler > 0  ){
+		    angle = stimuliScaler.toAngle()-Pi/2;
+		    if (angle <0) angle += 2*Pi;
+		}
+		double anglePied = (angle/(2*Pi))*nz;
+
+	     interDirID0 = floor(anglePied);
+		 interDirID1 = ceil(anglePied);
+		 interDirRatio = ( interDirID1 - anglePied );
+
+		 if (interDirID1 >=nz) interDirID1 = 0;
+
 }
 
 }
