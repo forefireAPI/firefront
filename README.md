@@ -8,8 +8,10 @@ Get it from http://www.unidata.ucar.edu/software/netcdf/
 
 Compilation requires a c++ compiler, but it has only been tested on gcc/g++ compiler.
 The SCons python tool is used to make the library and executable, get it from  http://www.scons.org
-A sample SConstruct file is included with the distribution, edit it and insert the path to the Netcdf (and Java headers for JNI bindings if required).
+A sample SConstruct file is included with the distribution, try it and if it does not work, set the environment variables, edit it and insert the path to the Netcdf (and Java headers for JNI bindings if required).
+NetCDF-C++ >>LEGACY<< is required for compatibilities issues, get it from :
+https://www.unidata.ucar.edu/downloads/netcdf/netcdf-cxx/index.jsp
 
 to run it, type "./CommandShell -i examplescript" from the commandline
 
-The "swig" repository contains python bindings with numpy, matplotlib and swig.
+The "swig" repository contains python bindings requires numpy (and numpy.i), swig, and matplotlib for testing. 
