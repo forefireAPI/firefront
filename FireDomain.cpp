@@ -2311,10 +2311,9 @@ namespace libforefire{
 									cout<<"ERROR: number of cells of the burning matrices ("
 									<<localBMapSizeX<<"x"<<localBMapSizeY<<")"
 									<<" not compatible with previous computation ("
-									<<fromFileX<<"x"<<fromFileY<<") atmo "<<atmoNX<<","<<atmoNY<<" F "<<FSPACE_DIM1<<","<<FSPACE_DIM2<<"Trying to read from scratch"<<endl;
+									<<fromFileX<<"x"<<fromFileY<<") atmo "<<atmoNX<<","<<atmoNY<<" F "<<FSPACE_DIM1<<","<<FSPACE_DIM2<<" Trying to read from scratch"<<endl;
 									initObs = true;
 				}
-
 
 			NcVar* dom = dataFile.get_var("domain");
 
@@ -2359,6 +2358,8 @@ namespace libforefire{
 			double matrixBufferF[INCELLSPACE1_DIM2][INCELLSPACE1_DIM1];
 			double matrixBuffer[INCELLSPACE1_DIM1][INCELLSPACE1_DIM2];
 			double max_time = params->getDouble("InitTime");
+			// cout << " j "<<SWCorner.getX()<<"  "<<Xorigin<<"        "<<startSlabInFilej<< " i "<<startSlabInFilei<<endl;
+
 			for (i = 0; i < atmoNX ; i++){
 				for (j = 0; j < atmoNY ; j++){
 					if(cellActive[startSlabInFilei+i][startSlabInFilej+j] > 0){
@@ -2569,8 +2570,7 @@ namespace libforefire{
 		<<params->getParameter("NetCDFfile");
         */
         infile << params->GetPath(params->getParameter("NetCDFfile"));
-        
-		dataBroker->initializePropagativeLayer(infile.str());
+       	dataBroker->initializePropagativeLayer(infile.str());
 
 		/* initializations for the flux models */
 		for ( size_t i = 0; i < NUM_MAX_FLUXMODELS; i++ ) fluxModelsTable[i] = NULL;

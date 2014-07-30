@@ -818,7 +818,7 @@ int Command::loadData(const string& arg, size_t& numTabs){
 		return error;
 	}
     
-    simParam->setParameter("NetCDFfile", path);
+    simParam->setParameter("NetCDFfile", args[0]);
 
 	for (int layer = 0; layer < ncFile->num_vars(); layer++)
 	{

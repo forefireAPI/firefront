@@ -232,6 +232,7 @@ void DataBroker::registerLayer(string name, DataLayer<double>* layer) {
 
 
 	/* inserting the layer into the map of layers */
+	//cout << "registering " << name << " !" << endl;
 	ilayer = layersMap.find(name);
 	if (ilayer != layersMap.end()) {
 
@@ -261,7 +262,6 @@ void DataBroker::registerLayer(string name, DataLayer<double>* layer) {
 	if (name.find("windV") != string::npos)
 		windVLayer = layer;
 	if (name.find("fuel") != string::npos){
-		cout<<"new fuel layer"<<endl;
 		fuelLayer = layer;
 	}
 
@@ -1260,6 +1260,7 @@ double DataBroker::getProperty(FireNode* fn, string property) {
 
 DataLayer<double>* DataBroker::getLayer(const string& property) {
 	// Scanning the scalar layers
+
 	ilayer = layersMap.find(property);
 	if (ilayer != layersMap.end())
 		return ilayer->second;
@@ -1268,6 +1269,7 @@ DataLayer<double>* DataBroker::getLayer(const string& property) {
 
 FluxLayer<double>* DataBroker::getFluxLayer(const string& property) {
 	// Scanning the scalar layers
+
 	flayer = fluxLayersMap.find(property);
 	if (flayer != fluxLayersMap.end())
 		return flayer->second;

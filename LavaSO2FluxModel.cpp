@@ -45,7 +45,6 @@ LavaSO2FluxModel::LavaSO2FluxModel(
 	if ( numProperties > 0 ) properties =  new double[numProperties];
 	/* registering the model in the data broker */
 	dataBroker->registerFluxModel(this);
-
 	/* Definition of the coefficients */
 	eruptionTime = 0.;
 	if ( params->isValued("lava.eruptionTime") )
@@ -89,6 +88,7 @@ string LavaSO2FluxModel::getName(){
 
 double LavaSO2FluxModel::getValue(double* valueOf
 		, const double& bt, const double& et, const double& at){
+
 	if ( bt - eruptionTime < 0 ) return 0.;
 
 	/* getting the hours since eruption */
@@ -104,7 +104,7 @@ double LavaSO2FluxModel::getValue(double* valueOf
 			/(refHours[hind+1]-refHours[hind]);
 	double flux = beta*refFlows[hind+1] + (1.-beta)*refFlows[hind];
 	double lavaso2 = convert*emissionRatio*flux;
-//	cout << "lavaso2" <<  lavaso2  << endl;
+
 	return lavaso2;
 
 }

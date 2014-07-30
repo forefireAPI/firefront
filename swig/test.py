@@ -97,7 +97,7 @@ ff.addLayer("propagation","BalbiUnsteady","propagationModel")
 fuelmap = np.zeros((sizeX,sizeY,1), dtype=np.int32)
 
 fuelmap[:,90:110,:] = 1
-fuelmap[150:,90:110,:] = 2
+fuelmap[150:,90:110,:] = 3
 ff.addIndexLayer("table","fuel",0 , 0, 0, sizeX, sizeY, 0, fuelmap)
 
 print(np.shape(ff.getDoubleArray("fuel")))
@@ -105,12 +105,6 @@ print(np.shape(ff.getDoubleArray("fuel")))
 ff.execute("\tFireFront[t=0.]")
 ff.execute("\t\tFireNode[loc=(40,60,0.);vel=(-1.,-1.,0.);t=0.]")
 ff.execute("\t\tFireNode[loc=(40,65,0.);vel=(-1.,1.,0.);t=0.]")
-ff.execute("\t\tFireNode[loc=(100,65,0.);vel=(1.,1.,0.);t=0.]")
-ff.execute("\t\tFireNode[loc=(100,60,0.);vel=(1.,-1.,0.);t=0.]")
-
-ff.execute("\tFireFront[t=0.]")
-ff.execute("\t\tFireNode[loc=(200,60,0.);vel=(-1.,-1.,0.);t=0.]")
-ff.execute("\t\tFireNode[loc=(200,65,0.);vel=(-1.,1.,0.);t=0.]")
 ff.execute("\t\tFireNode[loc=(260,65,0.);vel=(1.,1.,0.);t=0.]")
 ff.execute("\t\tFireNode[loc=(260,60,0.);vel=(1.,-1.,0.);t=0.]")
 
