@@ -725,21 +725,51 @@ int Command::getParameter(const string& arg, size_t& numTabs){
 }
 
 int Command::triggerValue(const string& arg, size_t& numTabs){
-	FFVector a = getVector("vel", arg);
-	FFPoint b = getPoint("loc", arg);
 
-    if(currentSession.fd != 0){
-    	if(currentSession.fd->getDataBroker() != 0){
-    		if(currentSession.fd->getDataBroker()->PwindULayer != 0){
-    			currentSession.fd->getDataBroker()->PwindULayer->setProjectionDirVector(a,b);
-    		    }
-    		if(currentSession.fd->getDataBroker()->PwindVLayer != 0){
-    		    			currentSession.fd->getDataBroker()->PwindVLayer->setProjectionDirVector(a,b);
-    		    }
-    	    }
-    }
+	vector<string> tmpArgs;
+	string delimiter = ";";
+	tokenize(arg, tmpArgs, delimiter);
+	if ( tmpArgs.size() < 2 ){
+		return error;
+	}
 
 
+	if(tmpArgs[0]== "wind"){
+				FFVector a = getVector("vel", arg);
+				FFPoint b = getPoint("loc", arg);
+
+				if(currentSession.fd != 0){
+					if(currentSession.fd->getDataBroker() != 0){
+						if(currentSession.fd->getDataBroker()->PwindULayer != 0){
+							currentSession.fd->getDataBroker()->PwindULayer->setProjectionDirVector(a,b);
+							}
+						if(currentSession.fd->getDataBroker()->PwindVLayer != 0){
+										currentSession.fd->getDataBroker()->PwindVLayer->setProjectionDirVector(a,b);
+							}
+						return normal;
+						}
+
+				}
+		}
+
+	if(tmpArgs[0]== "fuel"){
+
+			if(currentSession.fd->getDataBroker() != 0){
+				vector<string> tmpVal;
+					string delimiter = "=";
+					double val = 0;
+					tokenize(tmpArgs[1], tmpVal, delimiter);
+					istringstream iss(tmpVal[1]);
+					if ( iss >> val ){
+						currentSession.fd->updateFuelTable(tmpVal[0],val);
+
+						return normal;
+					}
+					return error;
+			}
+
+	}
+    return error;
 
 }
 int Command::include(const string& arg, size_t& numTabs){

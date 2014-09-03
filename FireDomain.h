@@ -324,6 +324,7 @@ public:
 	static const size_t NUM_MAX_PROPMODELS = 50; /*!< maximum number of propagation models */
 	static PropagationModel* propModelsTable[NUM_MAX_PROPMODELS];
 	static int registerPropagationModelInstantiator(string, PropagationModelInstantiator);
+	void updateFuelTable( string , double );
 	PropagationModel* propModelInstanciation(const int&, string);
 	void registerPropagationModel(const int&, PropagationModel*);
 	bool addPropagativeLayer(string);

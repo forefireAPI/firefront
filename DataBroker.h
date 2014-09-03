@@ -185,6 +185,8 @@ class DataBroker {
 	/*! \brief common initialization (for all constructors) */
 	void commonInitialization();
 
+
+
 	/*! \brief retrieving the south-west point in an NcFile */
 	FFPoint getNetCDFSWCorner(NcVar*);
 	/*! \brief retrieving the time origin in an NcFile */
@@ -225,6 +227,8 @@ public:
 
 	/*! \brief registering a propagation model */
 	void registerPropagationModel(PropagationModel*);
+
+	void updateFuelValues(PropagationModel*, string key, double value );
 
 	/*! \brief registering a flux model */
 	void registerFluxModel(FluxModel*);

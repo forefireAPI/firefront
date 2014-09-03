@@ -226,7 +226,7 @@ template<typename T>
 void FuelDataLayer<T>::getMatrix(
 		FFArray<T>** lmatrix, const double& time){
 
-		double res = 100;
+		double res = 500;
 
 
 		double ddx = res;
@@ -236,7 +236,7 @@ void FuelDataLayer<T>::getMatrix(
 
 
 
-		if(nny*nnx < 1000*1000 ){
+		if(nny*nnx < 100*100 ){
 
 			nnx = nx;
 			nny = ny;

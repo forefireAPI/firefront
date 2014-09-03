@@ -100,13 +100,43 @@ void DataBroker::commonInitialization() {
 	readTableFromAsciiFile(infile.str(), fuelPropertiesTable);
 }
 
+void DataBroker::updateFuelValues(PropagationModel* model, string key, double value){
+
+	size_t curfuel = 0;
+	map<string, double>::iterator iindex;
+	map<string, double>::iterator iparam;
+	// second dimension
+	for (curfuel = 0; curfuel < fuelPropertiesTable.size(); curfuel++) {
+		// Getting the index of the fuel
+		iindex = fuelPropertiesTable[curfuel].find(key);
+		if(iindex != fuelPropertiesTable[curfuel].end()){
+			iindex->second = value;
+
+		}
+
+	}
+
+
+
+	extractFuelProperties(fuelPropertiesTable, model);
+
+
+
+
+}
+
+
 void DataBroker::registerPropagationModel(PropagationModel* model) {
 	/* Constructing the vector of property getters */
+
 	propGetterMap::const_iterator pg;
 	bool fuelAsked = false;
+
+
 	for (size_t prop = 0; prop < model->numProperties; prop++) {
 		try {
 			if ((model->wantedProperties)[prop].substr(0, 4) == "fuel") {
+
 				if (!fuelAsked) {
 					propDataGetters[model->index].push_back(&getFuelProperties);
 					numPropDataGetters[model->index]++;
@@ -118,6 +148,7 @@ void DataBroker::registerPropagationModel(PropagationModel* model) {
 						(model->wantedProperties)[prop]);
 				if (pg == propPropertiesGetters.end()) {
 					optimizedPropDataBroker[model->index] = false;
+
 				} else {
 					propDataGetters[model->index].push_back(pg->second);
 					numPropDataGetters[model->index]++;
@@ -134,7 +165,7 @@ void DataBroker::registerPropagationModel(PropagationModel* model) {
 		}
 	}
 
-	/* registering the flux model in the fire domain */
+	/* registering the prop model in the fire domain */
 	domain->registerPropagationModel(model->index, model);
 
 	/* constructing the table of fuel parameters values */
@@ -142,6 +173,7 @@ void DataBroker::registerPropagationModel(PropagationModel* model) {
 		extractFuelProperties(fuelPropertiesTable, model);
 
 }
+
 
 void DataBroker::registerFluxModel(FluxModel* model) {
 
@@ -197,6 +229,7 @@ void DataBroker::extractFuelProperties(vector<map<string, double> > propsTable,
 		ForeFireModel* model) {
 
 	try {
+		delete(model->fuelPropertiesTable);
 		model->fuelPropertiesTable = new FFArray<double>("fuelProperties", 0.,
 				FuelDataLayer<double>::MAXNUMFUELS, model->numFuelProperties);
 		size_t curfuel = 0;
@@ -1223,6 +1256,7 @@ void DataBroker::tokenize(const string& str, vector<string>& tokens,
 		pos = str.find_first_of(delimiter, lastPos);
 	}
 }
+
 
 void DataBroker::getPropagationData(PropagationModel* model, FireNode* fn) {
 	size_t nfilled = 0;

@@ -472,6 +472,15 @@ namespace libforefire{
 		return 1;
 	}
 
+	void FireDomain::updateFuelTable( string key, double value){
+	   for ( size_t i = 0; i < NUM_MAX_PROPMODELS; i++ ){
+		   if(propModelsTable[i] != 0){
+
+
+			   getDataBroker()->updateFuelValues(propModelsTable[i],key,value);
+		   }
+	   }
+	}
 	int FireDomain::registerFluxModelInstantiator(string modelname
 												  , FluxModelInstantiator func){
 		FluxModelMap::iterator fmodel = flux_instantiatorMap().find(modelname);
