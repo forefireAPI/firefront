@@ -615,135 +615,6 @@ namespace libforefire{
 
 			return false;
 		}
-	/*
-	double * getLayer
-	int i,j,k;
-		jboolean isCopy;
-
-
-		const char * msg = penv->GetStringUTFChars(jstr,0);
-		string smsg(msg);
-
-		if ( executor == 0 ) {
-			executor = new Command();
-		}
-
-		// Testing to see if the wanted matrix is a flux
-		 		FluxLayer<double>* myFluxLayer = executor->getDomain()->getFluxLayer(msg);
-		if ( myFluxLayer ){
-
-			//executor->getDomain()->getDataBroker()->computeActiveSurfacesFlux(40000);
-			FFArray<double>* srcD;
-			// getting the pointer
-			myFluxLayer->getMatrix(&srcD, executor->getTime());
-	//		myFluxLayer->getInstantaneousFlux(&srcD, executor->getTime());
-
-			if (srcD == 0) return NULL;
-			int nx =   srcD->getDim("x");
-			int ny =   srcD->getDim("y");
-			int nz =   srcD->getDim("z");
-
-			jdoubleArray elemProto = penv->NewDoubleArray(nz);
-			jdoubleArray elem = penv->NewDoubleArray(nz);
-			jobjectArray row = penv->NewObjectArray(ny,penv->GetObjectClass(elem), NULL);
-
-			jobjectArray resultDD = penv->NewObjectArray(nx,penv->GetObjectClass(row), NULL);
-
-			penv->DeleteLocalRef(row);
-			row = NULL;
-			penv->DeleteLocalRef(elem);
-			elem = NULL;
-
-			for (i = 0; i < nx; i++) {
-				jobjectArray row = penv->NewObjectArray(ny,penv->GetObjectClass(elemProto), NULL);
-
-				for (j = 0; j < ny; j++) {
-					elem = penv->NewDoubleArray(nz);
-					jdouble* elemElems = penv->GetDoubleArrayElements(elem, &isCopy);
-					for (k = 0; k < nz; k++) {
-						elemElems[k] =  (*srcD)(i,j,k);
-					}
-					penv->SetDoubleArrayRegion( elem, 0, nz, elemElems);
-					penv->SetObjectArrayElement(row, j, elem);
-					if (isCopy == JNI_TRUE) {
-						penv->ReleaseDoubleArrayElements( elem, elemElems, JNI_ABORT);
-					}
-
-					penv->DeleteLocalRef(elem);
-					elem = NULL;
-				}
-				penv->SetObjectArrayElement(resultDD, i, row);
-
-
-
-				penv->DeleteLocalRef(row);
-				row = NULL;
-			}
-
-			penv->DeleteLocalRef(elemProto);
-			elemProto = NULL;
-
-			return resultDD;
-
-		} else {
-			// If not, treating it as a generic data layer
-			DataLayer<double>* myLayer = executor->getDomain()->getDataLayer(msg);
-			if ( myLayer ){
-				FFArray<double>* srcD;
-				// getting the pointer
-				myLayer->getMatrix(&srcD, executor->getTime());
-
-				if (srcD == 0) return NULL;
-				int nx =   srcD->getDim("x");
-				int ny =   srcD->getDim("y");
-				int nz =   srcD->getDim("z");
-
-				jdoubleArray elemProto = penv->NewDoubleArray(nz);
-				jdoubleArray elem = penv->NewDoubleArray(nz);
-				jobjectArray row = penv->NewObjectArray(ny,penv->GetObjectClass(elem), NULL);
-
-				jobjectArray resultDD = penv->NewObjectArray(nx,penv->GetObjectClass(row), NULL);
-
-				penv->DeleteLocalRef(row);
-				row = NULL;
-				penv->DeleteLocalRef(elem);
-				elem = NULL;
-
-				for (i = 0; i < nx; i++) {
-					jobjectArray row = penv->NewObjectArray(ny,penv->GetObjectClass(elemProto), NULL);
-
-					for (j = 0; j < ny; j++) {
-						elem = penv->NewDoubleArray(nz);
-						jdouble* elemElems = penv->GetDoubleArrayElements(elem, &isCopy);
-						for (k = 0; k < nz; k++) {
-							elemElems[k] =  (*srcD)(i,j,k);
-						}
-						penv->SetDoubleArrayRegion( elem, 0, nz, elemElems);
-						penv->SetObjectArrayElement(row, j, elem);
-						if (isCopy == JNI_TRUE) {
-							penv->ReleaseDoubleArrayElements( elem, elemElems, JNI_ABORT);
-						}
-
-						penv->DeleteLocalRef(elem);
-						elem = NULL;
-					}
-					penv->SetObjectArrayElement(resultDD, i, row);
-
-
-
-					penv->DeleteLocalRef(row);
-					row = NULL;
-				}
-
-				penv->DeleteLocalRef(elemProto);
-				elemProto = NULL;
-
-				return resultDD;
-
-			}
-			return NULL;
-		}
-	*/
 
 	bool FireDomain::addFluxLayer(string lname){
 		/* searching if there exists a flux model with associated name */
@@ -2640,10 +2511,14 @@ namespace libforefire{
 	}
 
 	DataLayer<double>* FireDomain::getDataLayer(const string& name){
+
+
 		return dataBroker->getLayer(name);
 	}
 
 	FluxLayer<double>* FireDomain::getFluxLayer(const string& name){
+
+
 		return dataBroker->getFluxLayer(name);
 	}
 

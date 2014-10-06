@@ -127,7 +127,7 @@ template<typename T>
 void BurningMapLayer<T>::getMatrix(
 		FFArray<T>** matrix, const double& t){
 	if ( t != latestCall ){
-		// computing the burning ratio matrix
+
 		for ( size_t i=0; i < nx; i++ ){
 			for ( size_t j=0; j < ny; j++ ){
 				(*arrivalTimes)(i,j) = domain->getArrivalTime(i, j);

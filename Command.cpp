@@ -75,7 +75,7 @@ Command::CmdDictEntry Command::cmdDict[] =	{
 		,CmdDictEntry("setParameter[...]","sets a given parameter")
 		,CmdDictEntry("setParameters[...]","sets a given list of parameters")
 		,CmdDictEntry("getParameter[...]","return the parameter from a key")
-		,CmdDictEntry("trigger[...]","set a value at a certaind date to change model ")
+		,CmdDictEntry("trigger[...]","set a value at a certain date to change model ")
 		,CmdDictEntry("include[...]","includes commands from a file")
 		,CmdDictEntry("print[...]","prints the state of the simulation")
 		,CmdDictEntry("save[]","saves the simulation in hdf format")

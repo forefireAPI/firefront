@@ -294,7 +294,7 @@ int FluxLayer<T>::computeActiveMatrix(const double& t, int* modelCount){
 
 template<typename T>
 void FluxLayer<T>::getMatrix(FFArray<T>** matrix, const double& t){
-	cout << "looking for layer " <<  this->getKey() <<t <<" " << latestCallGetMatrix<< endl;
+
 	if ( t != latestCallGetMatrix ){
 
 		// TODO computing active area
