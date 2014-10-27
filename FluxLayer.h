@@ -301,22 +301,28 @@ void FluxLayer<T>::getMatrix(FFArray<T>** matrix, const double& t){
 		string fluxName = this->getKey();
 		int numFluxModelsMax = 50;
 		int modelCount[numFluxModelsMax];
+
 	   	for (int i = 0; i < numFluxModelsMax; i++) modelCount[i]= 0;
-	   	int totalcount = computeActiveMatrix(t,modelCount);
+	   	int totalcount = 0;
+
+
+
+
+
+		 totalcount = 0;
+		for ( size_t i = 0; i < nx; i++ ){
+			for ( size_t j = 0; j < ny; j++ ){
+				(*flux)(i,j) = cells[i][j].applyModelsOnBmap(fluxName, latestCallGetMatrix, t, modelCount);
+			}
+		}
 	    for (int i = 0; i < numFluxModelsMax; i++) {
 	    	string modelName=cells[0][0].getFluxModelName(i);
 	    	if (!modelName.empty()){
 	    		params->setDouble(modelName+".activeArea",modelCount[i]*cells[0][0].getBmapElementArea());
+	    		totalcount += modelCount[i];
 	    	}
 	    }
 	    params->setDouble(fluxName+".activeArea",totalcount*cells[0][0].getBmapElementArea());
-
-		for ( size_t i = 0; i < nx; i++ ){
-			for ( size_t j = 0; j < ny; j++ ){
-				(*flux)(i,j) = cells[i][j].applyModelsOnBmap(fluxName, latestCallGetMatrix, t);
-			}
-		}
-
 		latestCallGetMatrix = t;
 	}
 	// Affecting the computed matrix to the desired array
@@ -332,15 +338,30 @@ void FluxLayer<T>::getMatrix(FFArray<T>** matrix, const double& t){
 
 template<typename T>
 void FluxLayer<T>::getInstantaneousFlux(FFArray<T>** matrix, const double& t){
+	string fluxName = this->getKey();
+	int numFluxModelsMax = 50;
+	int modelCount[numFluxModelsMax];
+   	int totalcount = 0;
+   	for (int i = 0; i < numFluxModelsMax; i++) modelCount[i]= 0;
 
 	if ( t != latestCallInstantaneousFlux ){
 		// computing the instantaneous flux
 		string fluxName = this->getKey();
 		for ( size_t i = 0; i < nx; i++ ){
 			for ( size_t j = 0; j < ny; j++ ){
-				(*flux)(i,j) = cells[i][j].applyModelsOnBmap(fluxName, t, t);
+				(*flux)(i,j) = cells[i][j].applyModelsOnBmap(fluxName, t, t, modelCount);
 			}
 		}
+
+		for (int i = 0; i < numFluxModelsMax; i++) {
+			    	string modelName=cells[0][0].getFluxModelName(i);
+			    	if (!modelName.empty()){
+			    		params->setDouble(modelName+".activeArea",modelCount[i]*cells[0][0].getBmapElementArea());
+			    		totalcount += modelCount[i];
+			    	}
+			    }
+			    params->setDouble(fluxName+".activeArea",totalcount*cells[0][0].getBmapElementArea());
+
 		latestCallInstantaneousFlux = t;
 	}
 	// Affecting the computed matrix to the desired array

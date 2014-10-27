@@ -127,7 +127,7 @@ public:
 	double getBurningRatio(const double&);
 
 	/*! \brief computing a specified flux on the cell */
-	double applyModelsOnBmap(string, const double&, const double&);
+	double applyModelsOnBmap(string, const double&, const double&,int* );
 
 	/*! \brief computes a count of each model active on a layer*/
 	int activeModelsOnBmap(string  , const double& , int*);

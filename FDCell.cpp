@@ -200,7 +200,7 @@ int FDCell::activeModelsOnBmap(string layername,const double& t, int* modelCount
 }
 
 
-double FDCell::applyModelsOnBmap(string layername, const double& bt, const double& et){
+double FDCell::applyModelsOnBmap(string layername, const double& bt, const double& et,int* modelCount){
 	/* if the burning map is not allocated */
 	if ( arrivalTimes == 0 ) return 0.;
 	/* loading the flux layer */
@@ -221,8 +221,11 @@ double FDCell::applyModelsOnBmap(string layername, const double& bt, const doubl
 				modelIndex = layer->getFunctionIndexAt(center, bt);
 				// Return 0 if no model defined in the area
 				value = modelIndex<0?0:domain->getModelValueAt(modelIndex, center, bt, et, arrivalTime);
-				if(!isnan(value))
+				if(!isnan(value)){
 					cellFlux += value;
+					if (value > 0)
+						modelCount[modelIndex] = modelCount[modelIndex]+1;
+				}
 			}
 			center.setY(center.getY()+dy);
 		}
