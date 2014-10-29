@@ -10,10 +10,11 @@ typedef struct _SignedIntBuf
   int strides[2];
 } SignedIntBuf;
 
-#include <Command.h>
-#include <FFArrays.h>
-#include <Futils.h>
-#include <SimulationParameters.h>
+#include "../Command.h"
+#include "../FFArrays.h"
+#include "../Futils.h"
+#include "../SimulationParameters.h"
+#include "../CLibForeFire.h"
 
 using namespace std;
 
@@ -46,6 +47,25 @@ void setString(char* name, char* val);
 std::string getString(char* name );
 
 };
+
+/*void PYMNHInit(const double );
+void PYCheckLayer(const char* );
+void PYMNHStep(double );
+void PYMNHGoTo(double );
+void PYexecuteMNHCommand(const char* );
+void PYFFPutString(const char* , char* );
+void PYFFGetString(const char* , const char* );
+void PYFFPutInt(const char* , int* );
+void PYFFGetInt(const char* , int* );
+
+void PYFFPutDouble(const char* , double* );
+void PYFFGetDouble(const char* , double* );
+void PYFFPutDoubleArray(const char* , double* ,	size_t , size_t );
+void PYFFGetDoubleArray(const char* , double , double* , size_t , size_t );
+void PYFFDumpDoubleArray(size_t , size_t , const char* , double , double* , size_t , size_t , size_t , size_t , size_t );
+void PYsaveNcRecord(int );
+*/
+
 
 
 

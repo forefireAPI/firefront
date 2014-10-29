@@ -163,6 +163,7 @@ void PLibForeFire::addIndexLayer(char *type,char *name, double x0 , double y0, d
 void PLibForeFire::getDoubleArray(char* name, double** outA, int* outNI, int* outNJ, int* outNK){
 	double lTime = pyxecutor->domain->getSimulationTime();
 
+
 	PLibForeFire::getDoubleArray(name,lTime,outA,outNI,  outNJ,  outNK);
 }
 
