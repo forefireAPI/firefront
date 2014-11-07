@@ -48,10 +48,14 @@ LavaCO2FluxModel::LavaCO2FluxModel(
 		const int & mindex, DataBroker* db)
 	: FluxModel(mindex, db) {
 /* defining the properties needed for the model */
+	burningDuration = 1.;
+		if ( params->isValued("burningDuration") )
+			burningDuration = params->getDouble("burningDuration");
+
 /* allocating the vector for the values of these properties */
 if ( numProperties > 0 ) properties =  new double[numProperties];
 /* registering the model in the data broker */
-
+BR = registerProperty("BRatio");
 dataBroker->registerFluxModel(this);
 
 }
@@ -73,9 +77,14 @@ string LavaCO2FluxModel::getName(){
 
 double LavaCO2FluxModel::getValue(double* valueOf
 			, const double& bt, const double& et, const double& at){
+		if(true) return 1;
+	    if ( at > bt ) return 0;
+		if ( bt < at + 10000) return 1;
 
-	return 1;
+		return 0;
 
 }
-} /* namespace libforefire */
+
+
+}/* namespace libforefire */
 

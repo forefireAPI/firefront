@@ -1,6 +1,6 @@
 /*
 
-Copyright (C) 2012 ForeFire Team, SPE, UniversitŽ de Corse.
+Copyright (C) 2012 ForeFire Team, SPE, Universitï¿½ de Corse.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -53,7 +53,7 @@ CraterVaporFluxModel::CraterVaporFluxModel(
 	eruptionTime = 0.;
 	if ( params->isValued("lava.eruptionTime") )
 		eruptionTime = params->getDouble("lava.eruptionTime");
-	craterArea = 500.*500.;
+	craterArea = 30.*30.;
 	if ( params->isValued("crater.area") )
 		craterArea = params->getDouble("crater.area");
 	if ( !params->isValued("crater.hours") )
@@ -101,7 +101,9 @@ double CraterVaporFluxModel::getValue(double* valueOf
 	double beta = (hoursSinceEruption-refHours[hind])
 			/(refHours[hind+1]-refHours[hind]);
 	double flux = beta*refFlows[hind+1] + (1.-beta)*refFlows[hind];
-	return convert*flux;
+	double vapor = convert*flux;
+	cout << " flux " <<  flux << " vapor " << vapor << endl;
+	return 10000;
 }
 
 } /* namespace libforefire */

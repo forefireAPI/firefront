@@ -43,8 +43,9 @@ class LavaCO2FluxModel: public FluxModel {
 	static int isInitialized;
 
 	/*! properties needed by the model */
-
+	size_t BR;
 	/*! coefficients needed by the model */
+	double burningDuration;
 
 	/*! local variables */
 

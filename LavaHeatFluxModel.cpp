@@ -1,6 +1,6 @@
 /*
 
-Copyright (C) 2012 ForeFire Team, SPE, UniversitŽ de Corse.
+Copyright (C) 2012 ForeFire Team, SPE, Universitï¿½ de Corse.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -132,7 +132,10 @@ double LavaHeatFluxModel::getValue(double* valueOf
 	beta = (windModule-windValues[wind])/(windValues[wind+1]-windValues[wind]);
 //	return beta*rightval + (1.-beta)*leftval;
 	double coef = 1; // TODO fluxes are divided by 4 arbitrarily
-	return coef*(beta*rightval + (1.-beta)*leftval);
+	heatflux=coef*(beta*rightval + (1.-beta)*leftval);
+//	cout << "heatflux" <<  heatflux  << endl;
+//	return coef*(beta*rightval + (1.-beta)*leftval);
+	return heatflux;
 }
 
 } /* namespace libforefire */

@@ -106,9 +106,10 @@ double CraterSO2FluxModel::getValue(double* valueOf
 	/* interpolation of the flux between the values */
 	double beta = (hoursSinceEruption-refHours[hind])
 			/(refHours[hind+1]-refHours[hind]);
+
 	double flux = beta*refFlows[hind+1] + (1.-beta)*refFlows[hind];
 	double craso2 = convert*emissionRatio*flux;
-	cout <<  " craso2 "  <<  craso2   << " convert "  << convert  << " flux " <<  flux  << endl;
+	//cout <<  " craso2 "  <<  craso2   << " convert "  << convert  << " flux " <<  flux  << endl;
 
 		return craso2;
 }

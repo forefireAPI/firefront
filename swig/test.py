@@ -76,6 +76,8 @@ ff.setDouble("z0",0.)
 ff.setDouble("windU",0.)
 ff.setDouble("windV",12.)
 ff.setInt("defaultFuelType",1)
+ff.setInt("bmapLayer",1)
+
 ff.setInt("defaultHeatType",0)
 ff.setDouble("nominalHeatFlux",100000)
 ff.setDouble("burningDuration",80)
@@ -117,7 +119,8 @@ for i in range(1,20):
 
 
 fig, ax = plt.subplots()
-tab = np.transpose(ff.getDoubleArray("fuel"))[0]
+ 
+tab = np.transpose(ff.getDoubleArray("BMap"))[0]
 CS = ax.imshow(tab, cmap=plt.cm.gray, interpolation='nearest')
 cbar = plt.colorbar(CS)
 cbar.ax.set_ylabel('v')

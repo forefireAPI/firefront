@@ -2167,10 +2167,14 @@ namespace libforefire{
 				<<params->getParameter("BMapFiles");
 			}
 
+
 			NcFile dataFile(oss.str().c_str(), NcFile::ReadOnly);
 
+			cout << "Reading >"<<oss.str()<<"<"<<endl;
 
 			NcVar *atime = dataFile.get_var("arrival_time_of_front");
+
+
 			NcVar *cell_active = NULL;
 
 			 if(dataFile.num_vars() > 2)
@@ -2187,6 +2191,7 @@ namespace libforefire{
 				size_t fromFileX = FSPACE_DIM1/cell_active->get_dim(1)->size();
 				size_t fromFileY = FSPACE_DIM2/cell_active->get_dim(0)->size();
 				bool initObs = false;
+
 				if((localBMapSizeX!=fromFileX)||(localBMapSizeY!=fromFileY)){
 									cout<<"ERROR: number of cells of the burning matrices ("
 									<<localBMapSizeX<<"x"<<localBMapSizeY<<")"
@@ -2194,6 +2199,7 @@ namespace libforefire{
 									<<fromFileX<<"x"<<fromFileY<<") atmo "<<atmoNX<<","<<atmoNY<<" F "<<FSPACE_DIM1<<","<<FSPACE_DIM2<<" Trying to read from scratch"<<endl;
 									initObs = true;
 				}
+
 
 			NcVar* dom = dataFile.get_var("domain");
 

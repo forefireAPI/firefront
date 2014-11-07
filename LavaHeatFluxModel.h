@@ -1,6 +1,7 @@
 /*
 
-Copyright (C) 2012 ForeFire Team, SPE, UniversitŽ de Corse.
+
+Copyright (C) 2012 ForeFire Team, SPE, Universitï¿½ de Corse.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -41,6 +42,7 @@ class LavaHeatFluxModel: public FluxModel {
 
 	/*! coefficients needed by the model */
 	double eruptionTime;
+	double heatflux;
 	double crustTemperature;
 	double lavaTemperature;
 	vector<double> refHours;

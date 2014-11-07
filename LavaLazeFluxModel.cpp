@@ -1,6 +1,6 @@
 /*
 
-Copyright (C) 2012 ForeFire Team, SPE, UniversitŽ de Corse.
+Copyright (C) 2012 ForeFire Team, SPE, Universitï¿½ de Corse.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -47,7 +47,7 @@ LavaLazeFluxModel::LavaLazeFluxModel(
 	dataBroker->registerFluxModel(this);
 
 	/* Definition of the coefficients */
-	arrivalTime = 75600.;
+	arrivalTime = 5600.;
 	if ( params->isValued("laze.arrivalTime") )
 		arrivalTime = params->getDouble("laze.arrivalTime");
 	if ( !params->isValued("laze.hours") )
@@ -95,8 +95,8 @@ double LavaLazeFluxModel::getValue(double* valueOf
 	double beta = (hoursSinceArrival-refHours[hind])
 			/(refHours[hind+1]-refHours[hind]);
 	double flux = beta*refFlows[hind+1] + (1.-beta)*refFlows[hind];
-	return convert*flux;
-
+	if((bt-at) < (34*3600)) return convert*flux;
+	return 0;
 }
 
 } /* namespace libforefire */
