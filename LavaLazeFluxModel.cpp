@@ -48,6 +48,8 @@ LavaLazeFluxModel::LavaLazeFluxModel(
 
 	/* Definition of the coefficients */
 	arrivalTime = 5600.;
+	if(params->isValued("vaporFlux.activeArea"))
+//		cout<<params->getDouble("vaporFlux.activeArea")<<endl;
 	if ( params->isValued("laze.arrivalTime") )
 		arrivalTime = params->getDouble("laze.arrivalTime");
 	if ( !params->isValued("laze.hours") )
@@ -83,6 +85,7 @@ double LavaLazeFluxModel::getValue(double* valueOf
 
 	if ( bt - arrivalTime < 0 ) return 0.;
 
+
 	/* getting the hours since eruption */
 	double hoursSinceArrival = (bt-arrivalTime)/3600.;
 	if ( hoursSinceArrival > refHours.back() ) return 0.;
@@ -95,8 +98,11 @@ double LavaLazeFluxModel::getValue(double* valueOf
 	double beta = (hoursSinceArrival-refHours[hind])
 			/(refHours[hind+1]-refHours[hind]);
 	double flux = beta*refFlows[hind+1] + (1.-beta)*refFlows[hind];
-	if((bt-at) < (34*3600)) return convert*flux;
-	return 0;
+	if((bt-at) < (35*3600)) return convert*flux;
+	       return 0;
+//	return convert*flux/vaporFlux.activeArea;
+	return convert*flux;
+
 }
 
 } /* namespace libforefire */
