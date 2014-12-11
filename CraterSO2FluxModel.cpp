@@ -111,7 +111,7 @@ double CraterSO2FluxModel::getValue(double* valueOf
 	double craso2 = convert*emissionRatio*flux;
 	//cout <<  " craso2 "  <<  craso2   << " convert "  << convert  << " flux " <<  flux  << endl;
 
-		return craso2;
+		return craso2/params->getDouble("CraterSO2Flux.activeArea");
 }
 
 } /* namespace libforefire */

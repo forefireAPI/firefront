@@ -104,9 +104,9 @@ double LavaPropagationModel::getSpeed(double* valueOf){
 
 	if (valueOf[effectiveSlope] < 0){
 		double speedL = speedLocale*valueOf[rugosity]+valueOf[flowSpeed];
-		if (valueOf[fastInSection] > 0.95) return speedL;
+		if (valueOf[fastInSection] > 0.99) return speedL;
 	}
-	return 0.0001;
+	return 0.01;
 
 }
 

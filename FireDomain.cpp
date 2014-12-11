@@ -2104,6 +2104,11 @@ namespace libforefire{
 		burningMatrixResY = (NECornerY()-SWCornerY())/globalBMapSizeY;
 		burningMatrixRes = max(burningMatrixResX, burningMatrixResY);
 
+		params->setDouble("matrixResolutionX", (NECornerX()-SWCornerX())/atmoNX);
+		params->setDouble("matrixResolutionY", (NECornerY()-SWCornerY())/atmoNY);
+
+
+
 		/*--------------------*/
 		/* Defining the cells */
 		/*--------------------*/
