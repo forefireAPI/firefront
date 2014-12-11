@@ -319,6 +319,13 @@ void FluxLayer<T>::getMatrix(FFArray<T>** matrix, const double& t){
 	    		totalcount += modelCount[i];
 	    	}
 	    }
+
+	   	for ( size_t i = 0; i < nx; i++ ){
+			for ( size_t j = 0; j < ny; j++ ){
+				(*flux)(i,j) = cells[i][j].applyModelsOnBmap(fluxName, latestCallGetMatrix, t, modelCount);
+			}
+		}
+
 	    params->setDouble(fluxName+".activeArea",totalcount*cells[0][0].getBmapElementArea());
 		latestCallGetMatrix = t;
 
