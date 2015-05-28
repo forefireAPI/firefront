@@ -297,8 +297,8 @@ T TwoTimeArrayLayer<T>::bilinearInterp(FFPoint loc, const double& time){
 	/* searching the coordinates of the nodes around */
 	FFPoint indices = posToIndices(loc);
 
-	double ud = indices.getX() + FFConstants::epsilonx;
-	double vd = indices.getY() + FFConstants::epsilonx;
+	double ud = indices.getX() + EPSILONX;
+	double vd = indices.getY() + EPSILONX;
 
 	int uu = (int) ceil(ud-1);
 	int vv = (int) ceil(vd-1);

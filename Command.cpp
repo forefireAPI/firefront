@@ -170,7 +170,7 @@ int Command::startFire(const string& arg, size_t& numTabs){
 
         double t = getFloat("t", arg);
         
-        if (t == floatError) 
+        if (t == FLOATERROR) 
         {
             string date = getString("date", arg);
             
@@ -191,7 +191,7 @@ int Command::startFire(const string& arg, size_t& numTabs){
         
         double perimRes = domain->getPerimeterResolution() * 2;
         int fdom = getInt("domain", arg);
-        if ( fdom == intError ) fdom = 0;
+        if ( fdom == INTERROR ) fdom = 0;
 
         double fdepth = currentSession.params->getDouble("initialFrontDepth");
         double kappa = 0.;
@@ -274,7 +274,7 @@ int Command::createFireFront(const string& arg, size_t& numTabs){
 
 int Command::addFireNode(const string& arg, size_t& numTabs){
 
-	if ( lastReadLoc == 0 ) lastReadLoc = new FFPoint(-FFConstants::infinity(),-FFConstants::infinity());
+	if ( lastReadLoc == 0 ) lastReadLoc = new FFPoint(-numeric_limits<double>::infinity(),-numeric_limits<double>::infinity());
 
 	size_t n = argCount(arg);
 	double perimRes = domain->getPerimeterResolution();
@@ -283,14 +283,14 @@ int Command::addFireNode(const string& arg, size_t& numTabs){
 		FFVector vel = getVector("vel", arg);
 		double t = getFloat("t",arg);
 		int fdom = getInt("domain", arg);
-		if ( fdom == intError ) fdom = 0;
+		if ( fdom == INTERROR ) fdom = 0;
 		int id = getInt("id", arg);
-		if ( id == intError ) id = 0;
+		if ( id == INTERROR ) id = 0;
 		double fdepth = getFloat("fdepth", arg);
-		if ( fdepth == floatError )
+		if ( fdepth == FLOATERROR )
 			fdepth = currentSession.params->getDouble("initialFrontDepth");
 		double kappa = getFloat("kappa", arg);
-		if ( kappa == floatError ) kappa = 0.;
+		if ( kappa == FLOATERROR ) kappa = 0.;
 		string state = getString("state", arg);
 		if ( state == stringError or state == "moving" ) state = "init";
 		if ( numTabs != currentLevel + 1 ) {
@@ -370,7 +370,7 @@ int Command::addFireNode(const string& arg, size_t& numTabs){
 		} else if ( domain->striclyWithinDomain(pos)
 				and !domain->striclyWithinDomain(*lastReadLoc) ){
 
-			if ( lastReadLoc->getX() == -FFConstants::infinity() ){
+			if ( lastReadLoc->getX() == -numeric_limits<double>::infinity() ){
 
 				/* First node to be created */
 				previousNode = domain->addFireNode(pos, vel, t, fdepth, kappa
@@ -968,7 +968,7 @@ int Command::getInt(string opt, string arg){
 	/* The 'getFloat()' method simply casts the results
 	 * of the search for the option 'opt' given by 'getString()' */
 	string tmpstr = getString(opt,arg);
-	if ( tmpstr == stringError ) return intError;
+	if ( tmpstr == stringError ) return INTERROR;
 	string s;
 	string::reverse_iterator it = tmpstr.rbegin();
 	if ( *it == 's' ){
@@ -983,7 +983,7 @@ int Command::getInt(string opt, string arg){
 	if ( iss >> d ){
 		return d;
 	} else {
-		return intError;
+		return INTERROR;
 	}
 }
 
@@ -991,7 +991,7 @@ double Command::getFloat(string opt, string arg){
 	/* The 'getFloat()' method simply casts the results
 	 * of the search for the option 'opt' given by 'getString()' */
 	string tmpstr = getString(opt,arg);
-	if ( tmpstr == stringError ) return floatError;
+	if ( tmpstr == stringError ) return FLOATERROR;
 	string s;
 	string::reverse_iterator it = tmpstr.rbegin();
 	if ( *it == 's' ){
@@ -1006,7 +1006,7 @@ double Command::getFloat(string opt, string arg){
 	if ( iss >> d ){
 		return d;
 	} else {
-		return floatError;
+		return FLOATERROR;
 	}
 }
 

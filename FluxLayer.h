@@ -78,7 +78,7 @@ template<typename T> class FluxLayer : public DataLayer<T> {
 
 	double latestCallGetMatrix; /*!< time of the latest call to getMatrix() */
 	double latestCallInstantaneousFlux; /*!< time of the latest call to getInstantaneousFlux() */
-	FFConstants csts; /*!< constants */
+
 
 	SimulationParameters* params;
 

@@ -393,6 +393,8 @@ void DataBroker::initializePropagativeLayer(string filename) {
 					<< params->getParameter("propagationModel") << endl;
 		}
 	}
+	cout << "Wproplayer    "  << endl;
+	if (domain->getPropagativeLayer() != 0) registerLayer(domain->getPropagativeLayer()->getKey(), domain->getPropagativeLayer());
 
 }
 
@@ -687,11 +689,11 @@ FFPoint DataBroker::getNetCDFSpatialSpan(NcVar* var) {
 	const char* lly = "Ly";
 	const char* llz = "Lz";
 	NcAtt* attlx = var->get_att(llx);
-	double Lx = attlx == 0 ? FFConstants::infinity() : attlx->as_double(0);
+	double Lx = attlx == 0 ? numeric_limits<double>::infinity() : attlx->as_double(0);
 	NcAtt* attly = var->get_att(lly);
-	double Ly = attly == 0 ? FFConstants::infinity() : attly->as_double(0);
+	double Ly = attly == 0 ? numeric_limits<double>::infinity() : attly->as_double(0);
 	NcAtt* attlz = var->get_att(llz);
-	double Lz = attlz == 0 ? FFConstants::infinity() : attlz->as_double(0);
+	double Lz = attlz == 0 ? numeric_limits<double>::infinity() : attlz->as_double(0);
 	delete attlx;
 	delete attly;
 	delete attlz;
@@ -701,7 +703,7 @@ FFPoint DataBroker::getNetCDFSpatialSpan(NcVar* var) {
 double DataBroker::getNetCDFTimeSpan(NcVar* var) {
 	const char* llt = "Lt";
 	NcAtt* attlt = var->get_att(llt);
-	double Lt = attlt == 0 ? FFConstants::infinity() : attlt->as_double(0);
+	double Lt = attlt == 0 ? numeric_limits<double>::infinity() : attlt->as_double(0);
 	delete attlt;
 	return Lt;
 }
@@ -1437,10 +1439,10 @@ void DataBroker::getMatrix(string matrixName, const FFPoint& SWCorner,
 					<< matrixName << " with the data broker" << endl;
 		}
 	} else {
-		/*
+
 		 cout<<"Encountered an error while retrieving matrix "
-		 <<matrixName<<" with the data broker: unknown matrix"<<endl;
-		 */
+		 <<matrixName<<" with the data broker: unknown matrix "<< matrixName<<endl;
+
 	}
 }
 

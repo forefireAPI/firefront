@@ -39,6 +39,7 @@ StringRepresentation::StringRepresentation(FireDomain* fdom) : Visitor() {
 	setTime(domain->getTime());
 	updateStep = SimulationParameters::GetInstance()->getDouble("outputsUpdate");
 	setUpdateTime(domain->getTime());
+	dumpMode = FF_MODE;
 }
 
 StringRepresentation::~StringRepresentation() {
@@ -52,8 +53,8 @@ void StringRepresentation::update(){
 }
 
 void StringRepresentation::timeAdvance(){
-	if ( updateStep < FFConstants::epsilont ){
-		setUpdateTime(FFConstants::infinity());
+	if ( updateStep < EPSILONT ){
+		setUpdateTime(numeric_limits<double>::infinity());
 	} else {
 		setUpdateTime(getTime()+updateStep);
 	}

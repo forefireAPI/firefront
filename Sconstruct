@@ -1,10 +1,10 @@
 import os
-netcdfHome = "/usr/local/"
+netcdfHome = "/Users/filippi/soft/"
 try:
     netcdfHome = os.environ["NETCDF_HOME"]
 except KeyError:
     print "!!!!!!!!!   NETCDF_HOME environment variable not set, trying :" + netcdfHome+ "\n!!!!!!!!!   if it does not compile, please export NETCDF_HOME=/path/to/include_and_lib_path )"
     
-env     = Environment(CPPPATH=[netcdfHome+'/include/'],CCFLAGS=['-Wall','-g2','-femit-class-debug-always','-O0'], LIBPATH=[netcdfHome+'/lib/'])
+env     = Environment(CPPPATH=[netcdfHome+'/include/'],CCFLAGS=['-Wall','-g2','-O0'], LIBPATH=[netcdfHome+'/lib/'])
 env.SharedLibrary('ForeFire', Glob('*.cpp'), LIBS=['netcdf_c++', 'netcdf'])
 env.Program('CommandShell', Glob('*.cpp'), LIBS=['netcdf_c++', 'netcdf'])

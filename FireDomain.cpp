@@ -21,6 +21,7 @@
 #include "FireDomain.h"
 #include "BurningMapLayer.h"
 
+#include "RosLayer.h"
 
 namespace libforefire{
 
@@ -31,10 +32,9 @@ namespace libforefire{
 	const double FireDomain::endCom = -10.;
 	const double FireDomain::noCom = -100.;
 
-	const FFConstants FireDomain::csts = FFConstants();
 	const string FireDomain::altitude = "altitude";
 	const FFPoint FireDomain::outPoint
-	= FFPoint(FFConstants::infinity(), FFConstants::infinity());
+	= FFPoint(numeric_limits<double>::infinity(), numeric_limits<double>::infinity());
 
 	bool FireDomain::outputs = false;
 	bool FireDomain::commandOutputs = false;
@@ -77,7 +77,7 @@ namespace libforefire{
 		params = SimulationParameters::GetInstance();
 
 		// Maximum time-step for Firenodes is not constrained
-		dtMax = FFConstants::infinity();
+		dtMax = numeric_limits<double>::infinity();
 
 		// Mesh size
 		atmoNX = params->getSize("atmoNX");
@@ -383,7 +383,7 @@ namespace libforefire{
 
 	// advance in time function
 	void FireDomain::timeAdvance(){
-		setUpdateTime(FFConstants::infinity());
+		setUpdateTime(numeric_limits<double>::infinity());
 	}
 
 	// Output function
@@ -542,6 +542,11 @@ namespace libforefire{
 			dataBroker->registerLayer(layername, brlayer);
 			return true;
 		}
+		if ( type == "MaxRos" ){
+			RosLayer<double>* mrlayer = new RosLayer<double>(layername, atmoNX, atmoNY, cells);
+				dataBroker->registerLayer(layername, mrlayer);
+				return true;
+			}
 
 
 		if ( !params->isValued(keyname) ){
@@ -602,7 +607,7 @@ namespace libforefire{
 				size_t mindex = getFreePropModelIndex();
 				PropagationModel* model = propModelInstanciation(mindex, name);
 				if ( model == 0 ) return false;
-				/* Instantiating a flux layer related to this model */
+				/* Instantiating a prop layer related to this model */
 				propagativeLayer = new PropagativeLayer<double>(name, mindex);
 				return true;
 			}
@@ -637,8 +642,7 @@ namespace libforefire{
 		FluxModel* model = fluxModelInstanciation(mindex, fmname);
 		if ( model != 0 ){
 			/* Instantiating a flux layer related to this model */
-			FluxLayer<double>* newlayer = new FluxLayer<double>(
-																lname, SWCorner, NECorner, atmoNX, atmoNY, cells, mindex);
+			FluxLayer<double>* newlayer = new FluxLayer<double>(lname, SWCorner, NECorner, atmoNX, atmoNY, cells, mindex);
 			dataBroker->registerFluxLayer(lname, newlayer);
 			return true;
 		}
@@ -658,15 +662,15 @@ namespace libforefire{
 	}
 
 	double FireDomain::getArrivalTime(FFPoint& loc){
-		if ( !striclyWithinDomain(loc) ) return FFConstants::infinity();
+		if ( !striclyWithinDomain(loc) ) return numeric_limits<double>::infinity();
 		size_t ii = (size_t) ((loc.getX()-SWCornerX())/burningMatrixResX);
 		size_t jj = (size_t) ((loc.getY()-SWCornerY())/burningMatrixResY);
 		return getArrivalTime(ii, jj);
 	}
 
 	double FireDomain::getArrivalTime(const size_t& ii, const size_t& jj){
-		if ( ii < 0 or ii > globalBMapSizeX-1 ) return csts.infinity();
-		if ( jj < 0 or jj > globalBMapSizeY-1 ) return csts.infinity();
+		if ( ii > globalBMapSizeX-1 ) return numeric_limits<double>::infinity();
+		if ( jj > globalBMapSizeY-1 ) return numeric_limits<double>::infinity();
 		size_t i = ii/localBMapSizeX;
 		size_t j = jj/localBMapSizeY;
 		return cells[i][j].getArrivalTime(ii%localBMapSizeX,jj%localBMapSizeY);
@@ -675,10 +679,10 @@ namespace libforefire{
 	void FireDomain::setArrivalTime(const size_t& ii, const size_t& jj, const double& t){
 		// getting the cell where to pixel to set to burning lies
 
-		if ( ii < 0 or ii > globalBMapSizeX-1 ) return ;
-		if ( jj < 0 or jj > globalBMapSizeY-1 ) return ;
-		if ( ii < 0 or ii > globalBMapSizeX-1 ) return ;
-		if ( jj < 0 or jj > globalBMapSizeY-1 ) return ;
+		if ( ii > globalBMapSizeX-1 ) return ;
+		if ( jj > globalBMapSizeY-1 ) return ;
+		if ( ii > globalBMapSizeX-1 ) return ;
+		if ( jj > globalBMapSizeY-1 ) return ;
 		size_t i = ii/localBMapSizeX;
 		size_t j = jj/localBMapSizeY;
 		// setting the arrival time of this pixel
@@ -1044,10 +1048,10 @@ namespace libforefire{
 		return striclyWithinDomain(p.getX(), p.getY());
 	}
 	bool FireDomain::striclyWithinDomain(const double& px, const double& py){
-		if ( px < SWCornerX() + FFConstants::epsilonx ) return false;
-		if ( px > NECornerX() - FFConstants::epsilonx ) return false;
-		if ( py < SWCornerY() + FFConstants::epsilonx ) return false;
-		if ( py > NECornerY() - FFConstants::epsilonx ) return false;
+		if ( px < SWCornerX() + EPSILONX ) return false;
+		if ( px > NECornerX() - EPSILONX ) return false;
+		if ( py < SWCornerY() + EPSILONX ) return false;
+		if ( py > NECornerY() - EPSILONX ) return false;
 		return true;
 	}
 	bool FireDomain::striclyWithinDomain(FireNode* fn){
@@ -1062,10 +1066,10 @@ namespace libforefire{
 		return looselyWithinDomain(p.getX(), p.getY());
 	}
 	bool FireDomain::looselyWithinDomain(const double& px, const double& py){
-		if ( px < SWCornerX() - FFConstants::epsilonx ) return false;
-		if ( px > NECornerX() + FFConstants::epsilonx ) return false;
-		if ( py < SWCornerY() - FFConstants::epsilonx ) return false;
-		if ( py > NECornerY() + FFConstants::epsilonx ) return false;
+		if ( px < SWCornerX() - EPSILONX ) return false;
+		if ( px > NECornerX() + EPSILONX ) return false;
+		if ( py < SWCornerY() - EPSILONX ) return false;
+		if ( py > NECornerY() + EPSILONX ) return false;
 		return true;
 	}
 	bool FireDomain::looselyWithinDomain(FireNodeData* fnd){
@@ -1090,6 +1094,7 @@ namespace libforefire{
 	// Computing the propagation speed of a given firenode
 	double FireDomain::getPropagationSpeed(FireNode* fn) {
 		int modelIndex = propagativeLayer->getModelIndexAt(fn);
+		cout<<"model index"<<modelIndex<<endl;
 		return propModelsTable[modelIndex]->getSpeedForNode(fn);
 	}
 
@@ -1232,10 +1237,10 @@ namespace libforefire{
 		di = (px-SWCornerX())*inverseCellSizeX;
 		dj = (py-SWCornerY())*inverseCellSizeY;
 
-		if ( di < FFConstants::epsilonx ) di = 0;
-		if ( di > atmoNX - FFConstants::epsilonx ) di = atmoNX - 1;
-		if ( dj < FFConstants::epsilonx ) dj = 0;
-		if ( dj > atmoNY - FFConstants::epsilonx ) dj = atmoNY - 1;
+		if ( di < EPSILONX ) di = 0;
+		if ( di > atmoNX - EPSILONX ) di = atmoNX - 1;
+		if ( dj < EPSILONX ) dj = 0;
+		if ( dj > atmoNY - EPSILONX ) dj = atmoNY - 1;
 
 		size_t i = (size_t) di;
 		size_t j = (size_t) dj;
@@ -1686,7 +1691,7 @@ namespace libforefire{
 
 		double Sx;
 		double Sy;
-		double eps = FFConstants::epsilonx;
+		double eps = EPSILONX;
 		if ( Ax == Bx ) {
 			if ( Cx == Dx ){
 				return outPoint;
@@ -1754,7 +1759,7 @@ namespace libforefire{
 		if ( (*fn)->id == tid ) return true;
 		++fn;
 		while ( fn != hlist.end() ){
-			if ( (*fn)->time < endChain + FFConstants::epsilont ){
+			if ( (*fn)->time < endChain + EPSILONT ){
 				next = fn;
 				++next;
 				if ( (*next)->id == tid ) return true;
@@ -1769,7 +1774,7 @@ namespace libforefire{
 		list<FireNodeData*>::const_iterator fn = hlist.begin();
 		list<FireNodeData*>::const_iterator prev;
 		while ( fn != hlist.end() ){
-			if ( (*fn)->time < endChain + FFConstants::epsilont ){
+			if ( (*fn)->time < endChain + EPSILONT ){
 				prev = fn;
 				--prev;
 				if ( (*prev)->id == tid ) return true;
@@ -2260,7 +2265,7 @@ namespace libforefire{
 						for (ii = 0; ii < INCELLSPACE1_DIM1 ; ii++){
 							for (jj = 0; jj < INCELLSPACE1_DIM2 ; jj++){
 								if ((matrixBufferF[jj][ii] == -9999)  or (matrixBufferF[jj][ii] > max_time)){
-									matrixBuffer[ii][jj] = FFConstants::infinity();
+									matrixBuffer[ii][jj] = numeric_limits<double>::infinity();
 								}else{
 									matrixBuffer[ii][jj] = matrixBufferF[jj][ii];
 								}
@@ -2627,16 +2632,16 @@ namespace libforefire{
 		int numChains = 0;
 		list<FireNodeData*>::const_iterator startOfChain = hlist.begin();
 		while ( numChains < pos and startOfChain != hlist.end() ){
-			while ( (*startOfChain)->time > endChain + FFConstants::epsilont ){
+			while ( (*startOfChain)->time > endChain + EPSILONT ){
 				++startOfChain;
 			}
 			++startOfChain;
 			numChains++;
 		}
-		if ( (*startOfChain)->time < endCom + FFConstants::epsilont
+		if ( (*startOfChain)->time < endCom + EPSILONT
 			or startOfChain == hlist.end() ) return;
 
-		while ( (*startOfChain)->time > endChain + FFConstants::epsilont ){
+		while ( (*startOfChain)->time > endChain + EPSILONT ){
 			chain->push_back(*startOfChain);
 			++startOfChain;
 		}
@@ -2652,15 +2657,15 @@ namespace libforefire{
 		int numChains = 0;
 		list<FireNodeData*>::iterator startOfChain = hlist.begin();
 		while ( numChains < pos and startOfChain != hlist.end() ){
-			while ( (*startOfChain)->time > endChain + FFConstants::epsilont ){
+			while ( (*startOfChain)->time > endChain + EPSILONT ){
 				++startOfChain;
 			}
 			++startOfChain;
 			numChains++;
 		}
-		if ( (*startOfChain)->time < endCom + FFConstants::epsilont
+		if ( (*startOfChain)->time < endCom + EPSILONT
 			or startOfChain == hlist.end() ) return 0;
-		while ( (*startOfChain)->time > endChain + FFConstants::epsilont ){
+		while ( (*startOfChain)->time > endChain + EPSILONT ){
 			extractedList->push_back(*startOfChain);
 			startOfChain = hlist.erase(startOfChain);
 		}
@@ -3281,7 +3286,7 @@ namespace libforefire{
 			/* Populating the list with next
 			 * nodes within incoming ones */
 			tmpdata = incomingNodes.front();
-			while ( tmpdata->time > endChain + FFConstants::epsilont ){
+			while ( tmpdata->time > endChain + EPSILONT ){
 				currentChain.push_back(tmpdata);
 				incomingNodes.pop_front();
 				tmpdata = incomingNodes.front();
@@ -3486,11 +3491,11 @@ namespace libforefire{
 				FFPoint pointA(currentChain.front()->posX, currentChain.front()->posY);
 				FFPoint pointB(prevOfChain->posX, prevOfChain->posY);
 				FFPoint linkPoint = findIntersectionWithFrontiers(pointA, pointB);
-				if ( linkPoint.getX() == FFConstants::infinity()
+				if ( linkPoint.getX() == numeric_limits<double>::infinity()
 					and looselyWithinDomain(prevOfChain) ){
 					linkPoint = FFPoint(prevOfChain->posX, prevOfChain->posY);
 				}
-				if ( linkPoint.getX() == FFConstants::infinity() )
+				if ( linkPoint.getX() == numeric_limits<double>::infinity() )
 					debugOutput<<getDomainID()<<":"<<'\t'
 						<<"PROBLEM as no intersection was found with frontiers"<<endl;
 				prevLinkNode = addLinkNode(linkPoint);
@@ -3716,10 +3721,10 @@ namespace libforefire{
 	}
 
 	int FireDomain::getFrontierIndex(FFPoint loc){
-		if ( abs(loc.getX()-SWCornerX()) < FFConstants::epsilonx ) return 0;
-		if ( abs(loc.getY()-NECornerY()) < FFConstants::epsilonx ) return 1;
-		if ( abs(loc.getX()-NECornerX()) < FFConstants::epsilonx ) return 2;
-		if ( abs(loc.getY()-SWCornerY()) < FFConstants::epsilonx ) return 3;
+		if ( abs(loc.getX()-SWCornerX()) < EPSILONX ) return 0;
+		if ( abs(loc.getY()-NECornerY()) < EPSILONX ) return 1;
+		if ( abs(loc.getX()-NECornerX()) < EPSILONX ) return 2;
+		if ( abs(loc.getY()-SWCornerY()) < EPSILONX ) return 3;
 		return -1;
 	}
 
@@ -3741,7 +3746,7 @@ namespace libforefire{
 
 		/* Finding the closest link node clockwise */
 		list<FireNode*>::iterator node;
-		double minDist = FFConstants::infinity();
+		double minDist = numeric_limits<double>::infinity();
 		double dist;
 		FFPoint nodeLoc;
 		/* first the given frontier */
@@ -4071,7 +4076,7 @@ namespace libforefire{
 		if ( nodeList.size() == 1 ) return nodeList.front();
 		list<FireNode*>::const_iterator ifn;
 		FireNode* closeNode = 0;
-		double distance = FFConstants::infinity();
+		double distance = numeric_limits<double>::infinity();
 		double dist;
 		for ( ifn = nodeList.begin(); ifn != nodeList.end(); ++ifn ){
 			if ( (*ifn)->getState() != FireNode::link ){
@@ -4097,7 +4102,7 @@ namespace libforefire{
 		if ( nodeList.size() == 0 ) return 0;
 		list<FireNode*>::const_iterator ifn;
 		FireNode* closeNode = 0;
-		double distance = FFConstants::infinity();
+		double distance = numeric_limits<double>::infinity();
 		double dist;
 		for ( ifn = nodeList.begin(); ifn != nodeList.end(); ++ifn ){
 			dist = (*ifn)->distance2D(loc);
@@ -4249,7 +4254,7 @@ namespace libforefire{
 					double* adata = (cells[i][j].getBurningMap()->getMap()->getData());
 					for (ii = 0; ii < INCELLSPACE1_DIM1 ; ii++){
 						for (jj = 0; jj < INCELLSPACE1_DIM2 ; jj++){
-							goodCell[jj][ii] =  (adata[ii*INCELLSPACE1_DIM2+jj]==FFConstants::infinity()?-9999:adata[ii*INCELLSPACE1_DIM2+jj]);
+							goodCell[jj][ii] =  (adata[ii*INCELLSPACE1_DIM2+jj]==numeric_limits<double>::infinity()?-9999:adata[ii*INCELLSPACE1_DIM2+jj]);
 						}
 					}
 					atime->put(&goodCell[0][0], INCELLSPACE1_DIM2, INCELLSPACE1_DIM1);

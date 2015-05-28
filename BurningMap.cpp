@@ -39,7 +39,7 @@ BurningMap(const FFPoint& sw, const FFPoint& ne
 		, const size_t& nx, const size_t& ny) :
 sizeX(nx), sizeY(ny), SWCorner(sw), NECorner(ne) {
 	try {
-		arrivalTimeMap = new FFArray<double>("ArrivalTime", FFConstants::infinity(), sizeX, sizeY);
+		arrivalTimeMap = new FFArray<double>("ArrivalTime", numeric_limits<double>::infinity(), sizeX, sizeY);
 		dx = ( NECorner.getX()-SWCorner.getX() )/sizeX;
 		dy = ( NECorner.getY()-SWCorner.getY() )/sizeY;
 	} catch ( const std::bad_alloc & ) {

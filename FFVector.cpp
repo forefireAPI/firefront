@@ -26,18 +26,21 @@ const double FFVector::epsilonv = 1.e-12;
 const double FFVector::Pi = 3.141592653589793;
 
 // constructors and destructor
-FFVector::FFVector() {
-	vx = 0.;
-	vy = 0.;
-	vz = 0.;
-}
-FFVector::FFVector(const double vx0=0., const double vy0=0.) {
-	vx = vx0;
-	vy = vy0;
-	vz = 0.;
+
+FFVector::
+FFVector() {
+	vx = 0;
+	vy = 0;
+	vz = 0;
 }
 FFVector::
-FFVector(const double vx0=0., const double vy0=0., const double vz0=0.) {
+FFVector(const double vx0, const double vy0) {
+	vx = vx0;
+	vy = vy0;
+	vz = 0;
+}
+FFVector::
+FFVector(const double vx0, const double vy0, const double vz0) {
 	vx = vx0;
 	vy = vy0;
 	vz = vz0;

@@ -36,7 +36,6 @@ class LavaPropagationModel : public PropagationModel {
 
 	/*! properties needed by the model */
 	size_t effectiveSlope;
-	size_t heatFlux;
 	size_t viscosity;
 	size_t flowSpeed;
 	size_t rugosity;
@@ -48,7 +47,6 @@ class LavaPropagationModel : public PropagationModel {
 	int lavaviscosity;
 	double lavadensity;
 	int lavayield;
-	double lavathick;
 	/*! local variables */
 
 	/*! result of the model */

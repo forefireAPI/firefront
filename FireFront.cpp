@@ -165,7 +165,7 @@ void FireFront::update(){
 
 // Advance in time function
 void FireFront::timeAdvance(){
-	setUpdateTime(FFConstants::infinity());
+	setUpdateTime(numeric_limits<double>::infinity());
 }
 
 /*! Output function */
@@ -206,7 +206,7 @@ size_t FireFront::getNumFN(FireNode* startfn){
 		try {
 			while ( fn->getNext() != startfn ){
 				fn = fn->getNext();
-				if ( fn == 0 or numFN > FFConstants::infiniteLoop ){
+				if ( fn == 0 or numFN > LOOPLIMIT ){
 					throw logic_error( "PROBLEM in FireFront::getNumFN" );
 				}
 				numFN++;
@@ -237,7 +237,7 @@ size_t FireFront::getNumFN(FireNode* startfn){
 						throw TopologicalException("", "FireFront::getNumFN()");
 					}
 				}
-				if ( numfn > FFConstants::infiniteLoop ){
+				if ( numfn > LOOPLIMIT ){
 					cout<<toString()<<endl
 							<<getDomainID()<<": infinite loop in the front";
 					cout<<"throwing topological exception"<<endl;
@@ -1029,7 +1029,7 @@ void FireFront::makeTrash(){
 		containingFront->removeInnerFront(this);
 		containingFront = 0;
 	}
-	setUpdateTime(FFConstants::infinity());
+	setUpdateTime(numeric_limits<double>::infinity());
 }
 
 string FireFront::toString(){

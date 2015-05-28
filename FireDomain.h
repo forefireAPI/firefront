@@ -343,8 +343,7 @@ public:
 
 	size_t getFreeFluxModelIndex();
 
-	/*! \brief constants of the simulation */
-	static const FFConstants csts;
+
 
 	static bool commandOutputs; /*! boolean for command outputs */
 	static bool outputs; /*! boolean for outputs */

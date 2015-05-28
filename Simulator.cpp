@@ -42,7 +42,7 @@ TimeTable* Simulator::getSchedule(){
 }
 
 void Simulator::goTo(const double& endTime){
-	while ( schedule->getTime() <= endTime + FFConstants::epsilont ) {
+	while ( schedule->getTime() <= endTime + EPSILONT ) {
 		FFEvent* upEvent = schedule->getUpcomingEvent();
 		if ( !upEvent ){
 		   cout << "no more events !!"<<endl;

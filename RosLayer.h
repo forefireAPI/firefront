@@ -18,8 +18,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 
 */
 
-#ifndef BURNINGRATIOLAYER_H_
-#define BURNINGRATIOLAYER_H_
+#ifndef ROSLAYER_H_
+#define ROSLAYER_H_
 
 #include "DataLayer.h"
 #include "FDCell.h"
@@ -29,20 +29,20 @@ using namespace std;
 namespace libforefire {
 
 
-/*! \class BurningRatioLayer
+/*! \class RosLayer
  * \brief Template data layer object specific to burning ratio in atmospheric cells
  *
- *  BurningRatioLayer gives access to the burning ratio in atmospheric cells.
+ *  RosLayer gives access to the burning ratio in atmospheric cells.
  *  The ratio is defined as the ratio of burning surface/total surface. Whenever
  *  getMatrix() is called the array is re-computed.
  */
-template<typename T> class BurningRatioLayer : public DataLayer<T> {
+template<typename T> class RosLayer : public DataLayer<T> {
 
 	size_t nx; /*!< size of the array in the X direction */
 	size_t ny; /*!< size of the array in the Y direction */
 	size_t size; /*!< size of the array */
 
-	FFArray<T>* ratioMap; /*!< pointer to the array of burning ratios */
+	FFArray<T>* rosMap; /*!< pointer to the array of burning ratios */
 
 	FDCell** cells; /*!< pointers to the atmospheric cells */
 
@@ -55,18 +55,18 @@ template<typename T> class BurningRatioLayer : public DataLayer<T> {
 	T getNearestData(FFPoint);
 public:
 	/*! \brief Default constructor */
-	BurningRatioLayer() : DataLayer<T>() {};
+	RosLayer() : DataLayer<T>() {};
 	/*! \brief Constructor with all necessary information */
-	BurningRatioLayer(string name, const size_t& nnx, const size_t& nny, FDCell** FDcells)
+	RosLayer(string name, const size_t& nnx, const size_t& nny, FDCell** FDcells)
 	: DataLayer<T>(name), nx(nnx), ny(nny), cells(FDcells) {
 		size = nx*ny;
-		ratioMap = new FFArray<T>("BRatio", 0., nx, ny);
+		rosMap = new FFArray<T>("Ros", 0., nx, ny);
 		latestCall = -1.;
 		params = SimulationParameters::GetInstance();
 	};
 	/*! \brief Destructor */
-	virtual ~BurningRatioLayer(){
-		delete ratioMap;
+	virtual ~RosLayer(){
+		delete rosMap;
 	}
 
 	/*! \brief obtains the value at a given position in the array */
@@ -95,70 +95,58 @@ public:
 };
 
 template<typename T>
-T BurningRatioLayer<T>::getVal(size_t i, size_t j){
-	return (*ratioMap)(i, j);
+T RosLayer<T>::getVal(size_t i, size_t j){
+	return (*rosMap)(i, j);
 }
 
 template<typename T>
-T BurningRatioLayer<T>::getValueAt(FireNode* fn){
+T RosLayer<T>::getValueAt(FireNode* fn){
 	return getNearestData(fn->getLoc());
 }
 
 template<typename T>
-T BurningRatioLayer<T>::getValueAt(FFPoint loc, const double& time){
+T RosLayer<T>::getValueAt(FFPoint loc, const double& time){
 	return getNearestData(loc);
 }
 
 template<typename T>
-size_t BurningRatioLayer<T>::getValuesAt(FireNode* fn
+size_t RosLayer<T>::getValuesAt(FireNode* fn
 		, PropagationModel* model, size_t curItem){
 	return 0;
 }
 
 template<typename T>
-size_t BurningRatioLayer<T>::getValuesAt(FFPoint loc, const double& t
+size_t RosLayer<T>::getValuesAt(FFPoint loc, const double& t
 		, FluxModel* model, size_t curItem){
 	return 0;
 }
 
 template<typename T>
-T BurningRatioLayer<T>::getNearestData(FFPoint loc){
-	cout<<"BurningRatioLayer<T>::getNearestData() "
+T RosLayer<T>::getNearestData(FFPoint loc){
+	cout<<"RosLayer<T>::getNearestData() "
 			<<"shouldn't have been called"<<endl;
 	return 0.;
 }
 
 template<typename T>
-void BurningRatioLayer<T>::getMatrix(
+void RosLayer<T>::getMatrix(
 		FFArray<T>** matrix, const double& t){
-	cout <<"asking BR layer"<<nx<<"   "<<ny<<endl;
-	if ( t != latestCall ){
+	cout <<"asking ros layer"<<nx<<"   "<<ny<<endl;
+
 		// computing the burning ratio matrix
 		for ( size_t i=0; i < nx; i++ ){
 			for ( size_t j=0; j < ny; j++ ){
-				(*ratioMap)(i,j) = cells[i][j].getBurningRatio(t);
+				(*rosMap)(i,j) = cells[i][j].getMaxSpeed(t);
 			}
 		}
-		latestCall = t;
-	}
-	// Affecting the computed matrix to the desired array
-	*matrix = ratioMap;
-/*
-	if ( params->getInt("surfaceOutputs") != 0 ) {
-		// dumping in a binary file for output
-		FFPoint plotOrigin = FFPoint();
-		size_t nomesh = 1;
-		dumpAsBinary(params->getParameter("ffOutputsPattern"), t
-				, plotOrigin, plotOrigin, nomesh, nomesh);
-	}
-*/
+		*matrix = rosMap;
 }
 
 template<typename T>
-void BurningRatioLayer<T>::setMatrix(string& mname, double* inMatrix
+void RosLayer<T>::setMatrix(string& mname, double* inMatrix
 		, const size_t& sizein, size_t& sizeout, const double& time){
-	if ( ratioMap->getSize() == sizein ){
-		ratioMap->copyDataFromFortran(inMatrix);
+	if ( rosMap->getSize() == sizein ){
+		rosMap->copyDataFromFortran(inMatrix);
 	} else {
 		cout<<"Error while trying to retrieve data for data layer "
 				<<this->getKey()<<", matrix size not matching";
@@ -166,17 +154,17 @@ void BurningRatioLayer<T>::setMatrix(string& mname, double* inMatrix
 }
 
 template<typename T>
-string BurningRatioLayer<T>::print(){
+string RosLayer<T>::print(){
 	return print2D(0,0);
 }
 
 template<typename T>
-string BurningRatioLayer<T>::print2D(size_t i, size_t j){
-	return ratioMap->print2D(i,j);
+string RosLayer<T>::print2D(size_t i, size_t j){
+	return rosMap->print2D(i,j);
 }
 
 template<typename T>
-void BurningRatioLayer<T>::dumpAsBinary(string filename, const double& time
+void RosLayer<T>::dumpAsBinary(string filename, const double& time
 		, FFPoint& SWC, FFPoint& NEC, size_t& nnx, size_t& nny){
 	/* writing the matrix in a binary file */
 	ostringstream outputfile;
@@ -184,10 +172,10 @@ void BurningRatioLayer<T>::dumpAsBinary(string filename, const double& time
 	ofstream FileOut(outputfile.str().c_str(), ios_base::binary);
 	FileOut.write(reinterpret_cast<const char*>(&nx), sizeof(size_t));
 	FileOut.write(reinterpret_cast<const char*>(&ny), sizeof(size_t));
-	FileOut.write(reinterpret_cast<const char*>(ratioMap->getData()), ratioMap->getSize()*sizeof(T));
+	FileOut.write(reinterpret_cast<const char*>(rosMap->getData()), rosMap->getSize()*sizeof(T));
 	FileOut.close();
 }
 
 }
 
-#endif /* BURNINGRATIOLAYER_H_ */
+#endif /* ROSLAYER_H_ */

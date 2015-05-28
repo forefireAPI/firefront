@@ -164,6 +164,27 @@ double FDCell::getBurningRatio(const double& t){
 	return numBurningCells/mapSize;
 }
 
+double FDCell::getMaxSpeed(const double& t){
+
+	FFPoint center;
+	center.setX(SWCorner.getX()+0.5*dx);
+	for ( size_t i=0; i<mapSizeX; i++ ){
+		center.setY(SWCorner.getY()+0.5*dy);
+		for ( size_t j=0; j<mapSizeY; j++ ){
+			center.setY(center.getY()+dy);
+		}
+		center.setX(center.getX()+dx);
+	}
+
+	FireNode fnode(domain);
+	FFVector spL(1,1,0);
+	fnode.setLoc(center);
+	fnode.setVel(spL);
+
+/*	if ( numBurningCells == 0 ) delete arrivalTimes;*/
+	return domain->getPropagationSpeed(&fnode);;
+}
+
 int FDCell::activeModelsOnBmap(string layername,const double& t, int* modelCount){
 	/* if the burning map is not allocated */
 

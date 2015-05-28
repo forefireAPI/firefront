@@ -63,7 +63,7 @@ template<typename T> class PropagativeLayer : public DataLayer<T> {
 	double mapDz; /*!< increment in the Z direction */
 	double mapDt; /*!< increment in the T direction */
 
-	FFConstants csts; /*!< constants */
+
 
 	SimulationParameters* params;
 
@@ -209,9 +209,52 @@ size_t PropagativeLayer<T>::getValuesAt(FFPoint loc, const double& t
 }
 
 template<typename T>
-void PropagativeLayer<T>::getMatrix(FFArray<T>** matrix, const double& t){
-	cout<<"WARNING: PropagativeLayer<T>::getMatrix() "
-			<<"shouldn't have been called"<<endl;
+void PropagativeLayer<T>::getMatrix(FFArray<T>** lmatrix, const double& t){
+
+
+
+
+	double res = 1;
+
+
+			double ddx = res;
+			int nnx = (mapNECornerX-mapSWCornerX)/res;
+			int nx = 10;
+			double ddy = res;
+			int nny = (mapNECornerY-mapSWCornerY)/res;
+			int ny = 10;//nny;
+
+			cout<<"WARNING: PropagativeLayer<T>::getMatrix() "
+					<<nx<<" "<<ny<<"  "<<(mapNECornerX-mapSWCornerX)<<endl;
+			if(nny*nnx < 100*100 ){
+
+				nnx = nx;
+				nny = ny;
+				ddx = (mapNECornerX-mapSWCornerX)/nnx;
+				ddy = (mapNECornerY-mapSWCornerY)/nny;
+			}
+
+			int nnz = 1;
+			int nnt = 1;
+
+
+			double vals[nnx*nny];
+
+			FFPoint loc;
+		//	loc.setX(mapSWCornerX+0.5*ddx);
+
+			for ( int i = 0; i < nnx; i++ ) {
+			//	loc.setY(mapSWCornerY+0.5*ddy);
+				for ( int j = 0; j < nny; j++ ) {
+					vals[i*nny+j] = i; //propModelIndexMap[getPosInMap(loc, 0)];
+				//	loc.setY(loc.getY()+ddy);
+				}
+			//	loc.setX(loc.getX()+ddx);
+			}
+			*lmatrix = new FFArray<double>("RoS", 1, nnx, nny, nnz, nnt);
+			(*lmatrix)->setVal(&vals[0]);
+
+
 }
 
 template<typename T>

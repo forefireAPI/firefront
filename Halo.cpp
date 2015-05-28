@@ -309,7 +309,7 @@ bool Halo::isValid(list<FireNodeData*>& chain){
 			if ( domain->getDomainID((*next)->id) == domain->getDomainID() )
 				crossingInnerHalo = true;
 			FFPoint inter = domain->findIntersectionWithInnerFrontiers(*cdata, *next);
-			if ( inter.getX() != FFConstants::infinity() ) crossingInnerHalo = true;
+			if ( inter.getX() != numeric_limits<double>::infinity() ) crossingInnerHalo = true;
 		}
 
 		/* Checking the distance between the markers */

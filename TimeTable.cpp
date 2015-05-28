@@ -54,7 +54,7 @@ FFEvent* TimeTable::getHead(){
 }
 
 double TimeTable::getTime(){
-	if ( !head or size()==0 ) return -FFConstants::infinity();
+	if ( !head or size()==0 ) return -numeric_limits<double>::infinity();
 	return head->getTime();
 }
 
@@ -102,7 +102,7 @@ void TimeTable::insertBefore(FFEvent* newEv){
 	} else {
 		// possible insertion at the head or the tail
 		// if not, searching for the time of insertion
-		if ( evTime < head->getTime() + FFConstants::epsilont ){
+		if ( evTime < head->getTime() + EPSILONT ){
 			// inserting the event at the head
 			head->insertBefore(newEv);
 			head = newEv;
@@ -113,7 +113,7 @@ void TimeTable::insertBefore(FFEvent* newEv){
 			// searching for the time of insertion
 			// starting from the head
 			FFEvent* tmpEv = head;
-			while ( evTime > tmpEv->getTime() + FFConstants::epsilont ){
+			while ( evTime > tmpEv->getTime() + EPSILONT ){
 				tmpEv = tmpEv->getNext();
 			}
 			tmpEv->insertBefore(newEv);
@@ -125,7 +125,7 @@ void TimeTable::insertBefore(FFEvent* newEv){
 void TimeTable::insert(FFEvent* newEv){
 	// checking the event consistency
 	double evTime = newEv->getTime();
-	if ( evTime == FFConstants::infinity() ){
+	if ( evTime == numeric_limits<double>::infinity() ){
 		// deleting the event
 		delete newEv;
 		return;
@@ -138,11 +138,11 @@ void TimeTable::insert(FFEvent* newEv){
 	} else {
 		// possible insertion at the head or the tail
 		// if not, searching for the time of insertion
-		if ( evTime < head->getTime() - FFConstants::epsilont ){
+		if ( evTime < head->getTime() - EPSILONT ){
 			// inserting the event at the head
 			head->insertBefore(newEv);
 			head = newEv;
-		} else if ( evTime >= head->getPrev()->getTime() - FFConstants::epsilont ){
+		} else if ( evTime >= head->getPrev()->getTime() - EPSILONT ){
 			// inserting the event at the tail
 			FFEvent* tmpEv = head->getPrev();
 			tmpEv->insertAfter(newEv);
@@ -150,7 +150,7 @@ void TimeTable::insert(FFEvent* newEv){
 			// searching for the time of insertion
 			// starting from the head
 			FFEvent* tmpEv = head;
-			while ( evTime > tmpEv->getTime() - FFConstants::epsilont ){
+			while ( evTime > tmpEv->getTime() - EPSILONT ){
 				tmpEv = tmpEv->getNext();
 			}
 			tmpEv = tmpEv->getPrev();

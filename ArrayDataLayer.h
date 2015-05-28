@@ -81,9 +81,9 @@ public:
 		originY = SWCorner.getY();
 		originZ = SWCorner.getZ();
 		dx = ( NECorner.getX() - SWCorner.getX() )/nx;
-		dy = NECorner.getY() - SWCorner.getY() > FFConstants::epsilonx ?
+		dy = NECorner.getY() - SWCorner.getY() > EPSILONX ?
 			( NECorner.getY() - SWCorner.getY() )/ny : 1;
-		dz = NECorner.getZ() - SWCorner.getZ() > FFConstants::epsilonx ?
+		dz = NECorner.getZ() - SWCorner.getZ() > EPSILONX ?
 			( NECorner.getZ() - SWCorner.getZ() )/nz : 1;
 		interp = bilinear;
 	};
@@ -205,8 +205,8 @@ T Array3DdataLayer<T>::bilinearInterp(FFPoint loc){
 	/* searching the coordinates of the nodes around */
 	FFPoint indices = posToIndices(loc);
 
-	double ud = indices.getX() + FFConstants::epsilonx;
-	double vd = indices.getY() + FFConstants::epsilonx;
+	double ud = indices.getX() + EPSILONX;
+	double vd = indices.getY() + EPSILONX;
 
 	int uu = (int) ceil(ud-1);
 	int vv = (int) ceil(vd-1);
@@ -334,7 +334,7 @@ public:
 		originX = SWCorner.getX();
 		originY = SWCorner.getY();
 		dx = ( NECorner.getX() - SWCorner.getX() )/nx;
-		dy = NECorner.getY() - SWCorner.getY() > FFConstants::epsilonx ?
+		dy = NECorner.getY() - SWCorner.getY() > EPSILONX ?
 			( NECorner.getY() - SWCorner.getY() )/ny : 1;
 		interp = bilinear;
 	};
@@ -453,8 +453,8 @@ T Array2DdataLayer<T>::bilinearInterp(FFPoint loc){
 	/* searching the coordinates of the nodes around */
 	FFPoint indices = posToIndices(loc);
 
-	double ud = indices.getX() + FFConstants::epsilonx;
-	double vd = indices.getY() + FFConstants::epsilonx;
+	double ud = indices.getX() + EPSILONX;
+	double vd = indices.getY() + EPSILONX;
 
 	int uu = (int) ceil(ud-1);
 	int vv = (int) ceil(vd-1);

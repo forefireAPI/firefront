@@ -100,10 +100,9 @@ double LavaSO2FluxModel::getValue(double* valueOf
 	size_t nhours = refHours.size();
 	while ( hind+1 < nhours and refHours[hind+1] < hoursSinceEruption ) hind++;
 	/* interpolation of the flux between the values */
-	double beta = (hoursSinceEruption-refHours[hind])
-			/(refHours[hind+1]-refHours[hind]);
-	double flux = beta*refFlows[hind+1] + (1.-beta)*refFlows[hind];
-	double lavaso2 = convert*emissionRatio*flux;
+//	double beta = (hoursSinceEruption-refHours[hind])
+//			/(refHours[hind+1]-refHours[hind]);
+	//double flux = beta*refFlows[hind+1] + (1.-beta)*refFlows[hind];
 //	cout << "lavaso2" <<  lavaso2  << endl;
 	return 0;
 

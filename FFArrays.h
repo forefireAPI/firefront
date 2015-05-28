@@ -57,8 +57,8 @@ public:
 		}
 	}
 	/*! \brief Constructor with imposed matrix */
-	FFArray(string aname, T* matrix, size_t& ni = 1, size_t& nj = 1
-			, size_t& nk = 1, size_t& nl = 1) :
+	FFArray(string aname, T* matrix, const size_t& ni = 1,const  size_t& nj = 1
+			, const size_t& nk = 1, const size_t& nl = 1) :
 		nx(ni), ny(nj), nz(nk), nt(nl), name(aname)	{
 		size = nx*ny*nz*nt;
 		try {

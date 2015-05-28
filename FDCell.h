@@ -48,7 +48,6 @@ class FDCell {
 	BurningMap* arrivalTimes; /*!< Burning map inside the cell */
 	bool allocated; /*!< boolean for the allocation of the burning map */
 
-	bool imposedArrivalTimes; /*!< boolean for imposed values of arrival times */
 
 	list<FireNode*>::iterator ifn;
 
@@ -125,6 +124,9 @@ public:
 
 	/*! \brief computing the burning ratio of the cell */
 	double getBurningRatio(const double&);
+
+	/*! \brief computing the max ROS of the cell */
+	double getMaxSpeed(const double&);
 
 	/*! \brief computing a specified flux on the cell */
 	double applyModelsOnBmap(string, const double&, const double&,int* );

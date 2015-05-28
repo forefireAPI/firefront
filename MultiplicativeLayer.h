@@ -49,7 +49,7 @@ template<typename T> class MultiplicativeLayer : public DataLayer<T> {
 	double coefficient; /*!< multiplicative coefficient */
 
 	double latestCall; /*!< time of the latest call to getMatrix() */
-	FFConstants csts; /*!< constants */
+
 
 	SimulationParameters* params;
 

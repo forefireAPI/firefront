@@ -184,7 +184,7 @@ void FireNode::timeAdvance(){
 			}
 			if ( fdepth ) {
 				double newFrontDepth = domain->computeFrontDepth(this);
-				if ( frontDepth > FFConstants::epsilonx ) {
+				if ( frontDepth > EPSILONX ) {
 					frontDepth = (1.-relax)*frontDepth + relax*newFrontDepth;
 				} else {
 					frontDepth = newFrontDepth;
@@ -199,7 +199,7 @@ void FireNode::timeAdvance(){
 				getNext()->getState() == moving ? nextSpeed = getNext()->getSpeed() : nextSpeed = 0;
 				newSpeed = ( prevSpeed + smoothing*localSpeed + nextSpeed )/(smoothing+2.);
 				}
-			if ( speed > FFConstants::epsilonv ) {
+			if ( speed > EPSILONV ) {
 				speed = (1.-relax)*speed + relax*newSpeed;
 			} else {
 				speed = newSpeed;
@@ -237,12 +237,12 @@ void FireNode::timeAdvance(){
 	}
 
 	if ( currentState == final ){
-		setUpdateTime(FFConstants::infinity());
+		setUpdateTime(numeric_limits<double>::infinity());
 	}
 
 	if ( currentState == link ){
 		cout<<"WARNING: A link node has been advanced in time !! Its address is "<<this<<endl;
-		setUpdateTime(FFConstants::infinity());
+		setUpdateTime(numeric_limits<double>::infinity());
 	}
 
 }
@@ -433,8 +433,8 @@ void FireNode::makeTrash(){
     velocity.setVec(0,0,0);
     speed=0;
     setState(final);
-    setTime(FFConstants::infinity());
-	setUpdateTime(FFConstants::infinity());
+    setTime(numeric_limits<double>::infinity());
+	setUpdateTime(numeric_limits<double>::infinity());
 }
 
 // updating in the halo

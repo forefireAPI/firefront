@@ -49,7 +49,6 @@ class TimeTable {
 	size_t decr; /*!< Total number of deleted events */
 	void decrement();
 
-	static const FFConstants csts;
 
 	void commonInitialization();
 public:

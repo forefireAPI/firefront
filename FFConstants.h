@@ -23,34 +23,18 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 
 #include<limits>
 
-using namespace std;
+#define EPSILONX  1.e-3
+#define EPSILONV  1.e-3
+#define EPSILONT  1.e-3
+#define PI  3.141592653589793
+#define EPSILONX  1.e-3
+#define NO_FUTURE_EVENT  -1.
+#define FDID  100000000
+#define FFID  1000000
+#define LOOPLIMIT  1000000
+#define FLOATERROR 1234567890.
+#define INTERROR  1234567890
 
-namespace libforefire {
 
-class FFConstants {
-public:
-	FFConstants(){}
-	virtual ~FFConstants(){}
-
-	static const double Pi = 3.141592653589793;
-
-	static const double epsilont = 1.e-3;
-	static const double epsilonx = 1.e-3;
-	static const double epsilonv = 1.e-3;
-
-	static const double infinity(){
-		return numeric_limits<double>::infinity();
-	}
-
-	static const size_t infiniteLoop = 1000000;
-
-	static const double no_future_event = -1.;
-
-	static const unsigned long int fdid = 100000000;
-	static const unsigned long int ffid = 1000000;
-
-};
-
-}
 
 #endif /* FFCONSTANTS_H_ */

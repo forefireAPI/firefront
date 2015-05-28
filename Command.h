@@ -34,7 +34,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 
 #ifndef COMMAND_DEBUG
 #define COMMAND_DEBUG 1<<8
+
 #endif
+
+
+
 
 namespace libforefire {
 
@@ -239,8 +243,7 @@ class Command {
 	/*! \brief remove the tabs in the commands */
 	static string removeTabs(string);
 
-	static const double floatError = 1234567890.;
-	static const int intError = 1234567890;
+
 	static const string stringError;
 	static const FFPoint pointError;
 	static const FFVector vectorError;

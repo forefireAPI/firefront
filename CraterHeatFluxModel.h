@@ -51,7 +51,6 @@ class CraterHeatFluxModel: public libforefire::FluxModel {
 	vector<double> heatCorrections;
 
 	/*! local variables */
-	double convert;
 
 	/*! result of the model */
 	double getValue(double*, const double&
