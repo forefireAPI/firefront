@@ -131,7 +131,6 @@ T RosLayer<T>::getNearestData(FFPoint loc){
 template<typename T>
 void RosLayer<T>::getMatrix(
 		FFArray<T>** matrix, const double& t){
-	cout <<"asking ros layer"<<nx<<"   "<<ny<<endl;
 
 		// computing the burning ratio matrix
 		for ( size_t i=0; i < nx; i++ ){
