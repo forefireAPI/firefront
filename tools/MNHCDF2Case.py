@@ -24,26 +24,18 @@ execfile("genForeFireCase.py")
 #if(len(sys.argv)==1):
 #    print "Usage MNHCDF2Case MNHSrcFile.nc FFDestFile.nc a.x,a.y b.x,b.y ...."
 #    exit(0)
-
-
-fname = "/Volumes/titan/data/dL100mKCL.nc" #sys.argv[1]
-fout = "toto.nc" #sys.argv[2]
+fname = "/Users/filippi/workspace/fireflux2/ffcase/ff2ideal.nc" #sys.argv[1]
+fout = "/Users/filippi/workspace/fireflux2/ffcase/case.nc" #sys.argv[2]
 d2dvar=["ZS",]
 d2dnames=["altitude",]
-scalarNames=["THM","UM","VM"]
+scalarNames=["THT","UM","VM"]
 names=["temperature","windU","windV"]
 
 #geometry 
- 
 geomCDFBin = fname 
  
 nc = netcdf.netcdf_file(geomCDFBin, 'r') 
-print nc.variables['LATOR'].getValue(), nc.variables['LONOR'].getValue(), nc.variables['LON'][0][0], nc.variables['LAT'][0][0],nc.variables['LON'][-1][-1], nc.variables['LAT'][-1][-1]
 
-
-print len(nc.variables['LON'][:])
-
-exit(0)
 DeltaY = nc.variables['YHAT'][1]-nc.variables['YHAT'][0]
 DeltaX = nc.variables['XHAT'][1]-nc.variables['XHAT'][0]
 domainProperties= {}
@@ -58,14 +50,9 @@ domainProperties['Lt']   = np.Inf
 
 dom= "FireDomain[sw=(%d,%f,0);ne=(%f,%f,0);]"%(domainProperties['SWx'],domainProperties['SWy'],domainProperties['SWx']+domainProperties['Lx'],domainProperties['SWy']+domainProperties['Ly'])
 print domainProperties['Lx'] ,domainProperties['Ly'] ,len(nc.variables['XHAT'][:])
-print "   ori ", nc.variables['LATORI'].getValue(), nc.variables['LONORI'].getValue()
-
-exit(0)
-
+print "   ori ", nc.variables['LAT0'].getValue(), nc.variables['LON0'].getValue()
+ 
 SVM = nc.variables[scalarNames[0]][:]
-print "\n".join(nc.variables)
-
-print nc.variables['LATOR'].getValue(), nc.variables['LONOR'].getValue(), "   ori ", nc.variables['LATORI'].getValue(), nc.variables['LONORI'].getValue()
 
 NK = (len(SVM))-2
 NJ = len(SVM[0])-2
@@ -101,11 +88,11 @@ parametersProperties['projectionproperties']  = "41.551998,8.828396,41.551998,8.
 parametersProperties['date']  = "2009-07-23_12:00:00" ;
 parametersProperties['duration']  = 360000;
 parametersProperties['projection']  = "OPENMAP" ;
-parametersProperties['year']  = 2009 ;
-parametersProperties['day']  = 204 ;
+parametersProperties['refYear']  = 2013 ;
+parametersProperties['refDay']  = 30 ;
 
 elevation =  nc.variables['ZS'][:,:]
-fuelMap   =  2*np.ones(np.shape(elevation),dtype=('i4'))
+fuelMap   =  5*np.ones(np.shape(elevation),dtype=('i4'))
 
 wind =  {}
 

@@ -1094,7 +1094,7 @@ namespace libforefire{
 	// Computing the propagation speed of a given firenode
 	double FireDomain::getPropagationSpeed(FireNode* fn) {
 		int modelIndex = propagativeLayer->getModelIndexAt(fn);
-		cout<<"model index"<<modelIndex<<endl;
+
 		return propModelsTable[modelIndex]->getSpeedForNode(fn);
 	}
 
@@ -4223,7 +4223,7 @@ namespace libforefire{
 
 		size_t   INCELLSPACE1_DIM1 = FSPACE_DIM1/CELLSPACE1_DIM1;  // Nb de lignes ds chaque a_t cell
 		size_t   INCELLSPACE1_DIM2 = FSPACE_DIM2/CELLSPACE1_DIM2;   // Nb de colonnes ds chaque a_t cell
-
+		cout << "writing ncfile "<< oss.str()<<endl;
 		NcFile dataFile(oss.str().c_str(), NcFile::Replace, NULL, 0, NcFile::Classic);
 
 		if (!dataFile.is_valid())

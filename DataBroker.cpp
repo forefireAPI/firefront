@@ -393,7 +393,7 @@ void DataBroker::initializePropagativeLayer(string filename) {
 					<< params->getParameter("propagationModel") << endl;
 		}
 	}
-	cout << "Wproplayer    "  << endl;
+
 	if (domain->getPropagativeLayer() != 0) registerLayer(domain->getPropagativeLayer()->getKey(), domain->getPropagativeLayer());
 
 }
@@ -476,7 +476,7 @@ void DataBroker::loadFromNCFile(string filename) {
 			delete att;
 			if (varName == "wind") {
 								// wind is given by the NetCDF file
-								cout << "databroker::loadfromncfile wind all params"<< endl;
+
 								XYZTDataLayer<double> * wul = constructXYZTLayerFromFile(
 										NcdataFile, varName.c_str(),0);
 								registerLayer("windU", wul);

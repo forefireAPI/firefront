@@ -55,8 +55,8 @@ def FiretoNC(filename, domainProperties, parametersProperties, fuelModelMap, ele
         parameters.date = parametersProperties['date'] 
         parameters.duration = parametersProperties['duration'] 
         parameters.projection = parametersProperties['projection']
-        parameters.year = parametersProperties['year'] 
-        parameters.day = parametersProperties['day']
+        parameters.refYear = parametersProperties['refYear'] 
+        parameters.refDay = parametersProperties['refDay']
         
         
         fuel = ncfile.createVariable('fuel', 'i4', ('DIMT', 'DIMZ', 'DIMY', 'DIMX'))
