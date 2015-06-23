@@ -104,16 +104,27 @@ double Rothermel::getSpeed(double* valueOf){
 	double localngle =  valueOf[slope];
 
 
+
+
+/*	lRhod = 30.0;
+	 lMd =0.1;
+	  lsd =1523.99999768352;
+	  le =1.0;
+	  lSigmad =1044.27171; */
+
+
+
 	normal_wind *= 0.4; // factor in the data seen in 2013
 
 	if (normal_wind < 0) normal_wind = 0;
 
 
-	double tanangle = tan(localngle);
+	double tanangle = localngle;
 	if (tanangle<0) tanangle=0;
 
 
 	double Mchi = 0.3; // Moisture of extinction
+
 	double Etas = 1; // no mineral damping
 
 	double Wn = lSigmad;
@@ -167,6 +178,9 @@ double Rothermel::getSpeed(double* valueOf){
 	if(R > 0.0) {
 
 		return R*0.00508; //piedsmin en Ms
+	}else{
+		cout << " Rhod "<< lRhod << " lMd "<< lMd << " lsd "<< lsd << " le "<< le << " lSigmad "<< lSigmad <<endl;
+		cout << " R "<< R << " R0 "<< R0 << " phiv " << phiV <<" phiP" << phiP <<endl;
 	}
 	return 0;
 

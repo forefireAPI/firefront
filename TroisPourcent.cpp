@@ -38,7 +38,7 @@ int TroisPourcent::isInitialized =
 TroisPourcent::TroisPourcent(const int & mindex, DataBroker* db)
 : PropagationModel(mindex, db) {
 	/* defining the properties needed for the model */
-	effectiveSlope = registerProperty("effectiveSlope");
+	effectiveSlope = registerProperty("slope");
 	normalWind = registerProperty("normalWind");
 
 	/* allocating the vector for the values of these properties */
@@ -48,13 +48,13 @@ TroisPourcent::TroisPourcent(const int & mindex, DataBroker* db)
 	dataBroker->registerPropagationModel(this);
 
 	/* Definition of the coefficients */
-	R0 = 0.05;
+	R0 = 0.01;
 	if ( params->isValued("TroisPourcent.R0") )
 		R0 = params->getDouble("TroisPourcent.R0");
 	windFactor = 0.03;
 	if ( params->isValued("TroisPourcent.windFactor") )
 		windFactor = params->getDouble("TroisPourcent.windFactor");
-	slopeFactor = 0.03;
+	slopeFactor = 0.00;
 	if ( params->isValued("TroisPourcent.slopeFactor") )
 		slopeFactor = params->getDouble("TroisPourcent.slopeFactor");
 }

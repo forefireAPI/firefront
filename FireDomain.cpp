@@ -4260,7 +4260,7 @@ namespace libforefire{
 					atime->put(&goodCell[0][0], INCELLSPACE1_DIM2, INCELLSPACE1_DIM1);
 					cellActive[j][i] = 01;
 				}else{
-					atime->put(&emptyCell[0][0], INCELLSPACE1_DIM1, INCELLSPACE1_DIM2);
+					atime->put(&emptyCell[0][0], INCELLSPACE1_DIM2, INCELLSPACE1_DIM1);
 				}
 
 			}
