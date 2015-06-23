@@ -16,7 +16,7 @@ You should have received a copy of the GNU Lesser General Public
 License along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 
-*/
+ */
 
 #include "Rothermel.h"
 
@@ -34,25 +34,38 @@ PropagationModel* getRothermelModel(const int & mindex, DataBroker* db) {
 
 /* registration */
 int Rothermel::isInitialized =
-        FireDomain::registerPropagationModelInstantiator(name, getRothermelModel );
+		FireDomain::registerPropagationModelInstantiator(name, getRothermelModel );
 
 /* constructor */
 Rothermel::Rothermel(const int & mindex, DataBroker* db)
 : PropagationModel(mindex, db) {
 	/* defining the properties needed for the model */
-	sigma = registerProperty("sigma");
-	rhop = registerProperty("rhop");
-	delta = registerProperty("delta");
-	betaop = registerProperty("betaop");
-	wl = registerProperty("wl");
-	Mf = registerProperty("Mf");
-	Mx = registerProperty("Mx");
-	St = registerProperty("St");
-	Se = registerProperty("Se");
-	h = registerProperty("h");
-	a = registerProperty("a");
-	effectiveSlope = registerProperty("effectiveSlope");
-	normalWind20ft = registerProperty("normalWind20ft");
+
+	slope = registerProperty("slope");
+	normalWind = registerProperty("normalWind");
+	Rhod = registerProperty("fuel.Rhod");
+	Rhol = registerProperty("fuel.Rhol");
+	Md = registerProperty("fuel.Md");
+	Ml = registerProperty("fuel.Ml");
+	sd = registerProperty("fuel.sd");
+	sl = registerProperty("fuel.sl");
+	e = registerProperty("fuel.e");
+	Sigmad = registerProperty("fuel.Sigmad");
+	Sigmal = registerProperty("fuel.Sigmal");
+	stoch = registerProperty("fuel.stoch");
+	RhoA = registerProperty("fuel.RhoA");
+	Ta = registerProperty("fuel.Ta");
+	Tau0 = registerProperty("fuel.Tau0");
+	Deltah = registerProperty("fuel.Deltah");
+	DeltaH = registerProperty("fuel.DeltaH");
+	Cp = registerProperty("fuel.Cp");
+	Ti = registerProperty("fuel.Ti");
+	X0 = registerProperty("fuel.X0");
+	r00 = registerProperty("fuel.r00");
+	Blai = registerProperty("fuel.Blai");
+
+
+
 
 	/* allocating the vector for the values of these properties */
 	if ( numProperties > 0 ) properties =  new double[numProperties];
@@ -77,33 +90,93 @@ string Rothermel::getName(){
 /* *********************************************** */
 
 double Rothermel::getSpeed(double* valueOf){
-	/* Computing the spread rate without wind and slope R0 */
-	double GammaMax = pow(valueOf[sigma],1.5)/(495.+0.594*pow(valueOf[sigma],1.5));
-	double w0 = valueOf[wl]/(1.+valueOf[Mf]);
-	double beta = w0/(valueOf[rhop]*valueOf[delta]);
-	double A = 1./(4.77*pow(valueOf[sigma],0.1)-7.27);
-	double Gamma = GammaMax*pow(beta/valueOf[betaop], A)*exp(A*(1-beta/valueOf[betaop]));
-	double wn = w0/(1.+valueOf[St]);
-	double ratio = valueOf[Mf]/valueOf[Mx];
-	double etam = 1.-2.59*ratio + 5.11*ratio*ratio - 3.52*ratio*ratio*ratio;
-	double etas = 0.174*pow(valueOf[Se],-0.19);
-	double Ir = Gamma*wn*valueOf[h]*etam*etas;
-	double xsi = exp((1.+beta)*(0.792+0.681*pow(valueOf[sigma],0.5)));
-	double rhob = w0/valueOf[delta];
-	double epsilon = exp(-138/valueOf[sigma]);
-	double Qig = 250.*beta + 1116*valueOf[Mf];
-	double R0 = Ir*xsi/(rhob*epsilon*Qig);
-	/* computing the wind factor */
-	double C = 7.47*exp(-0.133*pow(valueOf[sigma], 0.55));
-	double Ua = (valueOf[normalWind20ft] < 30. )?
-			valueOf[a]*valueOf[normalWind20ft] : valueOf[a]*30.;
-	double E = 0.715*exp(-0.000359*valueOf[sigma]);
-	double phiw = C*pow(Ua, beta)*pow(beta/betaop, -E);
-	/* computing the slope factor */
-	double tanphi = valueOf[effectiveSlope];
-	double phis = (tanphi > 0.)? 5.275*pow(beta, -0.3)*tanphi*tanphi : 0;
-	/* computing the rate of spread (Rothermel 1972) */
-	return R0*(1. + phiw + phis);
+
+
+	double lRhod = valueOf[Rhod]* 0.06;// conversion  Pound per cubic foot
+	double lRhol = 120;
+	double lMd  = valueOf[Md];
+	double lsd  = valueOf[sd] / 3.2808399 ;
+	double le   = valueOf[e];
+	if (le==0) return 0;
+	double lSigmad = valueOf[Sigmad] * 2088.54342;// conversion   livre par pieds carré
+	double lDeltaH = 8000;// conversion  BTU
+	double normal_wind  = valueOf[normalWind]* 196.850394 ; //conversion ft/min
+	double localngle =  valueOf[slope];
+
+
+	normal_wind *= 0.4; // factor in the data seen in 2013
+
+	if (normal_wind < 0) normal_wind = 0;
+
+
+	double tanangle = tan(localngle);
+	if (tanangle<0) tanangle=0;
+
+
+	double Mchi = 0.3; // Moisture of extinction
+	double Etas = 1; // no mineral damping
+
+	double Wn = lSigmad;
+
+	double Etam = 1 - 2.59*(lMd/Mchi) + 5.11*pow((lMd/Mchi),2) - 2.59*pow((lMd/Mchi),3);
+
+	double A = 1/(4.774*pow(lsd, 0.1) - 7.27);
+
+	double Beta = (lRhod)/lRhol;
+
+	double Betaop = 3.338*pow(lsd, -0.8189);
+
+	double RprimeMax = pow(lsd, 1.5)*(1/(495+0.0594*pow(lsd, 1.5)));
+
+	double Rprime = pow(RprimeMax*(Beta/Betaop),A) *  exp(A*(1-(Beta/Betaop))) ;
+
+	double chi = pow(192 + 0.2595*lsd, -1) * exp((0.792 + 0.681*pow(lsd, 0.5))*(Beta+0.1));
+
+	double epsilon  = exp(-138/lsd);
+
+	double Qig = 250 + 1.116*lMd;
+
+	double C = 7.47 * exp(-0.133*pow(lsd, 0.55));
+
+	double B = 0.02526*pow(lsd, 0.54);
+
+	double E = 0.715* exp(-3.59*(10E-4 * lsd));
+
+	double Ir = Rprime*Wn*lDeltaH*Etam*Etas;
+
+	/// wind limit 2013 //
+	double Uf = 96.81*pow(Ir, 1/3);
+
+	if (normal_wind>Uf) {
+		normal_wind = Uf;
+	}
+
+
+	double phiV = C* pow((Beta/Betaop),E)*pow(normal_wind,B) ;
+
+	double phiP = 5.275*pow(Beta, -0.3)*pow(tanangle,2);
+
+	double R0 = (Ir*chi)/(lRhod*epsilon*Qig);
+
+
+	double R = R0*(1+phiV+phiP);
+
+
+	if(R < R0)  R = R0;
+
+	if(R > 0.0) {
+
+		return R*0.00508; //piedsmin en Ms
+	}
+	return 0;
+
+
+
+
+
+
+
+
 }
 
 } /* namespace libforefire */

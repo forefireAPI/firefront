@@ -36,19 +36,28 @@ class Rothermel: public PropagationModel {
 	static int isInitialized;
 
 	/*! properties needed by the model */
-	size_t effectiveSlope;
-	size_t normalWind20ft;
-	size_t sigma;
-	size_t rhop;
-	size_t delta;
-	size_t betaop;
-	size_t wl;
-	size_t Mf;
-	size_t Mx;
-	size_t St;
-	size_t Se;
-	size_t h;
-	size_t a;
+	size_t slope;
+	size_t normalWind;
+	size_t Rhod;
+	size_t Rhol;
+	size_t Md;
+	size_t Ml;
+	size_t sd;
+	size_t sl;
+	size_t e;
+	size_t Sigmad;
+	size_t Sigmal;
+	size_t stoch;
+	size_t RhoA;
+	size_t Ta;
+	size_t Tau0;
+	size_t Deltah;
+	size_t DeltaH;
+	size_t Cp;
+	size_t Ti;
+	size_t X0;
+	size_t r00;
+	size_t Blai;
 
 	/*! coefficients needed by the model */
 

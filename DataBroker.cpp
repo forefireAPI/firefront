@@ -148,8 +148,12 @@ void DataBroker::registerPropagationModel(PropagationModel* model) {
 						(model->wantedProperties)[prop]);
 				if (pg == propPropertiesGetters.end()) {
 					optimizedPropDataBroker[model->index] = false;
-
-				} else {
+					cout << "WARNING: could not find an optimized property getter for "
+												<< (model->wantedProperties)[prop] << endl;
+										cout << "databroker is switched to an un-optimized mode"
+												<< endl;
+				}
+				else {
 					propDataGetters[model->index].push_back(pg->second);
 					numPropDataGetters[model->index]++;
 				}
@@ -1263,12 +1267,16 @@ void DataBroker::tokenize(const string& str, vector<string>& tokens,
 void DataBroker::getPropagationData(PropagationModel* model, FireNode* fn) {
 	size_t nfilled = 0;
 	if (optimizedPropDataBroker[model->index]) {
+
 		for (size_t prop = 0; prop < numPropDataGetters[model->index]; prop++) {
+
 			nfilled += (propDataGetters[model->index][prop])(fn, model,
 					nfilled);
 		}
 	} else {
+
 		for (size_t prop = 0; prop < model->numProperties; prop++) {
+
 			nfilled += getLayer(model->wantedProperties[prop])->getValuesAt(fn,
 					model, nfilled);
 		}
