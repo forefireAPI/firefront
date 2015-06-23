@@ -640,9 +640,14 @@ namespace libforefire{
 		if ( lname == "heatFlux" ) fmname = "heatFluxBasic";
 		if ( lname == "vaporFlux" ) fmname = "vaporFluxBasic";
 		FluxModel* model = fluxModelInstanciation(mindex, fmname);
+
 		if ( model != 0 ){
 			/* Instantiating a flux layer related to this model */
+
+
 			FluxLayer<double>* newlayer = new FluxLayer<double>(lname, SWCorner, NECorner, atmoNX, atmoNY, cells, mindex);
+
+			registerFluxModel(model->index, model);
 			dataBroker->registerFluxLayer(lname, newlayer);
 			return true;
 		}
@@ -656,8 +661,14 @@ namespace libforefire{
 	}
 
 	size_t FireDomain::getFreeFluxModelIndex(){
-		size_t mindex = NUM_MAX_FLUXMODELS - 1;
-		while ( fluxModelsTable[mindex] != 0 ) mindex--;
+		size_t mindex = 0;
+		while ( fluxModelsTable[mindex] != 0 ){
+			if(mindex >= NUM_MAX_FLUXMODELS -1){
+				cout<<"ERROR No mor flx models allowed, max:"<< NUM_MAX_FLUXMODELS<<endl;
+				return mindex;
+			}
+			mindex++;
+		}
 		return mindex;
 	}
 
