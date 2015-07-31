@@ -83,7 +83,7 @@ string LavaLazeFluxModel::getName(){
 double LavaLazeFluxModel::getValue(double* valueOf
 		, const double& bt, const double& et, const double& at){
 
-	if ( bt - arrivalTime < 0 ) return 0.;
+//	if ( bt - arrivalTime < 0 ) return 0.;
 
 
 	/* getting the hours since eruption */
@@ -98,10 +98,21 @@ double LavaLazeFluxModel::getValue(double* valueOf
 	double beta = (hoursSinceArrival-refHours[hind])
 			/(refHours[hind+1]-refHours[hind]);
 	double flux = beta*refFlows[hind+1] + (1.-beta)*refFlows[hind];
-	if((bt-at) < (35*3600)) return convert*flux;
-	       return 0;
+
+//	cout << "LavaLaze before " << params->getDouble("LavaLazeFlux.activeArea") << endl ;
+	//if(params->getDouble("LavaLazeFlux.activeArea") < 1 ) return 1;
+//	double active= params->getDouble("LavaLazeFlux.activeArea") ;
+//	if (active < 1 ) cout << "LavaLaze " << active << endl ;
+//	cout << "LavaLaze " << active << endl ;
+//	cout << " fluxh2o " << flux << endl;
+//	cout << "LavaLaze " << params->getDouble("LavaLazeFlux.activeArea") +1 << endl ;
+	if((bt-at) < (35*3600)) return flux/(params->getDouble("LavaLazeFlux.activeArea") +1.);
+
+//params->getDouble("LavaLazeFlux.activeArea")
+
+       return 0;
 //	return convert*flux/vaporFlux.activeArea;
-	return convert*flux;
+//	return flux/params->getDouble("LavaLazeFlux.activeArea");
 
 }
 

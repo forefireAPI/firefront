@@ -99,7 +99,9 @@ double LavaHCLFluxModel::getValue(double* valueOf
 			/(refHours[hind+1]-refHours[hind]);
 	double flux = beta*refFlows[hind+1] + (1.-beta)*refFlows[hind];
 	double HCL = flux * 0.00033 *0.5; 
-	if((bt-at) < (35*3600)) return HCL/(params->getDouble("LavaLazeFlux.activeArea") +1.);
+//	cout << " fluxhcl" << flux << endl;
+//	cout << "LavaLaze " << params->getDouble("LavaHCLFlux.activeArea") +1 << endl ;
+	if((bt-at) < (35*3600)) return HCL /((params->getDouble("LavaHCLFlux.activeArea"))+1.);
 	       return 0;
 //	return convert*flux/vaporFlux.activeArea;
 

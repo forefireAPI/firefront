@@ -45,6 +45,7 @@ class LavaCO2FluxModel: public FluxModel {
 	/*! properties needed by the model */
 	size_t BR;
 	/*! coefficients needed by the model */
+	double eruptionTime;
 	double burningDuration;
 
 	/*! local variables */

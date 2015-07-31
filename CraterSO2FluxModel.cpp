@@ -68,11 +68,8 @@ CraterSO2FluxModel::CraterSO2FluxModel(
 
 	/* local variables */
 	// Error estimate correction
-	convert = 392./231.;
-	// Dividing by the area of the crater to convert to kg.m-2.s-1
-//	convert = convert/craterArea;
-	// converting from kg.m-2.s-1 to molecules.m-2.s-1
-//	convert = convert/64.e-3;
+	convert =1.;
+	// converting from kg.s-1 to molecules.s-1
 	convert = 6.022e23*(convert/64.e-3);
 }
 
@@ -110,8 +107,13 @@ double CraterSO2FluxModel::getValue(double* valueOf
 	double flux = beta*refFlows[hind+1] + (1.-beta)*refFlows[hind];
 	double craso2 = convert*emissionRatio*flux;
 	//cout <<  " craso2 "  <<  craso2   << " convert "  << convert  << " flux " <<  flux  << endl;
-
-		return craso2/params->getDouble("CraterSO2Flux.activeArea");
+/* CraterSO2Flux.activeArea = surface active en m² du cratere
+// converting from molecule.s-1 to molecules.m².s-1*/
+//		double t = bt-at;
+//		cout << " bt " << bt << " at " << at << " et " << et << endl;
+//		cout << "bt-at " << t << endl;
+//		return craso2/params->getDouble("CraterSO2Flux.activeArea");
+		return craso2/931;
 }
 
 } /* namespace libforefire */

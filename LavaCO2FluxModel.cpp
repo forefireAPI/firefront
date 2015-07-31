@@ -48,9 +48,12 @@ LavaCO2FluxModel::LavaCO2FluxModel(
 		const int & mindex, DataBroker* db)
 	: FluxModel(mindex, db) {
 /* defining the properties needed for the model */
-	burningDuration = 1.;
+	burningDuration = 1000.;
 		if ( params->isValued("burningDuration") )
 			burningDuration = params->getDouble("burningDuration");
+	 eruptionTime = 0.;
+		if ( params->isValued("lava.eruptionTime") )
+			eruptionTime = params->getDouble("lava.eruptionTime");
 
 /* allocating the vector for the values of these properties */
 if ( numProperties > 0 ) properties =  new double[numProperties];
@@ -77,12 +80,18 @@ string LavaCO2FluxModel::getName(){
 
 double LavaCO2FluxModel::getValue(double* valueOf
 			, const double& bt, const double& et, const double& at){
-		if(true) return 1;
-	    if ( at > bt ) return 0;
-		if ( bt < at + 10000) return 1;
-
-		return 0;
-
+//		if ( bt - eruptionTime < 0 ) return 0.;
+//		return 93/params->getDouble("LavaCO2Flux.activeArea");
+//	    	if ( at > bt ) return 0;
+//		if ( bt < at + 10000) return 2;
+		if ((bt-at) < 0) return 0.;
+//		double t = (bt-eruptionTime);
+//		double t=bt-at;
+//		double flux= 0.48*exp(-0.1*(t*exp(0.5)));
+		if((bt-at) < (2*3600)) return 0.013;
+		return 0.;
+//		return flux;
+//		return 1;
 }
 
 
