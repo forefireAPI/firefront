@@ -85,6 +85,7 @@ class DataBroker {
 	static DataLayer<double>* altitudeLayer; /*!< predefined layer for the altitude (optimization) */
 	static DataLayer<double>* slopeLayer; /*!< predefined layer for the slope (optimization) */
 	static DataLayer<double>* moistureLayer; /*!< predefined layer for moisture (optimization) */
+	static DataLayer<double>* temperatureLayer; /*!< predefined layer for temperature (optimization) */
 	static DataLayer<double>* windULayer; /*!< predefined layer for longitudinal wind (optimization) */
 	static DataLayer<double>* windVLayer; /*!< predefined layer for lateral wind (optimization) */
 
@@ -107,6 +108,7 @@ class DataBroker {
 		pgM["normalWind"] = &getNormalWind;
 		pgM["fuel"] = &getFuelProperties;
 		pgM["moisture"] = &getMoisture;
+		pgM["temperature"] = &getTemperature;
 		pgM["frontDepth"] = &getFrontDepth;
 		pgM["frontCurvature"] = &getFrontCurvature;
 		pgM["frontFastestInSection"] = &getFrontFastestInSection;
@@ -152,6 +154,9 @@ class DataBroker {
 	static int getFuelProperties(FireNode*, PropagationModel*, int);
 	/*! \brief predefined function for getting the moisture at firenode location */
 	static int getMoisture(FireNode*, PropagationModel*, int);
+	/*! \brief predefined function for getting the temperature at firenode location */
+	static int getTemperature(FireNode*, PropagationModel*, int);
+
 	/*! \brief predefined function for getting the altitude for given firenode */
 	static int getAltitude(FireNode*, PropagationModel*, int);
 	/*! \brief predefined function for getting the slope for given firenode */

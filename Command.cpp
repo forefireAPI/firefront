@@ -119,7 +119,7 @@ int Command::createDomain(const string& arg, size_t& numTabs){
 		FFPoint SW = getPoint("sw", arg);
 		FFPoint NE = getPoint("ne", arg);
 		double t = getFloat("t",arg);
-		cout<<"creating new domain between "<<SW.print()<<" and "<<NE.print()<<endl;
+
 		setStartTime(t);
 		setReferenceTime(t);
 		/* creating the domain */
@@ -832,7 +832,7 @@ int Command::loadData(const string& arg, size_t& numTabs){
     
     SimulationParameters *simParam = SimulationParameters::GetInstance();
     string path = simParam->GetPath(args[0]);
-    cout << endl << "Nc file : " << path << endl;
+
     
 	if (std::ifstream(path.c_str()).fail())
 	{
@@ -856,6 +856,7 @@ int Command::loadData(const string& arg, size_t& numTabs){
 
 		if (varName == "domain")
 		{
+
 			NcVar* ncparams = ncFile->get_var(varName.c_str());
 			int numParams = (size_t) ncparams->num_atts();
 			NcAtt* ncparam;
@@ -870,12 +871,10 @@ int Command::loadData(const string& arg, size_t& numTabs){
 				delete ncparam;
 		}
 	}
-    
-    if (args.size() == 2)
-    {
+
+    if (args.size() > 1){
         double secs;
         int year, yday;
-
         if (simParam->ISODateDecomposition(args[1], secs, year, yday))
         {
             simParam->setInt("refYear", year);
@@ -884,20 +883,25 @@ int Command::loadData(const string& arg, size_t& numTabs){
             simParam->setParameter("ISOdate", args[1]);
         }
     }
-    
-	string com = "FireDomain[sw=("+simParam->getParameter("SWx")+".,"+simParam->getParameter("SWy")+".,"+simParam->getParameter("SWz")+".);ne=(";
-	{
-        std::ostringstream oss;
-        oss << (simParam->getDouble("Lx") + simParam->getDouble("SWx"));
-        oss << ".,";
-        oss << (simParam->getDouble("Ly") + simParam->getDouble("SWy"));
-        oss << ".,";
-        oss << (simParam->getDouble("Lz") + simParam->getDouble("SWz"));
-        oss << ".);t="+simParam->getParameter("t0")+".]";       
-        com += oss.str();
-	}
 
-	ExecuteCommand(com);
+    if (args.size() == 2){
+		string com = "FireDomain[sw=("+simParam->getParameter("SWx")+".,"+simParam->getParameter("SWy")+".,"+simParam->getParameter("SWz")+".);ne=(";
+		{
+			std::ostringstream oss;
+			oss << (simParam->getDouble("Lx") + simParam->getDouble("SWx"));
+			oss << ".,";
+			oss << (simParam->getDouble("Ly") + simParam->getDouble("SWy"));
+			oss << ".,";
+			oss << (simParam->getDouble("Lz") + simParam->getDouble("SWz"));
+			oss << ".);t="+simParam->getParameter("t0")+".]";
+			com += oss.str();
+		}
+
+		ExecuteCommand(com);
+
+    }
+
+
     //domain->addLayer("data", "windU", "windU");
     //domain->addLayer("data", "windV", "windV");
 	return normal;

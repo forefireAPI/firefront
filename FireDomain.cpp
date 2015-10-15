@@ -537,6 +537,8 @@ namespace libforefire{
 
 	bool FireDomain::addLayer(string type, string layername, string keyname){
 
+
+
 		if ( type == "BRatio" ){
 			BurningRatioLayer<double>* brlayer = new BurningRatioLayer<double>(layername, atmoNX, atmoNY, cells);
 			dataBroker->registerLayer(layername, brlayer);
@@ -565,6 +567,7 @@ namespace libforefire{
 
 	    if ( type == "data" ){
 		    double* values = new double[1];
+
 		    values[0] = params->getDouble(keyname);
 	    	return addScalarLayer( type,  layername,SWCorner.getX(), SWCorner.getY(), getTime(), spanx , spany, timespan,  nnx,	 nny, nnz,  nnk,  values);
 	    }else{
@@ -580,10 +583,7 @@ namespace libforefire{
 		FFPoint span = FFPoint(width, height);
 
 		XYZTDataLayer<double>* newLayer = new XYZTDataLayer<double>(name, origin,t0, span, timespan, nnx, nny, nnz, nnk, values);
-			dataBroker->registerLayer(name, newLayer);
-
-
-
+		dataBroker->registerLayer(name, newLayer);
 		return true;
 	}
 	bool FireDomain::addIndexLayer(string type, string name, double &x0, double &y0, double& t0, double& width, double& height, double& timespan, size_t& nnx,	size_t& nny, size_t& nnz, size_t& nnk, int* values){
@@ -1490,6 +1490,7 @@ namespace libforefire{
 					fn->getFront()->split(fn->getPrev(), fn->getTime());
 				}
 			}
+
 		}
 	}
 
@@ -2477,6 +2478,7 @@ namespace libforefire{
 		<<params->getParameter("NetCDFfile");
         */
         infile << params->GetPath(params->getParameter("NetCDFfile"));
+
        	dataBroker->initializePropagativeLayer(infile.str());
 
 		/* initializations for the flux models */

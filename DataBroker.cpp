@@ -31,6 +31,7 @@ const DataBroker::fluxGetterMap DataBroker::fluxPropertiesGetters =
 
 DataLayer<double>* DataBroker::fuelLayer = 0;
 DataLayer<double>* DataBroker::moistureLayer = 0;
+DataLayer<double>* DataBroker::temperatureLayer = 0;
 DataLayer<double>* DataBroker::dummyLayer = 0;
 DataLayer<double>* DataBroker::altitudeLayer = 0;
 DataLayer<double>* DataBroker::slopeLayer = 0;
@@ -269,7 +270,7 @@ void DataBroker::registerLayer(string name, DataLayer<double>* layer) {
 
 
 	/* inserting the layer into the map of layers */
-	//cout << "registering " << name << " !" << endl;
+
 	ilayer = layersMap.find(name);
 	if (ilayer != layersMap.end()) {
 
@@ -281,6 +282,7 @@ void DataBroker::registerLayer(string name, DataLayer<double>* layer) {
 			delete oldlayer;
 		}
 	}
+
 	layersMap.insert(make_pair(name, layer));
 	layers.push_back(layer);
 
@@ -292,12 +294,18 @@ void DataBroker::registerLayer(string name, DataLayer<double>* layer) {
 				params->getDouble("spatialIncrement"));
 		registerLayer("slope", slopeLayer);
 	}
-	if (name.find("moisture") != string::npos)
+	if (name.find("moisture") != string::npos){
 		moistureLayer = layer;
-	if (name.find("windU") != string::npos)
+	}
+	if (name.find("temperature") != string::npos){
+		temperatureLayer = layer;
+	}
+	if (name.find("windU") != string::npos){
 		windULayer = layer;
-	if (name.find("windV") != string::npos)
+	}
+	if (name.find("windV") != string::npos){
 		windVLayer = layer;
+	}
 	if (name.find("fuel") != string::npos){
 		fuelLayer = layer;
 	}
@@ -373,6 +381,7 @@ void DataBroker::initializePropagativeLayer(string filename) {
 		// Loading the propagative layer from a netCDF file
 		for (int layer = 0; layer < NcdataFile->num_vars(); layer++) {
 			string varName(NcdataFile->get_var(layer)->name());
+
 			att = NcdataFile->get_var(layer)->get_att(type);
 			att == 0 ? layerType.erase() : layerType.assign(att->as_string(0));
 			if (layerType.find("propagative") != string::npos) {
@@ -468,16 +477,21 @@ void DataBroker::loadFromNCFile(string filename) {
 
 	/* Loading all the properties in the netCDF file */
 	NcFile* NcdataFile = new NcFile(filename.c_str(), NcFile::ReadOnly);
+	NcError err(NcError::silent_nonfatal);
+
 	propGetterMap::const_iterator pg;
 	if (NcdataFile->is_valid()) {
 		const char* type = "type";
 		/* loading the properties except for the fuel */
 		for (int layer = 0; layer < NcdataFile->num_vars(); layer++) {
+
 			string varName(NcdataFile->get_var(layer)->name());
+
 			NcAtt* att;
             att = NcdataFile->get_var(layer)->get_att(type);
 			string layerType(att->as_string(0));
 			delete att;
+
 			if (varName == "wind") {
 								// wind is given by the NetCDF file
 
@@ -515,6 +529,16 @@ void DataBroker::loadFromNCFile(string filename) {
 					XYZTDataLayer<double> * wvl = constructXYZTLayerFromFile(
 							NcdataFile, varName.c_str(),-1);
 					registerLayer(varName, wvl);
+				}else if (varName == "temperature") {
+					// wind is given by the NetCDF file
+					XYZTDataLayer<double> * temp = constructXYZTLayerFromFile(
+							NcdataFile, varName.c_str(),-1);
+					registerLayer(varName, temp);
+				}else if (varName == "moisture") {
+					// wind is given by the NetCDF file
+					XYZTDataLayer<double> * moist = constructXYZTLayerFromFile(
+							NcdataFile, varName.c_str(),-1);
+					registerLayer(varName, moist);
 				} else if (varName == "fieldSpeed") {
 					dummyLayer = constructXYZTLayerFromFile(NcdataFile,
 							varName.c_str(),-1);
@@ -524,6 +548,7 @@ void DataBroker::loadFromNCFile(string filename) {
 
 				if (find(neededProperties.begin(), neededProperties.end(),
 						varName) != neededProperties.end()) {
+
 					XYZTDataLayer<double>* newlayer =
 							constructXYZTLayerFromFile(NcdataFile,
 									varName.c_str(),-1);
@@ -1355,6 +1380,12 @@ int DataBroker::getMoisture(FireNode* fn, PropagationModel* model, int keynum) {
 	(model->properties)[keynum] = moistureLayer->getValueAt(fn);
 	return 1;
 }
+
+int DataBroker::getTemperature(FireNode* fn, PropagationModel* model, int keynum) {
+	(model->properties)[keynum] = temperatureLayer->getValueAt(fn);
+	return 1;
+}
+
 
 int DataBroker::getAltitude(FireNode* fn, PropagationModel* model, int keynum) {
 	(model->properties)[keynum] = altitudeLayer->getValueAt(fn);
