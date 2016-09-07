@@ -98,9 +98,11 @@ ff.addLayer("propagation","BalbiUnsteady","propagationModel")
 
 fuelmap = np.zeros((sizeX,sizeY,1), dtype=np.int32)
 
-fuelmap[:,90:110,:] = 1
+fuelmap[:,95:110,:] =51
 fuelmap[150:,90:110,:] = 3
 ff.addIndexLayer("table","fuel",0 , 0, 0, sizeX, sizeY, 0, fuelmap)
+
+
 
 print(np.shape(ff.getDoubleArray("fuel")))
 
