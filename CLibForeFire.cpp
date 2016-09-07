@@ -36,7 +36,7 @@ Command* getLauncher(){
 
 void MNHInit(const double t){
 	executor.setReferenceTime(t);
-	tp = t;
+
 
 	/* Reading all the information on the parameters of ForeFire */
 	ostringstream paramsfile;
