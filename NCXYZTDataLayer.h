@@ -1,6 +1,6 @@
 /*
 
-Copyright (C) 2012 ForeFire Team, SPE, UniversitŽ de Corse.
+Copyright (C) 2012 ForeFire Team, SPE, Universitï¿½ de Corse.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -23,6 +23,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 
 
 #include "DataLayer.h"
+
+#include "FluxModel.h"
 #include <math.h>
 
 using namespace std;
@@ -68,6 +70,7 @@ template<typename T> class XYZTDataLayer : public DataLayer<T> {
 	int interDirID1;
 	double interDirRatio ;
 	double interDirScaler ;
+	string nameOf;
 
 
 	FFArray<T>* array; /*!< pointer to the FFArray containing the data */
@@ -146,7 +149,9 @@ public:
 		, nx(nnx), ny(nny), nz(nnz), nt(nnt) {
 		array = new FFArray<T>(name, vals, nnx, nny, nnz, nnt);
 		size = (size_t) nx*ny*nz*nt;
+
 		SWCornerX = SWCorner.getX();
+		nameOf=name;
 		SWCornerY = SWCorner.getY();
 		SWCornerZ = SWCorner.getZ();
 		NECornerX = SWCornerX + extent.getX();
@@ -279,7 +284,10 @@ T XYZTDataLayer<T>::getValueAt(FireNode* fn){
 
 template<typename T>
 T XYZTDataLayer<T>::getValueAt(FFPoint loc, const double& t){
+
+
 	if ( size == 1 ) return (*array)(0, 0, 0, 0);
+
 	if ( interp == InterpolationNearestData ) {
 		return ((*array)(getPos(loc,t)));
 	}
@@ -290,6 +298,8 @@ T XYZTDataLayer<T>::getValueAt(FFPoint loc, const double& t){
 
 		/* searching the coordinates of the nodes around      */
 		FFPoint indices = posToIndices(loc);
+
+
 
 		double ud = indices.getX() + EPSILONX;
 		double vd = indices.getY() + EPSILONX;
@@ -385,7 +395,10 @@ size_t XYZTDataLayer<T>::getValuesAt(
 template<typename T>
 size_t XYZTDataLayer<T>::getValuesAt(
 		FFPoint loc, const double& t, FluxModel* model, size_t curItem){
-	return 0;
+
+	(model->properties)[curItem] = 	getValueAt( loc, t);
+
+	return 1;
 }
 
 template<typename T>

@@ -1,6 +1,6 @@
 /*
 
-Copyright (C) 2012 ForeFire Team, SPE, UniversitŽ de Corse.
+Copyright (C) 2012 ForeFire Team, SPE, Universitï¿½ de Corse.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -39,6 +39,7 @@ HeatFluxFromobsModel::HeatFluxFromobsModel(
 		const int & mindex, DataBroker* db) : FluxModel(mindex, db) {
 
 	/* defining the properties needed for the model */
+	residenceTime = registerProperty("rtime");
 
 	/* allocating the vector for the values of these properties */
 	if ( numProperties > 0 ) properties =  new double[numProperties];
@@ -75,27 +76,8 @@ double HeatFluxFromobsModel::getValue(double* valueOf
 	/* The heat flux is supposed to be constant from the arrival time (at)
 	 * and for a period of time of 'burningDuration', constant of the model */
 
-	/* Instantaneous flux */
-	/* ------------------ */
-	if ( bt == et ){
-		if ( bt < at ) return 0;
-		if ( bt < at + burningDuration ) return nominalHeatFlux;
-		return 0;
-	}
 
-	/* Averaged flux */
-	/* ------------- */
-
-	/* looking outside burning interval */
-	if ( et < at or bt > at + burningDuration ) return 0;
-	/* begin time outside interval, end time inside */
-	if ( bt < at and et <= at + burningDuration ) return nominalHeatFlux*(et-at)/(et-bt);
-	/* begin time outside interval, end time outside */
-	if ( bt < at and et > at + burningDuration ) return nominalHeatFlux*burningDuration/(et-bt);
-	/* begin time inside interval, end time inside */
-	if ( bt >= at and et <= at + burningDuration ) return nominalHeatFlux;
-	/* begin time inside interval, end time outside */
-	return nominalHeatFlux*(at+burningDuration-bt)/(et-bt);
+	return valueOf[residenceTime];
 
 }
 

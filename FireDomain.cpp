@@ -506,7 +506,12 @@ namespace libforefire{
 
 	FluxModel* FireDomain::fluxModelInstanciation(const int& index, string modelname){
 		FluxModelMap::iterator fmodel;
+
+
+
 		fmodel = flux_instantiatorMap().find(modelname);
+
+
 		if ( fmodel != flux_instantiatorMap().end() ){
 			return (fmodel->second)(index, dataBroker);
 		} else {
@@ -521,6 +526,7 @@ namespace libforefire{
 	}
 
 	void FireDomain::registerFluxModel(const int& index, FluxModel* model){
+		cout << model->getName() <<endl;
 		fluxModelsTable[index] = model;
 	}
 

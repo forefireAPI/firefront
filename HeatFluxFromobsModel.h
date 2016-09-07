@@ -1,6 +1,6 @@
 /*
 
-Copyright (C) 2012 ForeFire Team, SPE, UniversitŽ de Corse.
+Copyright (C) 2012 ForeFire Team, SPE, Universitï¿½ de Corse.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -37,6 +37,7 @@ class HeatFluxFromobsModel: public FluxModel {
 	static int isInitialized;
 
 	/*! properties needed by the model */
+	size_t residenceTime;
 
 	/*! coefficients needed by the model */
 	double burningDuration;
