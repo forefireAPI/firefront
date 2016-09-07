@@ -1,6 +1,6 @@
 /*
 
- Copyright (C) 2012 ForeFire Team, SPE, UniversitŽ de Corse.
+ Copyright (C) 2012 ForeFire Team, SPE, Universitï¿½ de Corse.
 
  This program is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -2110,10 +2110,11 @@ namespace libforefire{
 		// Burning map resolution
 		double BMapsResolution = getBurningMapResolution(spatialIncrement
 														 , params->getDouble("minimalPropagativeFrontDepth"));
-		localBMapSizeX = (size_t) (dx/BMapsResolution + 1);
+		localBMapSizeX = (size_t) (dx/BMapsResolution );
+
 		params->setDouble("bmapResolution", BMapsResolution);
 		params->setSize("localBMapSizeX", localBMapSizeX);
-		localBMapSizeY = (size_t) (dy/BMapsResolution + 1);
+		localBMapSizeY = (size_t) (dy/BMapsResolution);
 		params->setSize("localBMapSizeY", localBMapSizeY);
 		globalBMapSizeX = atmoNX*localBMapSizeX;
 		globalBMapSizeY = atmoNY*localBMapSizeY;

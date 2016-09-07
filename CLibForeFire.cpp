@@ -1,6 +1,6 @@
 /*
 
-Copyright (C) 2012 ForeFire Team, SPE, UniversitŽ de Corse.
+Copyright (C) 2012 ForeFire Team, SPE, Universitï¿½ de Corse.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -29,8 +29,6 @@ Command executor;
 static Command::Session* session = &(executor.currentSession);
 
 
-FFArray<double>* injectedHeat;
-double tp;
 
 Command* getLauncher(){
 	return &executor;
@@ -153,7 +151,7 @@ void MNHCreateDomain(const int id
 	executor.setReferenceTime(deltaT);
 	executor.setStartTime(deltaT);
 
-	injectedHeat = new FFArray<double>("heat", 0., mdimx, mdimy);
+
 
 }
 
@@ -239,24 +237,7 @@ void FFPutDoubleArray(const char* mname, double* x,
 		FFArray<double>* myMatrix;
 		// getting the pointer
 		myLayer->getMatrix(&myMatrix, executor.getTime());
-		// TODO deleting this debug prints, injectedHeat and tp
-/*		if ( session->fd->getDomainID() == 1 and myLayer->getKey() == "heatFlux" ){
-			cout<<"getting double array for "<<myLayer->getKey()<<" at t="<<executor.getTime()<<endl;
-			cout<<myMatrix->print2D()<<endl;
-			for ( size_t i = 0; i < myMatrix->getDim("x"); i++ ){
-				for ( size_t j = 0; j < myMatrix->getDim("y"); j++ ){
-					(*injectedHeat)(i,j) += (*myMatrix)(i,j)*(executor.getTime()-tp);
-				}
-			}
-			cout<<"cumulative injected heat is"<<endl<<injectedHeat->print2D();
-			tp = executor.getTime();
-		}
-		if ( session->fd->getDomainID() == 1 and myLayer->getKey() == "BRatio" ){
-			cout<<"getting double array for "<<myLayer->getKey()<<" at t="<<executor.getTime()<<endl;
-			cout<<myMatrix->print2D()<<endl;
-		}
-*/
-		// copying the data into the atmospheric matrix
+
 		myMatrix->copyDataToFortran(x);
 	} else {
 		cout<<"Error trying to put data from unknown layer "<<tmpname<<endl;

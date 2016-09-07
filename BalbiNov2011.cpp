@@ -1,6 +1,6 @@
 /*
 
-Copyright (C) 2012 ForeFire Team, SPE, UniversitŽ de Corse.
+Copyright (C) 2012 ForeFire Team, SPE, Universitï¿½ de Corse.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -75,6 +75,15 @@ BalbiNov2011::BalbiNov2011(const int & mindex, DataBroker* db)
 	Cpa = 1004.;
 	if ( params->isValued("BalbiNov2011.Cpa") )
 		Cpa = params->getDouble("BalbiNov2011.Cpa");
+	adjustementSlope = 1.;
+	if ( params->isValued("BalbiNov2011.adjustementSlope") )
+		adjustementSlope = params->getDouble("BalbiNov2011.adjustementSlope");
+	adjustementWind = 1.;
+	if ( params->isValued("BalbiNov2011.adjustementWind") )
+		adjustementWind = params->getDouble("BalbiNov2011.adjustementWind");
+	if (adjustementWind != 1 && adjustementSlope != 1){
+		cout << "Warning, model Balbi Nov 2011 running wih adjustements Slope "<<adjustementSlope<<" Wind "<<adjustementWind<< endl;
+	}
 }
 
 /* destructor (shoudn't be modified) */
@@ -122,7 +131,7 @@ double BalbiNov2011::getSpeed(double* valueOf){
 	double Sd = lsd * le * Betad;
 	double Sl = lsl * le * Betal;
 	double nu = min((Sd) / lai, 1.);
-	double normal_wind = valueOf[normalWind];
+	double normal_wind = adjustementWind*valueOf[normalWind];
 	double B = 5.6E-8;
 	double a   = lDeltah/ ((lCp*(lTi-lTa)));
 	double r0 = lsd * lr00;
@@ -136,7 +145,8 @@ double BalbiNov2011::getSpeed(double* valueOf){
 	double u00 = (2*lai*(lstoch+1)*T*lRhod)/(lRhoA*lTa*lTau0);
 	double u0 = nu * u00;
 
-	double  tanGamma =  valueOf[slope] + (normal_wind/u0);
+	double  tanGamma =  adjustementSlope*valueOf[slope] + (normal_wind/u0);
+
 	double gamma = atan(tanGamma);
 
 	R0 = (le / lSigmad)   * (R00) / (1 + a * lMd) * Sd/(Sd+Sl) * Sd/(Sd+Sl);
@@ -144,6 +154,8 @@ double BalbiNov2011::getSpeed(double* valueOf){
 		double geomFactor = r0*((1+sin(gamma)-cos(gamma))/(1.+cos(gamma)));
 		double Rt = R0 + A*geomFactor;
 		R = 0.5*( Rt + sqrt( Rt*Rt + 4.*r0*R0/cos(gamma) ) );
+
+
 	} else {
 		R = R0;
 	}

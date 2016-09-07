@@ -1,6 +1,6 @@
 /*
 
-Copyright (C) 2012 ForeFire Team, SPE, UniversitŽ de Corse.
+Copyright (C) 2012 ForeFire Team, SPE, Universitï¿½ de Corse.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -77,6 +77,7 @@ double HeatFluxBasicModel::getValue(double* valueOf
 
 	/* Instantaneous flux */
 	/* ------------------ */
+
 	if ( bt == et ){
 		if ( bt < at ) return 0;
 		if ( bt < at + burningDuration ) return nominalHeatFlux;

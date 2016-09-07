@@ -56,7 +56,7 @@ ff = forefire.PLibForeFire()
 
 sizeX = 300
 sizeY = 200
-
+np.inf
 
 ff.setString("fuelsTableFile","fuels.ff")
 ff.setString("ForeFireDataDirectory","test")
@@ -80,7 +80,7 @@ ff.setInt("bmapLayer",1)
 
 ff.setInt("defaultHeatType",0)
 ff.setDouble("nominalHeatFlux",100000)
-ff.setDouble("burningDuration",80)
+ff.setDouble("burningDuration",100)
 ff.setDouble("maxFrontDepth",50)
 ff.setDouble("minSpeed",0.0001)
 
@@ -115,13 +115,15 @@ step = 20
 for i in range(1,20):
     print "goTo[t=%f]"%(i*step)
     ff.execute("goTo[t=%f]"%(i*step))
+    ff.getDoubleArray("heatFluxBasic")
     pathes += printToPathe( ff.execute("print[]"))
 
 
 fig, ax = plt.subplots()
  
-tab = np.transpose(ff.getDoubleArray("BMap"))[0]
-CS = ax.imshow(tab, cmap=plt.cm.gray, interpolation='nearest')
+tab = np.transpose(ff.getDoubleArray("heatFluxBasic"))[0]
+
+CS = ax.imshow(tab, cmap=plt.cm.gray, interpolation='nearest',origin='lower',extent=(0,sizeX,0,sizeY))
 cbar = plt.colorbar(CS)
 cbar.ax.set_ylabel('v')
 

@@ -1,6 +1,6 @@
 /*
 
-Copyright (C) 2012 ForeFire Team, SPE, UniversitŽ de Corse.
+Copyright (C) 2012 ForeFire Team, SPE, Universitï¿½ de Corse.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -470,7 +470,12 @@ void Command::completeFront(FireFront* ff){
 		/* testing the domain for burning matrix */
 		double iniFrontDepth = currentSession.params->getDouble("initialFrontDepth");
 		double iniBurningTime = currentSession.params->getDouble("initialBurningDuration");
-		domain->frontInitialBurningScan(ff->getTime(), ff, iniFrontDepth, iniBurningTime);
+
+		if ( !currentSession.params->isValued("noInitialScan"))
+			{
+
+				domain->frontInitialBurningScan(ff->getTime(), ff, iniFrontDepth, iniBurningTime);
+			}
 	}
 
 	currentFrontCompleted = true;
