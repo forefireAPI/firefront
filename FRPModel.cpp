@@ -1,6 +1,6 @@
 /*
 
-Copyright (C) 2012 ForeFire Team, SPE, Universite de Corse.
+Copyright (C) 2012 ForeFire Team, SPE, UniversitŽ de Corse.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -18,28 +18,28 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 
 */
 
-#include "HeatFluxFromobsModel.h"
+#include "FRPModel.h"
 
 namespace libforefire {
 
 /* name of the model */
-const string HeatFluxFromobsModel::name = "heatFluxFromobs";
+const string FRPModel::name = "FRP";
 
 /* registration */
-int HeatFluxFromobsModel::isInitialized =
-        FireDomain::registerFluxModelInstantiator(name, getHeatFluxFromobsModel );
+int FRPModel::isInitialized =
+        FireDomain::registerFluxModelInstantiator(name, getFRPModel );
 
 /* instantiation */
-FluxModel* getHeatFluxFromobsModel(const int& index, DataBroker* db) {
-	return new HeatFluxFromobsModel(index, db);
+FluxModel* getFRPModel(const int& index, DataBroker* db) {
+	return new FRPModel(index, db);
 }
 
 /* constructor */
-HeatFluxFromobsModel::HeatFluxFromobsModel(
+FRPModel::FRPModel(
 		const int & mindex, DataBroker* db) : FluxModel(mindex, db) {
 
 	/* defining the properties needed for the model */
-	residenceTime = registerProperty("residenceTime");
+	heatFlux = registerProperty("heatFlux");
 
     /* allocating the vector for the values of these properties */
 	if ( numProperties > 0 ) properties =  new double[numProperties];
@@ -48,41 +48,42 @@ HeatFluxFromobsModel::HeatFluxFromobsModel(
 	dataBroker->registerFluxModel(this);
 
 	/* Definition of the coefficients */
-	nominalHeatFlux = 150000.;
+    FRP_max = 240.e3 ;
+    FRP_ratio = 0.1;
+	burningDuration = 30.;
+	if ( params->isValued("burningDuration") )
+		burningDuration = params->getDouble("burningDuration");
+	/*nominalHeatFlux = 150000.;
 	if ( params->isValued("nominalHeatFlux") )
-		nominalHeatFlux = params->getDouble("nominalHeatFlux");
+		nominalHeatFlux = params->getDouble("nominalHeatFlux");*/
 }
 
 /* destructor (shoudn't be modified) */
-HeatFluxFromobsModel::~HeatFluxFromobsModel() {
+FRPModel::~FRPModel() {
 	if ( properties != 0 ) delete properties;
 }
 
 /* accessor to the name of the model */
-string HeatFluxFromobsModel::getName(){
+string FRPModel::getName(){
 	return name;
 }
 
 /* ****************** */
 /* Model for the flux */
 /* ****************** */
-
-double HeatFluxFromobsModel::getValue(double* valueOf
+double FRPModel::getValue(double* valueOf
 		, const double& bt, const double& et, const double& at){
-	
-    /* Mean heat flux released between the time interval [bt, et] */
+	/* Mean heat flux released between the time interval [bt, et] */
 	/* The heat flux is supposed to be constant from the arrival time (at)
 	 * and for a period of time of 'burningDuration', constant of the model */
-
-
-    double burningDuration = valueOf[residenceTime];
+    
+    double heatFlux_here = valueOf[heatFlux];
 
 	/* Instantaneous flux */
 	/* ------------------ */
-
 	if ( bt == et ){
 		if ( bt < at ) return 0;
-		if ( bt < at + burningDuration ) return nominalHeatFlux;
+		if ( bt < at + burningDuration ) return FRP_ratio * heatFlux_here / FRP_max;
 		return 0;
 	}
 
@@ -92,13 +93,13 @@ double HeatFluxFromobsModel::getValue(double* valueOf
 	/* looking outside burning interval */
 	if ( et < at or bt > at + burningDuration ) return 0;
 	/* begin time outside interval, end time inside */
-	if ( bt < at and et <= at + burningDuration ) return nominalHeatFlux*(et-at)/(et-bt);
+	if ( bt < at and et <= at + burningDuration ) return FRP_ratio * heatFlux_here*(et-at)/(et-bt) / FRP_max;
 	/* begin time outside interval, end time outside */
-	if ( bt < at and et > at + burningDuration ) return nominalHeatFlux*burningDuration/(et-bt);
+	if ( bt < at and et > at + burningDuration ) return FRP_ratio * heatFlux_here*burningDuration/(et-bt) / FRP_max;
 	/* begin time inside interval, end time inside */
-	if ( bt >= at and et <= at + burningDuration ) return nominalHeatFlux;
+	if ( bt >= at and et <= at + burningDuration ) return FRP_ratio * heatFlux_here / FRP_max;
 	/* begin time inside interval, end time outside */
-	return nominalHeatFlux*(at+burningDuration-bt)/(et-bt);
+	return FRP_ratio * heatFlux_here*(at+burningDuration-bt)/(et-bt) / FRP_max;
 
 }
 

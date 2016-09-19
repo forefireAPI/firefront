@@ -1,6 +1,6 @@
 /*
 
-Copyright (C) 2012 ForeFire Team, SPE, Universitï¿½ de Corse.
+Copyright (C) 2012 ForeFire Team, SPE, UniversitŽ de Corse.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -18,8 +18,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 
 */
 
-#ifndef HEATFLUXFROMOBSMODEL_H_
-#define HEATFLUXFROMOBSMODEL_H_
+#ifndef FRPMODEL_H_
+#define FRPMODEL_H_
 
 #include "FluxModel.h"
 #include "FireDomain.h"
@@ -28,7 +28,7 @@ using namespace std;
 
 namespace libforefire {
 
-class HeatFluxFromobsModel: public FluxModel {
+class FRPModel: public FluxModel {
 
 	/*! name the model */
 	static const string name;
@@ -37,11 +37,12 @@ class HeatFluxFromobsModel: public FluxModel {
 	static int isInitialized;
 
 	/*! properties needed by the model */
-    size_t residenceTime;
-    size_t FRE;
+    size_t heatFlux;
 
-	/*! coefficients needed by the model */
+    /*! coefficients needed by the model */
 	double burningDuration;
+	double FRP_max;
+	double FRP_ratio;
 	double nominalHeatFlux;
 
 	/*! local variables */
@@ -51,13 +52,13 @@ class HeatFluxFromobsModel: public FluxModel {
 			, const double&, const double&);
 
 public:
-	HeatFluxFromobsModel(const int& = 0, DataBroker* = 0);
-	virtual ~HeatFluxFromobsModel();
+	FRPModel(const int& = 0, DataBroker* = 0);
+	virtual ~FRPModel();
 
 	string getName();
 };
 
-FluxModel* getHeatFluxFromobsModel(const int& = 0, DataBroker* = 0);
+FluxModel* getFRPModel(const int& = 0, DataBroker* = 0);
 
 } /* namespace libforefire */
-#endif /* HEATFLUXFromobsMODEL_H_ */
+#endif /* FRPMODEL_H_ */
