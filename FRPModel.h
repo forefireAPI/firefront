@@ -38,14 +38,15 @@ class FRPModel: public FluxModel {
 
 	/*! properties needed by the model */
     size_t heatFlux;
-
+	
     /*! coefficients needed by the model */
 	double burningDuration;
-	double FRP_max;
-	double FRP_ratio;
 	double nominalHeatFlux;
+	double FRP_max;
+    double FRP_ratio;
+	
+    /*! local variables */
 
-	/*! local variables */
 
 	/*! result of the model */
 	double getValue(double*, const double&
