@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 
 #include "FluxModel.h"
 #include "FireDomain.h"
+#include "HeatFluxFromobsModel.h"
 
 using namespace std;
 

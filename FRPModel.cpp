@@ -39,7 +39,7 @@ FRPModel::FRPModel(
 		const int & mindex, DataBroker* db) : FluxModel(mindex, db) {
 
 	/* defining the properties needed for the model */
-    heatFlux = registerProperty("heatFlux");
+    /*heatFlux = registerProperty("heatFlux");*/
 
     /* allocating the vector for the values of these properties */
 	if ( numProperties > 0 ) properties =  new double[numProperties];
@@ -83,11 +83,12 @@ double FRPModel::getValue(double* valueOf
 
     double FRP_flux = 0 ;
     /*double heatFlux_here = .5* FRP_max ;*/
-    double heatFlux_here = valueOf[heatFlux] ;
+    FluxModel HeatFluxFromobsModel;
+    double heatFlux_here = HeatFluxFromobsModel.getValue(valueOf, bt, et, at);
 
-    FRP_flux = FRP_ratio * heatFlux_here / FRP_max;
+    FRP_flux = (FRP_ratio * heatFlux_here) / FRP_max;  /* scale FRP scaler flux between 0 and 1*/
 
-    cout << "merde" << FRP_flux << endl;
+    cout << "print here " << FRP_flux << ' ' << heatFlux_here << endl;
 
 	if ( bt == et ){
 		if ( bt < at ) return 0;
