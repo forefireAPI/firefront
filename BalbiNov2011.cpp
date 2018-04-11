@@ -128,15 +128,20 @@ double BalbiNov2011::getSpeed(double* valueOf){
 
 	double Betad =   lSigmad /(le* lRhod);
 	double Betal =   lSigmal /(le* lRhol);
+        // '--> Ok if Rhod & Rhol are particle densities and if Sigmad,
+        //      Sigmal & e are "bulk" properties.
+        // However, that does not seem consistent with Rothermel.cpp...
 	double Sd = lsd * le * Betad;
 	double Sl = lsl * le * Betal;
 	double nu = min((Sd) / lai, 1.);
 	double normal_wind = adjustementWind*valueOf[normalWind];
-	double B = 5.6E-8;
-	double a   = lDeltah/ ((lCp*(lTi-lTa)));
+	/* double B = 5.6E-8; */
+        double B = 5.670373E-8;
+	double a = lDeltah/ ((lCp*(lTi-lTa)));
 	double r0 = lsd * lr00;
 	double A0 = (lX0*lDeltaH)/(4*lCp*(lTi-lTa));
-	double xsi = ((lMl-lMd)*((lSigmal/lSigmad)*(lDeltah/lDeltaH)));
+	/* double xsi = ((lMl-lMd)*((lSigmal/lSigmad)*(lDeltah/lDeltaH))); */
+        double xsi = ((lMl-lMd)*((Sd/Sl)*(lDeltah/lDeltaH))); // cf. Santoni et al., 2011
 	double A  = cosCurv * (nu*A0 / (1 + a * lMd)) * (1-xsi);
 	double T = lTa + ( lDeltaH*(1-lX0)*(1-xsi) )     / ((lstoch+1)*Cpa);
 	double R00 = (B*T*T*T*T)   / (lCp*(lTi-lTa));
@@ -151,9 +156,12 @@ double BalbiNov2011::getSpeed(double* valueOf){
 
 	R0 = (le / lSigmad)   * (R00) / (1 + a * lMd) * Sd/(Sd+Sl) * Sd/(Sd+Sl);
 	if ( gamma > 0. ) {
-		double geomFactor = r0*((1+sin(gamma)-cos(gamma))/(1.+cos(gamma)));
-		double Rt = R0 + A*geomFactor;
-		R = 0.5*( Rt + sqrt( Rt*Rt + 4.*r0*R0/cos(gamma) ) );
+          // cf. Balbi et al., 2009 -> (9) => (11a) & (11b)
+          /* double geomFactor = r0*((1+sin(gamma)-cos(gamma))/(1.+cos(gamma))); */
+          double geomFactor = r0/cos(gamma)*(1 + sin(gamma) - cos(gamma));
+          /* double Rt = R0 + A*geomFactor ; */
+          double Rt = R0 + A*geomFactor - r0/cos(gamma);
+          R = 0.5*( Rt + sqrt( Rt*Rt + 4.*r0*R0/cos(gamma) ) );
 
 
 	} else {
