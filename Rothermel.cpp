@@ -91,19 +91,15 @@ string Rothermel::getName(){
 
 double Rothermel::getSpeed(double* valueOf){
 
-
-	double lRhod = valueOf[Rhod]* 0.06;// conversion  Pound per cubic foot
-	double lRhol = 120;
+	double lRhod = valueOf[Rhod] * 0.06; // conversion kg/m^3 -> lb/ft^3
 	double lMd  = valueOf[Md];
-	double lsd  = valueOf[sd] / 3.2808399 ;
+	double lsd  = valueOf[sd] / 3.2808399;
 	double le   = valueOf[e];
 	if (le==0) return 0;
-	double lSigmad = valueOf[Sigmad] * 2088.54342;// conversion   livre par pieds carrŽ
-	double lDeltaH = 8000;// conversion  BTU
-	double normal_wind  = valueOf[normalWind]* 196.850394 ; //conversion ft/min
+        double lSigmad = valueOf[Sigmad] * 0.2048; // conversion kg/m^2 -> lb/ft^2
+        double lDeltaH = valueOf[DeltaH] / 2326;// conversion J/kg -> BTU/lb
+	double normal_wind  = valueOf[normalWind] * 196.850394 ; //conversion m/s -> ft/min
 	double localngle =  valueOf[slope];
-
-
 
 
 /*	lRhod = 30.0;
@@ -111,8 +107,6 @@ double Rothermel::getSpeed(double* valueOf){
 	  lsd =1523.99999768352;
 	  le =1.0;
 	  lSigmad =1044.27171; */
-
-
 
 	normal_wind *= 0.4; // factor in the data seen in 2013
 
@@ -129,23 +123,27 @@ double Rothermel::getSpeed(double* valueOf){
 
 	double Wn = lSigmad;
 
-	double Etam = 1 - 2.59*(lMd/Mchi) + 5.11*pow((lMd/Mchi),2) - 2.59*pow((lMd/Mchi),3);
+        double Mratio = lMd / Mchi;
 
-	double A = 1/(4.774*pow(lsd, 0.1) - 7.27);
+        double Etam = 1  + Mratio * (-2.59 + Mratio * (5.11 - 3.52 * Mratio));
 
-	double Beta = (lRhod)/lRhol;
+	double A = 1 / (4.774 * pow(lsd, 0.1) - 7.27);
+         
+        double lRhobulk = Wn / le; // Dead bulk density = Dead fuel load / Fuel height
+        
+	double Beta = lRhobulk / lRhod;  // Packing ratio = Bulk density / Particle density
 
-	double Betaop = 3.338*pow(lsd, -0.8189);
+        double Betaop = 3.348 * pow(lsd, -0.8189);
 
-	double RprimeMax = pow(lsd, 1.5)*(1/(495+0.0594*pow(lsd, 1.5)));
+	double RprimeMax = pow(lsd, 1.5) * (1 / (495 + 0.0594 * pow(lsd, 1.5)));
 
-	double Rprime = pow(RprimeMax*(Beta/Betaop),A) *  exp(A*(1-(Beta/Betaop))) ;
+        double Rprime = RprimeMax * pow((Beta/Betaop), A) *  exp(A*(1-(Beta/Betaop))) ;
 
-	double chi = pow(192 + 0.2595*lsd, -1) * exp((0.792 + 0.681*pow(lsd, 0.5))*(Beta+0.1));
+        double chi = pow(192 + 0.259*lsd, -1) * exp((0.792 + 0.681*pow(lsd, 0.5)) * (Beta+0.1));
 
-	double epsilon  = exp(-138/lsd);
+	double epsilon  = exp(-138 / lsd);
 
-	double Qig = 250 + 1.116*lMd;
+        double Qig = 250 + 1116 * lMd; // "1,116 in Rothermel" != 1.116
 
 	double C = 7.47 * exp(-0.133*pow(lsd, 0.55));
 
@@ -155,29 +153,28 @@ double Rothermel::getSpeed(double* valueOf){
 
 	double Ir = Rprime*Wn*lDeltaH*Etam*Etas;
 
+        /*
 	/// wind limit 2013 //
 	double Uf = 96.81*pow(Ir, 1/3);
 
 	if (normal_wind>Uf) {
 		normal_wind = Uf;
 	}
+        */
 
+        double phiV = C * pow((Beta/Betaop), -E) * pow(normal_wind,B) ;
 
-	double phiV = C* pow((Beta/Betaop),E)*pow(normal_wind,B) ;
+	double phiP = 5.275 * pow(Beta, -0.3) * pow(tanangle, 2);
 
-	double phiP = 5.275*pow(Beta, -0.3)*pow(tanangle,2);
+	double R0 = (Ir * chi) / (lRhobulk * epsilon * Qig);
 
-	double R0 = (Ir*chi)/(lRhod*epsilon*Qig);
-
-
-	double R = R0*(1+phiV+phiP);
-
+	double R = R0 * (1 + phiV + phiP);
 
 	if(R < R0)  R = R0;
 
 	if(R > 0.0) {
 
-		return R*0.00508; //piedsmin en Ms
+		return R * 0.00508; // ft/min -> m/s
 	}else{
 		cout << " Rhod "<< lRhod << " lMd "<< lMd << " lsd "<< lsd << " le "<< le << " lSigmad "<< lSigmad <<endl;
 		cout << " R "<< R << " R0 "<< R0 << " phiv " << phiV <<" phiP" << phiP <<endl;
