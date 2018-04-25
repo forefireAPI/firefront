@@ -679,11 +679,12 @@ bool DataBroker::isRelevantData(FFPoint& SW, FFPoint& ext) {
 }
 
 double DataBroker::getNetCDFFileVersion(NcVar* var) {
-	if(true) return 1;
-	NcAtt* xsw = var->get_att("version");
-	double version = xsw == 0 ? -1 : xsw->as_double(0);
-	delete xsw;
-	return version;
+	//if(true) return 1;
+	//NcAtt* xsw = var->get_att("version");
+	//double version = xsw == 0 ? -1 : xsw->as_double(0);
+	//delete xsw;
+	
+	return 1;
 }
 
 FFPoint DataBroker::getNetCDFSWCorner(NcVar* var) {
@@ -750,7 +751,7 @@ XYZTDataLayer<double>* DataBroker::constructXYZTLayerFromFile(
 	double timeOrigin = getNetCDFTimeOrigin(domvar);
 	double Lt = getNetCDFTimeSpan(domvar);
 	double version = getNetCDFFileVersion(domvar);
-
+	
 	/* Getting the desired variable */
 	/*------------------------------*/
 	NcVar* values = NcdataFile->get_var(property.c_str());
@@ -781,6 +782,7 @@ XYZTDataLayer<double>* DataBroker::constructXYZTLayerFromFile(
 		nx = (size_t) values->get_dim(3)->size();
 	}
 
+
 	/* Getting the data */
 	/*------------------*/
 
@@ -788,8 +790,9 @@ XYZTDataLayer<double>* DataBroker::constructXYZTLayerFromFile(
 			 	 nt = 1;
 
 		    }
+	
 	double* data = readAndTransposeFortranProjectedField(values, nt, nz, ny, nx,
-			version>0,dimTSelected);
+			true,dimTSelected);
 
 	if (isRelevantData(SWCorner, spatialExtent)) {
 
@@ -799,7 +802,11 @@ XYZTDataLayer<double>* DataBroker::constructXYZTLayerFromFile(
 		XYZTDataLayer<double>* newlayer = new XYZTDataLayer<double>(property,
 				SWCorner, timeOrigin, spatialExtent, Lt, nx, ny, nz, nt, data);
 		delete[] data;
-				return newlayer;
+		//	if(nt > 1){
+		//		cout << "Variable " << property  << endl;
+ 		//		cout << newlayer->print2D(0,3) <<endl;
+		//	}
+		return newlayer;
 
 
 
@@ -1150,21 +1157,47 @@ double* DataBroker::readAndTransposeFortranProjectedField(NcVar* val,
 	double* data = new double[nnt * nz * ny * nx];
 	size_t size = nnt * nz * ny * nx;
 	size_t indC, indF;
-	size_t ii, jj, kk, rest;
-
-	for (indF = 0; indF < size; indF++) {
-		/* first compute the indices
-		 in the Fortran representation of the array*/
-		kk = indF / (nx * ny);
-		rest = indF - kk * nx * ny;
-		jj = rest / nx;
-		ii = rest % nx;
-		/* then compute the corresponding index
-		 in C representation */
-		indC = ii * ny * nz + jj * nz + kk;
-		data[indC] = tmp[indF];
+	size_t ii, jj, kk, ll, rest;
+    
+    
+	if (nnt>1){
+		//cout << "WARNING Timed data field with nz " << nz << endl;
+		size_t  restz;
+		for (indF = 0; indF < size; indF++) {
+				/* first compute the indices
+				in the Fortran representation of the array*/
+				ll = indF / (nx * ny * nz) ;
+				restz = indF - (ll * nx * ny * nz) ;
+				kk = restz / (nx * ny);
+				rest = restz - kk * nx * ny;
+				jj = rest / nx;
+				ii = rest % nx;
+				/* then compute the corresponding index
+				in C representation */
+				indC = ii * ny * nz * nnt + jj * nz * nnt + kk * nnt + ll;
+				
+				data[indC] = tmp[indF];
+				
+				
+			}
 	}
-
+	else{
+		for (indF = 0; indF < size; indF++) {
+			/* first compute the indices
+			in the Fortran representation of the array*/
+			kk = indF / (nx * ny);
+			rest = indF - kk * nx * ny;
+			jj = rest / nx;
+			ii = rest % nx;
+			/* then compute the corresponding index
+			in C representation */
+			indC = ii * ny * nz + jj * nz + kk;
+			
+			data[indC] = tmp[indF];
+			
+			
+		}
+	}
 	free(tmp);
 	return data;
 }
