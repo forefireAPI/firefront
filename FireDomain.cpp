@@ -1485,12 +1485,14 @@ namespace libforefire{
 				where<<"FireDomain::checkTopology for processor "<<getDomainID()<<endl;
 				throw TopologicalException(debugOutput.str(), where.str());
 			}
-			if ( fn->splitAllowed() and fn->getNext()->splitAllowed() ){
+			if ( fn->splitAllowed() or fn->getState() == FireNode::final
+                             and fn->getNext()->splitAllowed() ){
 				double distToNext = fn->distance(fn->getNext()->locAtTime(fn->getTime()));
 				if ( distToNext > 2.*d ) fn->setSplitting();
 			}
 
-			if ( fn->getPrev()->getState() == FireNode::final and fn->splitAllowed() ){
+			if ( (fn->getPrev()->getState() == FireNode::final or
+                              fn->getPrev()->splitAllowed()) and fn->splitAllowed() ){
 				double distToPrev = fn->getPrev()->distance(fn->getLoc());
 				if ( distToPrev > 2.*d ){
 					fn->getFront()->split(fn->getPrev(), fn->getTime());
