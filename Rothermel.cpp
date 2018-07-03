@@ -93,8 +93,8 @@ double Rothermel::getSpeed(double* valueOf){
 
 	double lRhod = valueOf[Rhod] * 0.06; // conversion kg/m^3 -> lb/ft^3
 	double lMd  = valueOf[Md];
-	double lsd  = valueOf[sd] / 3.2808399;
-	double le   = valueOf[e];
+	double lsd  = valueOf[sd] / 3.2808399; // conversion m -> ft
+	double le   = valueOf[e] * 3.2808399;
 	if (le==0) return 0;
         double lSigmad = valueOf[Sigmad] * 0.2048; // conversion kg/m^2 -> lb/ft^2
         double lDeltaH = valueOf[DeltaH] / 2326;// conversion J/kg -> BTU/lb
@@ -128,7 +128,7 @@ double Rothermel::getSpeed(double* valueOf){
         double Etam = 1  + Mratio * (-2.59 + Mratio * (5.11 - 3.52 * Mratio));
 
 	double A = 1 / (4.774 * pow(lsd, 0.1) - 7.27);
-         
+        
         double lRhobulk = Wn / le; // Dead bulk density = Dead fuel load / Fuel height
         
 	double Beta = lRhobulk / lRhod;  // Packing ratio = Bulk density / Particle density
@@ -153,14 +153,12 @@ double Rothermel::getSpeed(double* valueOf){
 
 	double Ir = Rprime*Wn*lDeltaH*Etam*Etas;
 
-        /*
 	/// wind limit 2013 //
-	double Uf = 96.81*pow(Ir, 1/3);
+	double Uf = 96.81*pow(Ir, 1./3);
 
 	if (normal_wind>Uf) {
 		normal_wind = Uf;
 	}
-        */
 
         double phiV = C * pow((Beta/Betaop), -E) * pow(normal_wind,B) ;
 
