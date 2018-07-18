@@ -25,7 +25,7 @@ namespace libforefire{
 
 // Static variables
 int FireFront::frontNum = 1;
-bool FireFront::outputs = false;
+bool FireFront::outputs = true;
 
 FireFront::FireFront(FireDomain* fd) : ForeFireAtom(0.), domain(fd) {
 	getNewID(fd->getDomainID());
@@ -703,6 +703,12 @@ void FireFront::merge(FireNode* fna, FireNode* fnb){
 			return;
 		}
 
+                /* Two cases must be considered :
+                     1 - merging inside of a "positive" (expanding) front
+                     2 - merging inside of a "negative" (retracting) front*/
+                double frontArea = getArea();
+                /* Case 1 */
+                if (frontArea > 0){
 		/* Otherwise that means that i am merging with myself,
 		 * with an inner front.I start by imagine that the
 		 * node i'm merging with is in the outer, original front */
@@ -725,6 +731,13 @@ void FireFront::merge(FireNode* fna, FireNode* fnb){
 		if ( outputs ) cout<<"trashing in FireFront::merge : "<<fna->toString()<<endl;
 		domain->addToTrashNodes(fna);
 		fnb->setState(FireNode::moving);
+                /* /!\ Debug  part /!\ */
+                if ( outputs ){
+                  cout<<"Debug part : "<<fnb->toString()<<endl;
+                  cout<<"Previous : "<<fnb->getPrev()->toString()<<endl;
+                  cout<<"Next : "<<fnb->getNext()->toString()<<endl;
+                }
+                /* /!\ /!\ /!\ /!\ /!\ */
 
 		/* bad luck, the other node was inside.
 		 * I decide to exchange the heads and carry on */
@@ -766,7 +779,7 @@ void FireFront::merge(FireNode* fna, FireNode* fnb){
 		/* Otherwise I need to dispatch the nodes in a new inner front */
 		if ( outputs ) cout<<getDomainID()
 				<<": creating a new inner front"<<endl;
-		FireFront* tmpFront = domain->addFireFront(mergeTime,this);
+                FireFront* tmpFront = domain->addFireFront(mergeTime,this);
 		fnC = pa;
 		tmpFront->setHead(fnC);
 		for ( size_t i = getNumFN(fnC); i > 0 ; i-- ){
@@ -792,6 +805,74 @@ void FireFront::merge(FireNode* fna, FireNode* fnb){
 			}
 			domain->addToTrashFronts(tmpFront);
 		}
+                }
+                // Case 2
+                else{
+                  // Firstly, we do the same as in Case 1. This will split
+                  // the polygon in 2 parts.
+                  if (outputs) cout<<getDomainID()
+                                   <<": creating an inner front at "<<fna->getTime()<<endl;
+                  FireNode* pa = fna->getPrev();
+                  FireNode* b = fnb;
+                  FireNode* nb = fnb->getNext();
+                  FireNode* fnC;
+                  double mergeTime = fna->getUpdateTime();
+
+                  pa->setNext(nb);
+                  nb->setPrev(pa);
+
+                  fna->setPrev(fnb);
+                  fnb->setNext(fna);
+                  setHead(fnb);
+
+                  /* everyone is linked I can trash me now */
+                  if ( outputs ) cout<<"trashing in FireFront::merge : "<<fna->toString()<<endl;
+                  domain->addToTrashNodes(fna);
+                  fnb->setState(FireNode::moving);
+
+                  /* bad luck, the other node was inside.
+                   * I decide to exchange the heads and carry on */
+                  double areaA = getLocalArea(fnb);
+                  double areaB = getLocalArea(nb);
+                  if( abs(areaA) < abs(areaB) ){
+                    if (outputs) cout<<getDomainID()
+                                     <<": inverting the inner and outer fronts"<<endl;
+                    fnC = b;
+                    b = pa;
+                    pa = fnC;
+                    setHead(b);
+                  }
+                  // One of the 2 parts will belong to another FireFront
+                  if ( outputs ) cout<<getDomainID()
+                                     <<": creating a new inner front"<<endl;
+                  FireFront* tmpFront = domain->addFireFront(mergeTime,this);
+                  fnC = pa;
+                  tmpFront->setHead(fnC);
+                  for ( size_t i = getNumFN(fnC); i > 0 ; i-- ){
+                    fnC->setFront(tmpFront);
+                    fnC = fnC->getNext();
+                  }
+
+                  // Same for the second part
+                  if ( tmpFront->getNumFN() < 5 ){
+                    if (outputs) cout<<getDomainID()
+                                     <<": trashing inner front "<<tmpFront->toString()<<" because of lack of nodes ("
+                                     <<tmpFront->getNumFN()<<" nodes in the front)"<<endl;
+                    FireNode* curfn = tmpFront->getHead();
+                    FireNode* next;
+                    for ( int numfn = tmpFront->getNumFN()-1; numfn > 0; numfn-- ){
+                      next = curfn->getNext();
+                      if ( outputs ) cout<<"trashing in FireFront::merge : "<<curfn->toString()<<endl;
+                      domain->addToTrashNodes(curfn);
+                      curfn = next;
+                    }
+                    if ( curfn != 0 ){
+                      if ( outputs ) cout<<"trashing in FireFront::merge : "<<curfn->toString()<<endl;
+                      domain->addToTrashNodes(curfn);
+                    }
+                    domain->addToTrashFronts(tmpFront);
+                  }
+                }
 
 		// Scanning the region for burning status
 		domain->areaBurningScan(swc, nec, t);
