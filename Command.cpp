@@ -82,6 +82,7 @@ Command::CmdDictEntry Command::cmdDict[] =	{
 		,CmdDictEntry("help","displays messages about the usage of commands")
 		,CmdDictEntry("man[command]","displays the man page of the desired 'command'")
 		,CmdDictEntry("loadData[...]","load a NC data file")
+		,CmdDictEntry("systemExec[...]","runs a system command")
 		,CmdDictEntry("clear[]","clears the simulation")
 		,CmdDictEntry("quit","terminates the simulation")
 };
@@ -675,6 +676,29 @@ int Command::printSimulation(const string& arg, size_t& numTabs){
 		*currentSession.outStream<<currentSession.outStrRep->dumpStringRepresentation();
 	}
 	return normal;
+}
+int Command::systemExec(const string& arg, size_t& numTabs){
+
+
+    SimulationParameters *simParam = SimulationParameters::GetInstance();
+    string finalStr = "";
+
+    if (arg.size() > 0)
+    {
+        vector<string> parts;
+        tokenize(arg, parts, "*");
+
+        int partToEval = (arg.at(0) == '*') ? 0 : 1;
+
+        for (int i = 0; i < parts.size(); i++) {
+            finalStr += (i % 2 == partToEval) ? simParam->getParameter(parts[i]) : parts[i];
+        }
+    }
+
+    replace(finalStr.begin(), finalStr.end(), ':', '-');
+
+
+	return std::system(finalStr.c_str());;
 }
 
 int Command::saveSimulation(const string& arg, size_t& numTabs){

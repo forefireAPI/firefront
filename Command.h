@@ -1,6 +1,6 @@
 /*
 
-Copyright (C) 2012 ForeFire Team, SPE, UniversitŽ de Corse.
+Copyright (C) 2012 ForeFire Team, SPE, Universitï¿½ de Corse.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -80,7 +80,7 @@ class Command {
 	// Definition of the command map alias
 	typedef int (*cmd)(const string&, size_t&);
 	typedef map<string,cmd> commandMap;  /*!< map of aliases between strings and functions to be called */
-	static const int numberCommands = 17; /*!< number of possible commands */
+	static const int numberCommands = 18; /*!< number of possible commands */
 	static commandMap makeCmds(){
 		// Construction of the command translator
 		commandMap trans;
@@ -100,6 +100,7 @@ class Command {
 		trans["help"] = &help;
 		trans["man"] = &man;
 		trans["loadData"] = &loadData;
+		trans["systemExec"] = &systemExec;
 		trans["clear"] = &clear;
 		trans["quit"] = &quit;
 		return trans;
@@ -138,6 +139,7 @@ class Command {
 		cman["help"] = "help\n displays messages about the usage of commands\n";
 		cman["loadData"] = "loadData\n load a NC data file\n";
 		cman["clear"] = "clear\n clear all the simulation data\n";
+		cman["systemExec"] = "systemExec\n run a system command\n";
 		cman["quit"] = "quit\n terminates the simulation\n";
 		return cman;
 	}
@@ -220,6 +222,8 @@ class Command {
 	/*! \brief command to load a NC data file */
 	static int loadData(const string&, size_t&);
 	/*! \brief command to clear the simulation */
+	static int systemExec(const string&, size_t&);
+	/*! \brief command to run a system trough pipe */
 	static int clear(const string&, size_t&);
 	/*! \brief command to quit the ForeFire shell */
 	static int quit(const string&, size_t&);
