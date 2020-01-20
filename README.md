@@ -12,6 +12,6 @@ A sample SConstruct file is included with the distribution, try it and if it doe
 NetCDF-C++ >>LEGACY<< is required for compatibilities issues, get it from :
 https://www.unidata.ucar.edu/downloads/netcdf/netcdf-cxx/index.jsp
 
-to run it, type "./CommandShell -i examplescript" from the commandline
+to run a real fire, go in Examples/aullene/ directory and  type "../../CommandShell -i aullene.ff" from the commandline
 
 The "swig" repository contains python bindings requires numpy (and numpy.i), swig, and matplotlib for testing. 
