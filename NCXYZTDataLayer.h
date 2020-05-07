@@ -111,6 +111,7 @@ public:
 			 interDirScaler = 1  ;
 			 projectionDirValue = 0;
 			interp = InterpolationBilinear;
+			projectionScaleValue = 0;
 
 	};
 	/*! \brief Constructor with a sole value */
@@ -140,6 +141,8 @@ public:
 		 interDirScaler = 1  ;
 		 projectionDirValue = 0;
 		interp = InterpolationBilinear;
+
+		projectionScaleValue = 0;
 	}
 	/*! \brief Constructor with a given file and given variable */
 	XYZTDataLayer(string name, FFPoint& SWCorner, double& t0
@@ -161,7 +164,7 @@ public:
 		dx = extent.getX()/nx;
 		dy = extent.getY()/ny;
 		dz = extent.getZ()/nz;
-		dt = timespan/nt;
+		dt = timespan/(nt-1);
 		interp = InterpolationBilinear;
 
 		interDirID0 = 2 ;
@@ -169,6 +172,7 @@ public:
 		interDirRatio = 1  ;
 		interDirScaler = 1  ;
 		 projectionDirValue = 0;
+         projectionScaleValue = 0;
 
 
 		if(nt>1){
@@ -333,6 +337,7 @@ T XYZTDataLayer<T>::getValueAt(FFPoint loc, const double& t){
 
 		if ( interp == InterpolationBilinearT ){
 					int it = (int) (t-startTime)/dt;
+
 
 					T tsw1 = getVal(uu,vv,0,it);
 					T tnw1 = getVal(uu,vv+1,0,it);
