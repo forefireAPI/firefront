@@ -171,21 +171,13 @@ double Rothermel::getSpeed(double* valueOf){
 	if(R < R0)  R = R0;
 
 	if(R > 0.0) {
-
-		return R * 0.00508; // ft/min -> m/s
+		//cout << "Rothermel =" << R * 0.0050 << endl; 
+		return R * 0.00508 ; // ft/min -> m/s
 	}else{
 		cout << " Rhod "<< lRhod << " lMd "<< lMd << " lsd "<< lsd << " le "<< le << " lSigmad "<< lSigmad <<endl;
 		cout << " R "<< R << " R0 "<< R0 << " phiv " << phiV <<" phiP" << phiP <<endl;
 	}
 	return 0;
-
-
-
-
-
-
-
-
 }
 
 } /* namespace libforefire */

@@ -19,6 +19,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 */
 
 #include "Balbi2015.h"
+#include "Rothermel.h"
 
 namespace libforefire {
 
@@ -94,6 +95,7 @@ string Balbi2015::getName(){
 /* Model for the propagation velovity of the front */
 /* *********************************************** */
 
+
 double Balbi2015::getSpeed(double* valueOf){
 
 	double lRhod = valueOf[Rhod];
@@ -157,9 +159,7 @@ double Balbi2015::getSpeed(double* valueOf){
 	} else {
 		R = 0;
 	}
-
-	return valueOf[temperature]/1000;//R + R0;
-
+	return R + R0;
 }
 
 } /* namespace libforefire */
