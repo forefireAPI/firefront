@@ -431,7 +431,7 @@ void XYZTDataLayer<T>::getMatrix(
 template<typename T>
 void XYZTDataLayer<T>::setMatrix(string& mname, double* inMatrix
 		, const size_t& sizein, size_t& sizeout, const double& time){
-	// writing the incoming array in matrix
+	// writing the incoming (array in matrix
 	// should not be done with this type of layer
 }
 
