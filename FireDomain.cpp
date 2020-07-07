@@ -31,6 +31,7 @@ namespace libforefire{
 	const double FireDomain::endChain = -1.;
 	const double FireDomain::endCom = -10.;
 	const double FireDomain::noCom = -100.;
+	double FireDomain::propagationSpeedAdjustmentFactor =1;
 
 	const string FireDomain::altitude = "altitude";
 	const FFPoint FireDomain::outPoint
@@ -1112,7 +1113,7 @@ namespace libforefire{
 	double FireDomain::getPropagationSpeed(FireNode* fn) {
 		int modelIndex = propagativeLayer->getModelIndexAt(fn);
 
-		return propModelsTable[modelIndex]->getSpeedForNode(fn);
+		return propModelsTable[modelIndex]->getSpeedForNode(fn) * propagationSpeedAdjustmentFactor;
 	}
 
 	// Computing the flux at a given location according to a given flux model
@@ -2023,8 +2024,9 @@ namespace libforefire{
 		/* heat flux treshold for considering a location burning */
 		burningTresholdFlux = params->getDouble("burningTresholdFlux");
 		/* trigger distance for the computation of front depth */
-		maxFrontDepth = params->getDouble("maxFrontDepth");
 
+		maxFrontDepth = params->getDouble("maxFrontDepth");
+		propagationSpeedAdjustmentFactor  = params->getDouble("propagationSpeedAdjustmentFactor");
 		safeTopologyMode = false;
 
 		/*------------------------------*/

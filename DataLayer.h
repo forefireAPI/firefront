@@ -1,6 +1,6 @@
 /*
 
-Copyright (C) 2012 ForeFire Team, SPE, UniversitŽ de Corse.
+Copyright (C) 2012 ForeFire Team, SPE, Universitï¿½ de Corse.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -57,6 +57,9 @@ public:
 	/*! \brief computes the value at a given location and time */
 	virtual T getValueAt(FFPoint, const double&) =0;
 
+	/*! \brief set the value at a given location and time */
+
+	virtual void setValueAt(FFPoint ,  double , T ) = 0;
 	/*! \brief directly stores the desired values in a given array */
 	virtual size_t getValuesAt(FireNode*, PropagationModel*, size_t) = 0;
 

@@ -1,6 +1,6 @@
 /*
 
-Copyright (C) 2012 ForeFire Team, SPE, UniversitŽ de Corse.
+Copyright (C) 2012 ForeFire Team, SPE, Universitï¿½ de Corse.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -95,6 +95,7 @@ class FireDomain: public ForeFireAtom, Visitable {
 	/* Spatial parameters */
     /*--------------------*/
 	double perimeterResolution; /*!< perimeter resolution of the fronts */
+	double propagationSpeedAdjustmentFactor;/*!< adjustment factor for propagation speed */
 	double spatialCFL; /*!< spatial CFL-like coefficient */
 	double spatialCFLMax; /*!< maximum spatial CFL admitted */
 	double spatialIncrement; /*!< spatial increment of each firenode */

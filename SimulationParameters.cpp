@@ -208,6 +208,7 @@ SimulationParameters::SimulationParameters(){
 	parameters.insert(make_pair("FDCellsOutputs", "1"));
 	parameters.insert(make_pair("HaloOutputs", "1"));
 
+	parameters.insert(make_pair("propagationSpeedAdjustmentFactor", "1"));
 	parameters.insert(make_pair("fireOutputDirectory", "."));
 	parameters.insert(make_pair("atmoOutputDirectories", "."));
 	parameters.insert(make_pair("outputFiles","output"));

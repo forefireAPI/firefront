@@ -1,6 +1,6 @@
 /*
 
-Copyright (C) 2012 ForeFire Team, SPE, UniversitŽ de Corse.
+Copyright (C) 2012 ForeFire Team, SPE, Universitï¿½ de Corse.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -80,7 +80,7 @@ public:
 	size_t getValuesAt(FireNode*, PropagationModel*, size_t);
 	/*! \brief directly stores the desired values in a given array */
 	size_t getValuesAt(FFPoint, const double&, FluxModel*, size_t);
-
+	void setValueAt(FFPoint loc,  double tval, T value){};
 	/*! \brief getter to the pointer on the FFArray */
 	void getMatrix(FFArray<T>**, const double&);
 	/*! \brief stores data from a fortran array into the FFArray */

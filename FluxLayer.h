@@ -175,7 +175,7 @@ public:
 	size_t getValuesAt(FireNode*, PropagationModel*, size_t);
 	/*! \brief directly stores the desired values in a given array */
 	size_t getValuesAt(FFPoint, const double&, FluxModel*, size_t);
-
+	void setValueAt(FFPoint loc,  double tval, T value){};
 	/*! \brief initialize latestCallGetMatrix for the beginning of the simulation */
 	void setFirstCall(const double&);
 	/*! \brief getter to the pointer on the FFArray */

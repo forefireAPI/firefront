@@ -19,7 +19,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 */
 
 #include "Command.h"
-
 using namespace std;
 
 namespace libforefire {
@@ -784,7 +783,9 @@ int Command::triggerValue(const string& arg, size_t& numTabs){
 	if(tmpArgs[0]== "fuel"){
 
 			if(currentSession.fd->getDataBroker() != 0){
-				vector<string> tmpVal;
+
+
+	   			vector<string> tmpVal;
 					string delimiter = "=";
 					double val = 0;
 					tokenize(tmpArgs[1], tmpVal, delimiter);
@@ -795,6 +796,24 @@ int Command::triggerValue(const string& arg, size_t& numTabs){
 						return normal;
 					}
 					return error;
+			}
+
+	}
+	if(tmpArgs[0]== "fuelIndice"){
+
+			if(currentSession.fd->getDataBroker() != 0){
+
+				FFPoint loc = getPoint("loc", arg);
+				int fvalue = getInt("fuelType",arg);
+			//	double oldval = currentSession.fd->getDataBroker()->getLayer("fuel")->getValueAt(loc,0);
+
+				//cout <<"at "<< loc.x<< "we have fuel "<< oldval<<endl;
+			//	cout <<"setting to "<< fvalue <<endl;
+
+				currentSession.fd->getDataBroker()->getLayer("fuel")->setValueAt(loc,0.0,fvalue);
+			//	double newval = currentSession.fd->getDataBroker()->getLayer("fuel")->getValueAt(loc,0);
+			//	cout <<"at "<< loc.x<< " we have now fuel "<< fvalue <<endl;
+				return normal;
 			}
 
 	}
@@ -953,6 +972,7 @@ int Command::quit(const string& arg, size_t& numTabs){
 	exit(0);
 	return normal;
 }
+
 
 void Command::setOstringstream(ostringstream* oss){
 	currentSession.outStream = oss;
@@ -1157,6 +1177,7 @@ void Command::ExecuteCommand(string& line){
 	vector<string> command;
 	size_t numTabs;
 	string scmd;
+	string postcmd;
 	const string delimiter = "[";
 	tokenize(line, command, delimiter);
 	if ( command.size() > 1 ) {
@@ -1165,6 +1186,7 @@ void Command::ExecuteCommand(string& line){
 		scmd = removeTabs(command[0]);
 		if (command[1].size() > 1){
 			// dropping the last parenthesis ']'
+			postcmd= command[1].substr(command[1].rfind("]")+1,-1) ;
 			command[1] = command[1].substr(0,command[1].rfind("]"));
 		} else {
 			command[1] = "";
@@ -1176,33 +1198,45 @@ void Command::ExecuteCommand(string& line){
 	// calling the right method using the 'translator'
 	if( ((scmd)[0] == '#')||((scmd)[0] == '*')||((scmd)[0] == '\n')||((scmd)[0] == '\r') ){
 		// this line is commented, nothing to do
-	} else {
-		commandMap::const_iterator curcmd = translator.find( scmd );
-		if ( curcmd == translator.end() ) {
-			cout << "unknown command  >"<< scmd << "< , try 'help[]'." << endl;
 		} else {
-			try {
-				// calling the right function
-				(curcmd->second)(command[1], numTabs);
-			} catch( BadOption& ) {
-				cout<<domain->getDomainID()<<": "
-						<< "argument(s) '" << command[1] << "' is (are) not fit for command '"
-						<< command[0] << "'" << endl;
-				cout << "type 'man[" << command[0] << "]' for more information" << endl;
-			} catch( MissingOption& mo) {
-				cout<<domain->getDomainID()<<": "
-						<< "command '" << command[0] << "' misses "
-						<< mo.num << " options." << endl;
-				cout << "type 'man[" << command[0] << "]' for more information" << endl;
-			} catch( MissingTime& ) {
-				cout<<domain->getDomainID()<<": "
-						<< "you have to specify a time for that command (as in 't=0.')" << endl;
-			} catch (...) {
-				cout<<domain->getDomainID()<<": "
-						<< " PROBLEM: Command associated to "<<line<<" ended in error"<< endl;
-			}
+				if( postcmd.size() > 1){
+					string atCommand=line.substr(0,line.rfind("]")+1);
+					string whenCommand = line.substr(line.rfind("]")+1,-1);
+					double whenDouble = getFloat("@t", whenCommand) ;
+						if ((whenCommand)[0] == '@' && whenDouble != FLOATERROR){
+						    currentSession.tt->insert(new FFEvent(new EventCommand(atCommand, whenDouble)));
+						}else{
+							cout <<whenDouble<< "unknown post operator  >"<< whenCommand << "< , try 'help[]'." << endl;
+						}
+				}
+				else{
+					commandMap::const_iterator curcmd = translator.find( scmd );
+					if ( curcmd == translator.end() ) {
+						cout << "unknown command  >"<< scmd << "< , try 'help[]'." << endl;
+					} else {
+						try {
+							// calling the right function
+							(curcmd->second)(command[1], numTabs);
+						} catch( BadOption& ) {
+							cout<<domain->getDomainID()<<": "
+									<< "argument(s) '" << command[1] << "' is (are) not fit for command '"
+									<< command[0] << "'" << endl;
+							cout << "type 'man[" << command[0] << "]' for more information" << endl;
+						} catch( MissingOption& mo) {
+							cout<<domain->getDomainID()<<": "
+									<< "command '" << command[0] << "' misses "
+									<< mo.num << " options." << endl;
+							cout << "type 'man[" << command[0] << "]' for more information" << endl;
+						} catch( MissingTime& ) {
+							cout<<domain->getDomainID()<<": "
+									<< "you have to specify a time for that command (as in 't=0.')" << endl;
+						} catch (...) {
+							cout<<domain->getDomainID()<<": "
+									<< " PROBLEM: Command associated to "<<line<<" ended in error"<< endl;
+						}
+					}
+				}
 		}
-	}
 	command.clear();
 }
 

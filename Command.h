@@ -31,6 +31,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 #include "FireFront.h"
 #include "FireNode.h"
 #include "Futils.h"
+#include "EventCommand.h"
 
 #ifndef COMMAND_DEBUG
 #define COMMAND_DEBUG 1<<8
@@ -103,6 +104,7 @@ class Command {
 		trans["systemExec"] = &systemExec;
 		trans["clear"] = &clear;
 		trans["quit"] = &quit;
+
 		return trans;
 	}
 	/* A map of the commands to their effective functions */

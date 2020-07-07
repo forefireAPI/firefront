@@ -209,7 +209,7 @@ public:
 	/*! \brief computes the value at a given location and time */
 	T getValueAt(FFPoint, const double&);
 	/*! \brief sets the value at a given location and time */
-	void setValueAt(FFPoint, const double&);
+	void setValueAt(FFPoint,  double, T value);
 	/*! \brief directly stores the desired values in a given array */
 	size_t getValuesAt(FireNode*, PropagationModel*, size_t);
 	/*! \brief directly stores the desired values in a given array */
@@ -384,9 +384,9 @@ T XYZTDataLayer<T>::getValueAt(FFPoint loc, const double& t){
 }
 
 template<typename T>
-void XYZTDataLayer<T>::setValueAt(FFPoint loc, const double& t){
+void XYZTDataLayer<T>::setValueAt(FFPoint loc,  double t, T value){
 
-	cout<<"WARNING: setting value not implemented in XYZDataLayer"<<endl;
+	cout<<"WARNING: setting value not implemented"<<endl;
 
 }
 

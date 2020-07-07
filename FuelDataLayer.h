@@ -1,6 +1,6 @@
 /*
 
-Copyright (C) 2012 ForeFire Team, SPE, UniversitŽ de Corse.
+Copyright (C) 2012 ForeFire Team, SPE, Universitï¿½ de Corse.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -71,6 +71,7 @@ template<typename T> class FuelDataLayer : public DataLayer<T> {
 	/*! \brief Interpolation method: lowest order */
 	int getFuelAtLocation(FFPoint, double time);
 
+
 	size_t getPos(FFPoint& loc, double& time);
 
 public:
@@ -127,6 +128,8 @@ public:
 	T getValueAt(FireNode*);
 	/*! \brief computes the value at a given location and time */
 	T getValueAt(FFPoint, const double&);
+	/*! \brief computes the value at a given location and time */
+	void setValueAt(FFPoint,  double, T value);
 	/*! \brief directly stores the desired values in a given array */
 	size_t getValuesAt(FireNode*, PropagationModel*, size_t);
 	/*! \brief directly stores the desired values in a given array */
@@ -169,9 +172,10 @@ T FuelDataLayer<T>::getValueAt(FireNode* fn){
 
 template<typename T>
 T FuelDataLayer<T>::getValueAt(FFPoint loc, const double& time){
-	cout<<"WARNING: getValueAt shouldn't be called for layer "<<this->getKey()<<endl;
-	T zero = (T) 0;
-	return zero;
+	cout<<"WARNING: getValueAt shouldn't be called for layer fuel, returning indice"<<this->getKey()<<endl;
+	double mytime = time;
+	T retval = (T) fuelMap[getPos(loc, mytime)];
+   return retval;
 }
 
 template<typename T>
@@ -204,6 +208,11 @@ template<typename T>
 int FuelDataLayer<T>::getFuelAtLocation(FFPoint loc, double time){
 	if ( size == 1 ) return fuelMap[0];
 	return fuelMap[getPos(loc, time)];
+}
+
+template<typename T>
+void FuelDataLayer<T>::setValueAt(FFPoint loc,  double timeV, T value){
+	fuelMap[getPos(loc, timeV)] = (int)value;
 }
 
 template<typename T>
