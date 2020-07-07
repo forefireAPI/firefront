@@ -757,7 +757,7 @@ XYZTDataLayer<double>* DataBroker::constructXYZTLayerFromFile(
 	NcVar* values = NcdataFile->get_var(property.c_str());
 	if (values->num_dims() > 4) {
 		cout << "Variable " << property << " doesn't have the right dimension ("
-				<< values->num_dims() << " instead of 4 maximum)" << endl;
+				<< values->num_dims() << " instead of 4 maximum) version" <<version<< endl;
 	}
 
 	size_t nx = 0;
@@ -1097,7 +1097,7 @@ int* DataBroker::readAndTransposeIntFortranProjectedField(NcVar* val,
 
 	if (!val->get(tmp, nt, nz, ny, nx)) {
 		cout << "error in getting the int data NC field" << endl;
-		delete tmp;
+		free(tmp);
 		return NULL;
 	}
 	if (!transpose)
@@ -1142,7 +1142,7 @@ double* DataBroker::readAndTransposeFortranProjectedField(NcVar* val,
 		cout<< "not transposing field "<<endl;
 		if (!val->get(tmp, nnt, nz, ny, nx)) {
 				cout << "error in getting the NC field" << endl;
-				delete tmp;
+				free(tmp);
 				return NULL;
 			}
 		return tmp;
@@ -1151,7 +1151,7 @@ double* DataBroker::readAndTransposeFortranProjectedField(NcVar* val,
 
 	if (!val->get(tmp, nnt, nz, ny, nx)) {
 		cout << "error in getting the double data NC field" << endl;
-		delete tmp;
+		free(tmp);
 		return NULL;
 	}
 	double* data = new double[nnt * nz * ny * nx];

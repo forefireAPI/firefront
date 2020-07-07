@@ -31,7 +31,7 @@ namespace libforefire{
 	const double FireDomain::endChain = -1.;
 	const double FireDomain::endCom = -10.;
 	const double FireDomain::noCom = -100.;
-	double FireDomain::propagationSpeedAdjustmentFactor =1;
+
 
 	const string FireDomain::altitude = "altitude";
 	const FFPoint FireDomain::outPoint
@@ -74,7 +74,7 @@ namespace libforefire{
 	FireDomain::FireDomain(const double& t
 						   , FFPoint& sw, FFPoint& ne)
 	: ForeFireAtom(t), SWCorner(sw), NECorner(ne) {
-
+		propagationSpeedAdjustmentFactor =1;
 		params = SimulationParameters::GetInstance();
 
 		// Maximum time-step for Firenodes is not constrained
@@ -1486,8 +1486,8 @@ namespace libforefire{
 				where<<"FireDomain::checkTopology for processor "<<getDomainID()<<endl;
 				throw TopologicalException(debugOutput.str(), where.str());
 			}
-			if ( fn->splitAllowed() or fn->getState() == FireNode::final
-                             and fn->getNext()->splitAllowed() ){
+			if ( fn->splitAllowed() or( fn->getState() == FireNode::final
+                             and fn->getNext()->splitAllowed() )){
 				double distToNext = fn->distance(fn->getNext()->locAtTime(fn->getTime()));
 				if ( distToNext > 2.*d ) fn->setSplitting();
 			}

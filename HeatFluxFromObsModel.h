@@ -40,8 +40,7 @@ class HeatFluxFromObsModel: public FluxModel {
     size_t residenceTime_bmap;
     size_t nominalHeatFlux_bmap;
 
-	/*! coefficients needed by the model */
-	double burningDuration;
+
 	/*double nominalHeatFlux;*/
 
 	/*! local variables */

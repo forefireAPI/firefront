@@ -102,7 +102,7 @@ double CraterVaporFluxModel::getValue(double* valueOf
 			/(refHours[hind+1]-refHours[hind]);
 	double flux = beta*refFlows[hind+1] + (1.-beta)*refFlows[hind];
 	double vapor = convert*flux;
-	return 10000;
+	return vapor;
 }
 
 } /* namespace libforefire */

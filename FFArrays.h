@@ -1,6 +1,6 @@
 /*
 
-Copyright (C) 2012 ForeFire Team, SPE, Universitï¿½ de Corse.
+Copyright (C) 2012 ForeFire Team, SPE, UniversitŽ de Corse.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -22,7 +22,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 #define FFARRAYS_H_
 
 #include "Futils.h"
-#include "Command.h"
+
 using namespace std;
 
 namespace libforefire {
@@ -199,7 +199,6 @@ void FFArray<T>::copyDataToFortran(T* x) {
 	}
 	size_t indC, indF;
 	size_t ii, jj, kk, rest;
-	T sum = 0;
 	try {
 		for ( indC = 0; indC < size; indC++ ) {
 			/* first compute the indices
@@ -212,9 +211,8 @@ void FFArray<T>::copyDataToFortran(T* x) {
 			in Fortran representation */
 			indF = kk*nx*ny + jj*nx + ii;
 			x[indF] = data[indC];
-			sum += data[indC];
+
 		}
-		if (Command::currentSession.fd->getDomainID() == 113) cout<<" for "<<name<<" sum is "<< sum<<endl;
 	} catch (...) {
 		cout << "PROBLEM in passing C array "
 				<<name<<" to Fortran !!" << endl;
