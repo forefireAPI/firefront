@@ -129,7 +129,7 @@ double BalbiNov2011TMdMl::getSpeed(double* valueOf){
 	
 	if(le <= 0 ) return 0;
 	
-	cout << "mm = " << lMl << endl;
+	//cout << "mm = " << lMl << endl;
 
 	double Betad =   lSigmad /(le* lRhod);
 	double Betal =   lSigmal /(le* lRhol);
