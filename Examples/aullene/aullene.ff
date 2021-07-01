@@ -7,7 +7,9 @@ setParameter[dumpMode=json]
 setParameter[caseDirectory=.]
 setParameter[ForeFireDataDirectory=.]
 setParameter[propagationSpeedAdjustmentFactor=1]
-loadData[landscape.nc;2009-07-24T11:37:39Z]
+#loadData[landscape.nc;2009-07-24T11:37:39Z]
+loadData[/Users/filippi/brando/cases/firecaster/Cases/Restonica/Run/Event000/FORCED/ForeFire/project_data.nc;2009-07-24T11:37:39Z]
+
 startFire[loc=(499073.45383159,4619272.9498144,0);t=0]
 trigger[loc=(0.,0.,0.);vel=(6.8,6.8,0.);t=0.]
 print[./*count*-*ISOdate*.json]
@@ -21,3 +23,41 @@ step[dt=2]
 step[dt=12000]
 print[./*count*-*ISOdate*.json]
 print[]
+
+$dataDir = $_REQUEST['pathdate'];
+  8 $date = $_REQUEST['date_eclosion'];
+  9 $coords = array(array($_REQUEST['latitude'],$_REQUEST['longitude']));
+ 10 //$speedFactor = 1; //$_REQUEST['speedFactor']; // speed modifier that should come from the request
+ 11 $speedFactor = (!empty($_REQUEST['speedFactor']) ? intval($_REQUEST['speedFactor']) : 1); // speed modifier that should come from the request
+ 12 $x = 4;  // 4 = arrondi à 0.25 | 8 = arrondi à 0.125
+ 13 $dir = (round($coords[0][0] * $x) / $x) . "_" . (round($coords[0][1] * $x) / $x);
+ 14 $metaTilePath = $layersHome . '/' . $dir . '/meta.json';
+ 15 $metaTile = json_decode(file_get_contents($metaTilePath), true);
+ 16 $EPSG = "EPSG:" . $metaTile["epsg"];
+ 17
+ 18 $proj4 = new Proj4php();
+ 19 $projWGS84 = new Proj4phpProj('EPSG:4326', $proj4);
+ 20 $projDest = new Proj4phpProj($EPSG, $proj4);
+ 21
+ 22 foreach ($coords as $key => $coord)
+ 23 {
+ 24     $pointSrc = new proj4phpPoint($coord[1], $coord[0]);
+ 25     $pointDest = $proj4->transform($projWGS84, $projDest, $pointSrc);
+ 26     $coords[$key] = array($pointDest->y, $pointDest->x);
+ 27 }
+ 28
+ 29 mkdir($dataHome . $dataDir);
+ 30 copy($metaTilePath, $dataHome . $dataDir . '/meta.json');
+ 31
+ 32 $FFCode = "";
+ 33 $FFCode .= "setParameter[projection=$EPSG]\n";
+ 34 $FFCode .= "setParameter[fuelsTableFile=$layersHome/fuels.ff]\n";
+ 35 $FFCode .= "setParameter[propagationSpeedAdjustmentFactor=$speedFactor]\n";
+ 36 $FFCode .= "setParameter[spatialIncrement=3]\n";
+ 37 #$FFCode .= "setParameter[propagationModel=BalbiNov2011]\n";
+ 38 $FFCode .= "setParameter[propagationModel=Rothermel]\n";
+ 39 $FFCode .= "setParameter[minSpeed=0.005]\n";
+ 40 #$FFCode .= "setParameter[dumpMode=json]\n";
+ 41 $FFCode .= "setParameter[caseDirectory=$dataHome]\n";
+ 42 $FFCode .= "setParameter[ForeFireDataDirectory=$dataDir]\n";
+ 43 $FFCode .= "loadData[$layersHome/$dir/$dir.nc;$date]\n";
