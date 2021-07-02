@@ -7,5 +7,4 @@ except KeyError:
     
 env     = Environment(CPPPATH=[netcdfHome+'/include/'],CCFLAGS=['-Wall','-O3'], LIBPATH=[netcdfHome+'/lib/'])
 #env.SharedLibrary('ForeFire', Glob('*.cpp'), LIBS=['netcdf_c++', 'netcdf'])
->>>>>>> Stashed changes
 env.Program('CommandShell', Glob('*.cpp'), LIBS=['netcdf_c++', 'netcdf'])
