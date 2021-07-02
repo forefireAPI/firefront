@@ -120,7 +120,12 @@ double Balbi2020::getSpeed(double* valueOf){
 	double lr00  = valueOf[r00];	
 	
 	double ltau0  = valueOf[Tau0];
-	double lU = valueOf[normalWind];
+	double lU = 0.;
+	double RU = valueOf[normalWind];
+	if(RU > 0){
+	  lU = RU;
+	}
+
 	double lChi0  = valueOf[X0];
 	double lalpha = atan(valueOf[slope]);
 
