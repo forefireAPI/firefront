@@ -1,11 +1,15 @@
 # ForeFire
 
-ForeFire is an open-source code for wildland fire spread models
+ForeFire is an open-source code for wildland fire spread models. The complete paper can be found [here](https://www.researchgate.net/publication/278769168_ForeFire_open-source_code_for_wildland_fire_spread_models)
+
 
 It has been designed and run on Unix systems, three modules can be built with the source code.
 
+The main binaries are
+  
   - An interpreter (executable)
   - A dynamic library (shared, with C/C++/Java and Fortran bindings)
+  - Pre-Post processing helping scripts
 
 ## 1. Requirements
 
