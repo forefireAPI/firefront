@@ -2200,7 +2200,9 @@ namespace libforefire{
 				<<params->getParameter("BMapFiles");
 			}
 
-
+			#ifdef NETCDF_NOT_LEGACY
+			cout << "FireDomain:: reading BMap file " << " newCDF Not Implemented" << endl;
+			#else
 			NcFile dataFile(oss.str().c_str(), NcFile::ReadOnly);
 
 			cout << "Reading >"<<oss.str()<<"<"<<endl;
@@ -2302,6 +2304,7 @@ namespace libforefire{
 			}
 
 			dataFile.close();
+			#endif
 		}
 
 
@@ -4227,7 +4230,9 @@ namespace libforefire{
 		binary_file.close();
 	}
 
-
+	#ifdef NETCDF_NOT_LEGACY
+	void FireDomain::saveSimulation(){cout << "FireDomain::saveSimulation " << " newCDF Not Implemented" << endl;}
+	#else
 	void FireDomain::saveSimulation(){
 		size_t i = 0;
 		size_t j = 0;
@@ -4310,8 +4315,9 @@ namespace libforefire{
 
 		cout << "*** SUCCESS writing " <<oss.str()<< endl;
 		dataFile.close();
+		
 	}
-
+	#endif
 	void FireDomain::visualizeBurningMatrixAroundNode(FireNode* fn){
 		if( !striclyWithinDomain(fn) ) return;
 		/* Position of the firenode in the burning matrix */

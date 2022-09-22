@@ -669,7 +669,7 @@ int Command::printSimulation(const string& arg, size_t& numTabs){
     
 	ofstream outputfile(finalStr.c_str());
 	if ( outputfile ) {
-        simParam->setParameter("count", static_cast<ostringstream*>(&(ostringstream() << (simParam->getInt("count") + 1)))->str());
+        simParam->setInt("count", simParam->getInt("count") + 1);
 		outputfile<<currentSession.outStrRep->dumpStringRepresentation();
 	} else {
 		*currentSession.outStream<<currentSession.outStrRep->dumpStringRepresentation();
@@ -887,6 +887,55 @@ int Command::loadData(const string& arg, size_t& numTabs){
 		cout << "File "<< path<<" doesn't exist or no longer available" << endl;
 		return error;
 	}
+#ifdef NETCDF_NOT_LEGACY 
+  simParam->setParameter("NetCDFfile", args[0]);
+  try
+   {
+	NcFile dataFile(path.c_str(), NcFile::read);
+	 	if (!dataFile.isNull()) {
+			
+			NcVar domVar = dataFile.getVar("domain");
+			if (!domVar.isNull()) {
+				  map<string,NcVarAtt> attributeList = domVar.getAtts();
+				  map<string,NcVarAtt>::iterator myIter; 
+					for(myIter=attributeList.begin();myIter !=attributeList.end();++myIter)
+					{
+					NcVarAtt att = myIter->second;
+					NcType attValType = att.getType();
+					string attsVal;
+					int attiVal;
+					float attfVal;
+					switch ((int)attValType.getTypeClass()) {
+							case NC_CHAR:
+								
+								att.getValues(attsVal); 
+								simParam->setParameter(myIter->first, attsVal);
+								break;
+							case NC_INT:
+								
+								att.getValues(&attiVal); 
+								simParam->setParameter(myIter->first, std::to_string(attiVal));
+								break;
+							case NC_FLOAT:
+								 
+								att.getValues(&attfVal); 
+								simParam->setParameter(myIter->first, std::to_string(attfVal));
+								break;
+							default:
+								std::cout << myIter->first << " attribute of unhandled type " <<attValType.getName() << endl;
+								break;
+						}
+					}
+			}
+		}
+	}catch(NcException& e)
+	{
+		e.what();
+		cout<<"cannot read landscape file"<<endl;
+	
+	}
+#else
+ 
 
 	NcFile* ncFile = new NcFile(path.c_str(), NcFile::ReadOnly);
 
@@ -919,7 +968,7 @@ int Command::loadData(const string& arg, size_t& numTabs){
 				delete ncparam;
 		}
 	}
-
+#endif
     if (args.size() > 1){
         double secs;
         int year, yday;

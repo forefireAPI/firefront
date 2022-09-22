@@ -292,6 +292,15 @@ void FFDumpDoubleArray(size_t nmodel, size_t nip, const char* mname, double t
 
 }
 
+#ifdef NETCDF_NOT_LEGACY
+void saveNcRecord(int rec){cout << "CLibforefire:: saveNcRecord " << " newCDF Not Implemented" << endl;}
+void createNcFile(string filename
+		, const int& consted_ni, const int& consted_nj, const int& consted_nk
+		, const double* meshx, const double* meshy, const double* zgrid){
+			cout << "CLibforefire:: createNcFile " << " newCDF Not Implemented" << endl;
+		}
+#else
+
 void saveNcRecord(int rec){
 		size_t i = 0;
 		size_t j = 0;
@@ -405,7 +414,8 @@ void createNcFile(string filename
 
 	dataFile.close();
 }
-
+ 
+#endif
 
 
 

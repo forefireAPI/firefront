@@ -128,7 +128,7 @@ double Balbi2020::getSpeed(double* valueOf){
 
 	double lChi0  = valueOf[X0];
 	double lalpha = atan(valueOf[slope]);
-
+	double lg = 9.81;
 	double B = 5.6e-8; // nomenclature
 
 	double Cpa = 1150 ;// nomenclature
@@ -194,7 +194,7 @@ double Balbi2020::getSpeed(double* valueOf){
         //print("Flame angle in degrees ", math.degrees(gamma))
 
         // flame height 
-        double H = (u0*u0)/(T/lTa - 1.)  ; // eq. 23
+        double H = (u0*u0)/(lg*(T/lTa - 1.))  ; // eq. 23
         //print("Flame Height ", H)
 
         double Rb = min((S/PI),1.)*((B*pow(T,4))/(Beta*lrhov*q))  ;// eq. 13

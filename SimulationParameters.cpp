@@ -91,7 +91,7 @@ bool SimulationParameters::ISODateDecomposition(string date, double &secs, int &
 	year = atoi(date.substr(0, 4).c_str());
     secs = (atoi(date.substr(11, 2).c_str()) * 3600) + (atoi(date.substr(14, 2).c_str()) * 60) + atoi(date.substr(17, 2).c_str());
 
-	unsigned int daysPerMonth[] = {31, ((((year % 4) == 0) && (((year % 100) != 0) || ((year % 400) == 0))) ? 29 : 28), 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+	int daysPerMonth[] = {31, ((((year % 4) == 0) && (((year % 100) != 0) || ((year % 400) == 0))) ? 29 : 28), 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 	int month = atoi(date.substr(5, 2).c_str()) - 1;
 
     yday = atoi(date.substr(8, 2).c_str());

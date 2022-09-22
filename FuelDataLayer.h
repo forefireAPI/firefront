@@ -20,8 +20,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 
 #ifndef FUELDATALAYER_H_
 #define FUELDATALAYER_H_
-
-#include <netcdfcpp.h>
 #include "DataLayer.h"
 #include "FFArrays.h"
 #include "PropagationModel.h"
@@ -294,9 +292,9 @@ string FuelDataLayer<T>::print(){
 template<typename T>
 string FuelDataLayer<T>::print2D(size_t k, size_t t){
 	ostringstream oss;
-	size_t jj;
+ 
 	for ( int j = ny-1; j >= 0; j -= 1 ){
-		jj = (size_t) j;
+		 
 		for ( size_t i = 0; i < nx; i += 1 ){
 			oss<<getFuel(i, j, k, t)<<" ";
 		}

@@ -443,9 +443,9 @@ string XYZTDataLayer<T>::print(){
 template<typename T>
 string XYZTDataLayer<T>::print2D(size_t k, size_t t){
 	ostringstream oss;
-	size_t jj;
+	
 	for ( int j = ny-1; j >= 0; j -= 10 ){
-		jj = (size_t) j;
+		 
 		for ( size_t i = 0; i < nx; i += 10 ){
 			oss<<getVal(i, j, k, t)<<" ";
 		}

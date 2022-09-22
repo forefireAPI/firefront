@@ -217,10 +217,10 @@ void PropagativeLayer<T>::getMatrix(FFArray<T>** lmatrix, const double& t){
 	double res = 1;
 
 
-			double ddx = res;
+		 
 			int nnx = (mapNECornerX-mapSWCornerX)/res;
 			int nx = 10;
-			double ddy = res;
+			 
 			int nny = (mapNECornerY-mapSWCornerY)/res;
 			int ny = 10;//nny;
 
@@ -230,8 +230,7 @@ void PropagativeLayer<T>::getMatrix(FFArray<T>** lmatrix, const double& t){
 
 				nnx = nx;
 				nny = ny;
-				ddx = (mapNECornerX-mapSWCornerX)/nnx;
-				ddy = (mapNECornerY-mapSWCornerY)/nny;
+			
 			}
 
 			int nnz = 1;

@@ -37,9 +37,7 @@ class Balbi2020 : public PropagationModel {
 	static int isInitialized;
 
 	/*! properties needed by the model */
-	size_t slope;
-	size_t fdepth;
-	size_t curvature;
+	size_t slope; 
 	size_t normalWind;
 	size_t moisture;
 	size_t temperature;

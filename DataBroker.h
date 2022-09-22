@@ -34,6 +34,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 #include "AtmosphericData.h"
 #include "ParallelData.h"
 #include "SimulationParameters.h"
+#ifdef NETCDF_NOT_LEGACY
+#include <netcdf>
+using namespace netCDF;
+using namespace netCDF::exceptions;
+#else
+#include <netcdfcpp.h>
+#endif
 
 using namespace std;
 
