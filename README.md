@@ -1,6 +1,10 @@
 # ForeFire
 
-ForeFire is an open-source code for wildland fire spread models. The complete paper can be found [here](https://www.researchgate.net/publication/278769168_ForeFire_open-source_code_for_wildland_fire_spread_models)
+<!-- ![](./Doc/ForeFire.jpg) -->
+
+`ForeFire` is an open-source code for wildland fire spread models, developed and maintained at Université de Corse Pascal Paoli.
+
+The complete paper can be found [here](https://www.researchgate.net/publication/278769168_ForeFire_open-source_code_for_wildland_fire_spread_models)
 
 
 It has been designed and run on Unix systems, three modules can be built with the source code.
@@ -34,30 +38,29 @@ sudo apt install libnetcdf-dev libnetcdf-cxx-legacy-dev
 
 - https://www.unidata.ucar.edu/software/netcdf/
 
-- NetCDF-C++ >>LEGACY<< is required for compatibilities issues
+- NetCDF-C++ `legacy` is required for compatibilities issues
 https://www.unidata.ucar.edu/downloads/netcdf/netcdf-cxx/index.jsp
 
 
 ### Scons
 
-The SCons python tool is used to make the executable and the python library
+The [SCons python tool](https://www.scons.org/) is used to make the executable and the python library
 ```
 sudo apt get scons
 ```
 
-More about at 
-- https://www.scons.org/
-- https://scons.org/documentation.html
-
 ## 2. Building the executable
 
-Build  with
+A sample `SConstruct` file is included with the distribution.
+Run it with
 ```
 cd firefront
 
 scons
 ```
-A sample `SConstruct` file is included with the distribution, try it and if it does not work, set the environment variables, edit it and insert the path to the Netcdf (and Java headers for JNI bindings if required).
+The command will output a `CommandShell` file
+
+If it does not work, set the environment variables, and insert the path to the Netcdf (and Java headers for JNI bindings if required).
 
 ## 3. Running an example
 
