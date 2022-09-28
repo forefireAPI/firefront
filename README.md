@@ -65,7 +65,7 @@ If it does not work, set the environment variables, and insert the path to the N
 ## 3. Running an example
 
 ```
-cd firefront/Examples/aullene/
+cd firefront/examples/aullene/
 
 ../../bin/CommandShell -i aullene.ff
 ```
