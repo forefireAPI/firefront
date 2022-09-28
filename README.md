@@ -73,7 +73,9 @@ The simulation result will be outputed in JSON format
 
 ### Converting output JSON to GeoJSON
 
-Use the script `ffjson2geojson.py` with the .json file as argument.
+Use the script `ffToGeoJson.py` OR
+
+Use the script `ff2geojson.py` with the .json file as argument.
 ```
  cd src
 
