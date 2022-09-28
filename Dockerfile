@@ -10,7 +10,6 @@ RUN apt install scons -y
 
 WORKDIR /app
 
-# TODO organize folders
 COPY . /app
 
 RUN scons
