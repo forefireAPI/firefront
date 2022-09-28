@@ -1,2 +1,9 @@
+#Ignoring files and folders by github
+
+#build directories
+bin
+build
+
+# compilation files
 *.dblite
 *.o
