@@ -69,7 +69,17 @@ cd firefront/examples/aullene/
 
 ../../bin/CommandShell -i aullene.ff
 ```
-The simulation result will be outputed in Json format
+The simulation result will be outputed in JSON format
+
+### Converting output JSON to GeoJSON
+
+Use the scrip `ffjson2geojson.py` with the .json file as argument.
+```
+ cd src
+
+ python ffjson2geojson.py ../examples/aullene/1-2009-07-24T15-01-00Z.json
+```
+The JSON will be converted to GeoJSON (EPSG 4326) of geometry type MultiPoint and saved in the same directory.
 
 ## 4. Building python Lib
 The "swig" repository contains python bindings requires numpy (and numpy.i), swig, and matplotlib for testing. 
