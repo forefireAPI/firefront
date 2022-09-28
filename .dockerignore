@@ -8,4 +8,5 @@ build
 
 # ignore test files
 *.json
+*.geojson
 
