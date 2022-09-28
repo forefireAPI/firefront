@@ -7,9 +7,10 @@ except KeyError:
     
 # Works
 # env = Environment()
+VariantDir('build', 'src', duplicate=0)
 env = Environment(CPPPATH=[netcdfHome+'/include/'],CCFLAGS=['-Wall','-O3'], LIBPATH=[netcdfHome+'/lib/'])
 
-src_files = Glob('./src/*.cpp')
-env.Program('CommandShell', src_files, LIBS=['netcdf_c++', 'netcdf'])
+files = Glob('./build/*.cpp')
+env.Program('CommandShell', files, LIBS=['netcdf_c++', 'netcdf'])
 
 #env.SharedLibrary('ForeFire', Glob('*.cpp'), LIBS=['netcdf_c++', 'netcdf'])
