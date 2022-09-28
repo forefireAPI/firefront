@@ -1,0 +1,11 @@
+# ignore .git and .cache folders
+.git
+.cache
+
+# ignore build folders
+bin
+build
+
+# ignore test files
+*.json
+

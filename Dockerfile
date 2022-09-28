@@ -10,6 +10,10 @@ RUN apt install scons -y
 
 WORKDIR /app
 
-COPY . /app
+COPY Sconstruct /app/
+
+COPY examples /app/examples
+
+COPY src /app/src
 
 RUN scons

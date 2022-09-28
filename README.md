@@ -73,3 +73,14 @@ The simulation result will be outputed in Json format
 
 ## 4. Building python Lib
 The "swig" repository contains python bindings requires numpy (and numpy.i), swig, and matplotlib for testing. 
+
+## 5. Building with Docker
+A sample Dockerfile can allow to build a Docker image with
+```
+docker build . -t forefire
+```
+
+To run this image and interactively acces the continer use
+```
+docker run -it forefire bash
+```
