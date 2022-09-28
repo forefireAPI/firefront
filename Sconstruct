@@ -1,0 +1,13 @@
+print('\n === FOREFIRE BUILD WITH SCONS === \n')
+print("  ////// //////")
+print("  //     //    ")
+print("  ////// //////")
+print("  //     //    ")
+print("  //     //    ")
+print()
+
+VariantDir('build', 'src', duplicate=0)
+env = Environment()
+
+files = Glob('./build/*.cpp')
+env.Program('./bin/CommandShell', files, LIBS=['netcdf_c++', 'netcdf'])

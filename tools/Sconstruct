@@ -5,8 +5,6 @@ try:
 except KeyError:
     print ("\n\n WARNING: NETCDF_HOME environment variable not set, trying :'" + netcdfHome + "'\n If it does not compile, please export NETCDF_HOME=/path/to/include_and_lib_path\n\n")
     
-# Works
-# env = Environment()
 VariantDir('build', 'src', duplicate=0)
 env = Environment(CPPPATH=[netcdfHome+'/include/'],CCFLAGS=['-Wall','-O3'], LIBPATH=[netcdfHome+'/lib/'])
 

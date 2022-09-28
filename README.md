@@ -1,6 +1,6 @@
 # ForeFire
 
-<!-- ![](./Doc/ForeFire.jpg) -->
+<!-- ![logo](./doc/ForeFire.jpg) -->
 
 `ForeFire` is an open-source code for wildland fire spread models, developed and maintained at Université de Corse Pascal Paoli.
 
@@ -60,7 +60,7 @@ scons
 ```
 The command will output a `CommandShell` file inside the `bin` directory
 
-If it does not work, set the environment variables, and insert the path to the Netcdf (and Java headers for JNI bindings if required).
+If it does not work, try using the `/tools/Sconstruct` file. Replace the `Sconstruct` file with `/tools/Sconstruct`. Set the environment variables, and insert the path to the Netcdf (and Java headers for JNI bindings if required).
 
 ## 3. Running an example
 
