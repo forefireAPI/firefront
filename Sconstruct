@@ -3,8 +3,13 @@ netcdfHome = "/gpfs/home/UDCPP/filippi_j/soft/"
 try:
     netcdfHome = os.environ["NETCDF_HOME"]
 except KeyError:
-    print ("!!!!!!!!!   NETCDF_HOME environment variable not set, trying :" + netcdfHome+ "\n!!!!!!!!!   if it does not compile, please export NETCDF_HOME=/path/to/include_and_lib_path )")
+    print ("\n\n WARNING: NETCDF_HOME environment variable not set, trying :'" + netcdfHome + "'\n If it does not compile, please export NETCDF_HOME=/path/to/include_and_lib_path\n\n")
     
-env     = Environment(CPPPATH=[netcdfHome+'/include/'],CCFLAGS=['-Wall','-O3'], LIBPATH=[netcdfHome+'/lib/'])
+# Works
+# env = Environment()
+env = Environment(CPPPATH=[netcdfHome+'/include/'],CCFLAGS=['-Wall','-O3'], LIBPATH=[netcdfHome+'/lib/'])
+
+src_files = Glob('./src/*.cpp')
+env.Program('CommandShell', src_files, LIBS=['netcdf_c++', 'netcdf'])
+
 #env.SharedLibrary('ForeFire', Glob('*.cpp'), LIBS=['netcdf_c++', 'netcdf'])
-env.Program('CommandShell', Glob('./src/*.cpp'), LIBS=['netcdf_c++', 'netcdf'])
