@@ -1,3 +1,5 @@
+echo "====== UNIX REQUIREMENTS ========"
+
 apt-get update
 
 apt install build-essential -y
