@@ -1,8 +1,8 @@
 # ForeFire
 
-<!-- ![logo](./doc/ForeFire.jpg) -->
+![logo](./doc/ForeFire.jpg)
 
-`ForeFire` is an open-source code for wildland fire spread models, developed and maintained at Université de Corse Pascal Paoli.
+ForeFire is an open-source code for wildland fire spread models, developed and maintained at Université de Corse Pascal Paoli.
 
 The complete paper can be found [here](https://www.researchgate.net/publication/278769168_ForeFire_open-source_code_for_wildland_fire_spread_models)
 
