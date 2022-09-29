@@ -4,6 +4,8 @@ COPY install-requirements.sh .
 
 RUN sh install-requirements.sh
 
+WORKDIR /app
+
 COPY Sconstruct /app/
 
 COPY examples /app/examples
