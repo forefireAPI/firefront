@@ -4,12 +4,16 @@ COPY install-requirements.sh .
 
 RUN sh install-requirements.sh
 
-WORKDIR /app
+WORKDIR /forefire
 
-COPY Sconstruct /app/
+COPY Sconstruct .
 
-COPY examples /app/examples
+COPY examples ./examples
 
-COPY src /app/src
+COPY src ./src
+
+RUN apt install build-essential -y
 
 RUN scons
+
+RUN mv /forefire/bin/forefire /bin
