@@ -1,7 +1,3 @@
-echo "\n==========================="
-echo "========= FOREFIRE ========"
-echo "===========================\n"
-
 apt-get update
 
 apt install build-essential -y
