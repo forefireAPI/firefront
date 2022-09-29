@@ -76,7 +76,7 @@ The simulation result will be outputed in JSON format
 
 Use the script `ff2geojson.py` with the .json file as argument.
 ```
- python3 py3_tools/ffjson2geojson.py examples/aullene/1-2009-07-24T15-01-00Z.json
+ python3 py3_tools/ff2geojson.py examples/aullene/1-2009-07-24T15-01-00Z.json
 ```
 The JSON will be converted to GeoJSON (EPSG 4326) of geometry type MultiPoint and saved in the same directory.
 

@@ -1,14 +1,8 @@
 FROM osgeo/gdal:ubuntu-small-3.3.1
 
-RUN apt-get update
+COPY install-requirements.sh .
 
-RUN apt install build-essential -y
-
-RUN apt install libnetcdf-dev libnetcdf-cxx-legacy-dev -y
-
-RUN apt install scons -y
-
-WORKDIR /app
+RUN sh install-requirements.sh
 
 COPY Sconstruct /app/
 
