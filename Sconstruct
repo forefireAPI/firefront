@@ -1,13 +1,15 @@
-print('\n === FOREFIRE BUILD WITH SCONS === \n')
-print("  ////// //////")
-print("  //     //    ")
-print("  ////// //////")
-print("  //     //    ")
-print("  //     //    ")
-print()
+print('\n =========== FOREFIRE ===========\n')
+print("          ////// //////")
+print("          //     //    ")
+print("          ////// //////")
+print("          //     //    ")
+print("          //     //\n")
+print(" ==================================\n")
 
 VariantDir('build', 'src', duplicate=0)
 env = Environment(CCFLAGS=['-Wall','-O3'])
 
 files = Glob('./build/*.cpp')
 env.Program('./bin/CommandShell', files, LIBS=['netcdf_c++', 'netcdf'])
+
+env.Program('./bin/forefire', files, LIBS=['netcdf_c++', 'netcdf'])
