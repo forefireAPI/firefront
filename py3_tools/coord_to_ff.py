@@ -22,7 +22,7 @@ def main():
 	output_path = create_ff(x,y)['output_path']
 	filename = create_ff(x,y)['filename']
 
-	os.system(f'cd {output_path}; ../../bin/forefire -i {filename}')
+	os.system(f'cd {output_path}; ../../bin/CommandShell -i {filename}')
 	
 	ffjson2geojson(output_path + '0-2009-07-24T14-57-39Z.json')
 
