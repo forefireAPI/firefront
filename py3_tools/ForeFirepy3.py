@@ -19,8 +19,8 @@ print[]
 
   dir_path = os.path.dirname(os.path.realpath(__file__))
 
-  c = [str(round(c, 4)).replace('.','_') for c in [x, y]]
-  filename = f'{c[0]}__{c[1]}.ff'
+  coords = [str(round(c, 4)).replace('.','_') for c in [x, y]]
+  filename = f'{coords[0]}__{coords[1]}.ff'
   
   output_path = dir_path + '/../examples/aullene/'
   complete_path = output_path + filename
