@@ -19,9 +19,8 @@ def get_coords(data):
         coords.append([float(c2[0]), float(c2[1])])
     return coords
 
-def reproject(coords, inEpsg):
-    [x1,y1] = coords
-    outEpsg = 'epsg:4326'
+def reproject(coords, inEpsg, outEpsg='epsg:4326'):
+    [x1, y1] = coords
     transformer = Transformer.from_crs(inEpsg, outEpsg, always_xy=True)
     x2, y2 = transformer.transform(x1, y1)
     return [x2,y2]
