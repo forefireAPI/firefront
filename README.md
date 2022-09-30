@@ -17,17 +17,27 @@ The main binaries are
   - A dynamic library (shared, with C/C++/Java and Fortran bindings)
   - Pre-Post processing helping scripts
 
-## 1. Requirements
+## 1. Installation
 
-The requirements can be installed by running `install-requirements.sh` (Ubuntu or Debian distributions)
+### 1.1 By script
+The requirements and ForeFire can be installed by running `install-forefire.sh` (Ubuntu or Debian distributions)
 
 ```
 cd forefire
 
-sh install-requirements.sh
+sudo sh install-requirements.sh
 ```
 
-OR install manually with
+The program will be built in: `/bin/forefire`
+
+To be executable from anywhere add it to path
+```
+export PATH=$PATH:./bin
+```
+
+### 1.2 Manual Instalation - Requirements
+
+Run
 
 ```
 apt-get update
@@ -38,8 +48,7 @@ apt install libnetcdf-dev libnetcdf-cxx-legacy-dev -y
 
 apt install scons -y
 ```
-
-The following will be installed:
+To install:
 
 C++ compiler
 - Compilation requires a c++ compiler, that usually comes pre-built with your linux distribution
@@ -53,7 +62,7 @@ https://www.unidata.ucar.edu/downloads/netcdf/netcdf-cxx/index.jsp
 Scons
 - The [SCons python tool](https://www.scons.org/) is used to make the executable and the python library
 
-## 2. Building the executable
+### 1.3 Manual installation - Building with scons
 
 A sample `SConstruct` file is included with the distribution.
 Run it with
@@ -62,11 +71,10 @@ cd firefront
 
 scons
 ```
-The command will output a `CommandShell` file inside the `bin` directory
 
 Troubleshooting: If it does not work, try using the `/tools/Sconstruct` file. Replace the `Sconstruct` file with `/tools/Sconstruct`. Set the environment variables, and insert the path to the Netcdf (and Java headers for JNI bindings if required).
 
-## 3. Running an example
+## 2. Running an example
 
 ```
 cd firefront/examples/aullene/
@@ -84,10 +92,10 @@ Use the script `ff2geojson.py` with the .json file as argument.
 ```
 The JSON will be converted to GeoJSON (EPSG 4326) of geometry type MultiPoint and saved in the same directory.
 
-## 4. Building python Lib
+## 3. Building python Lib
 The "swig" repository contains python bindings requires numpy (and numpy.i), swig, and matplotlib for testing. 
 
-## 5. Building with Docker
+## 4. Building with Docker
 A sample Dockerfile can allow to build a Docker image with
 ```
 docker build . -t forefire
