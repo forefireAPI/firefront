@@ -2,9 +2,11 @@
 
 ![logo](./doc/forefire.jpg)
 
-ForeFire is an open-source code for wildland fire spread models, developed and maintained at Université de Corse Pascal Paoli.
+ForeFire is an [open-source code for wildland fire spread models](https://www.researchgate.net/publication/278769168_ForeFire_open-source_code_for_wildland_fire_spread_models), developed and maintained by Université de Corse Pascal Paoli.
 
-The complete paper can be found [here](https://www.researchgate.net/publication/278769168_ForeFire_open-source_code_for_wildland_fire_spread_models)
+Access the [demo simulator here](http://forefire.univ-corse.fr/sim/dev/)
+
+![demo](./doc/sim-forefire.jpg)
 
 
 It has been designed and run on Unix systems, three modules can be built with the source code.
@@ -17,37 +19,39 @@ The main binaries are
 
 ## 1. Requirements
 
-The folowing comands are suited for Ubuntu or Debian distributions.
-
-### Update apt repository
-```
-sudo apt update
-```
-
-### C++ compiler
-Compilation requires a c++ compiler, that usually comes pre-built with your linux distribution, but can be installed with
-```
-sudo apt install build-essential
-```
-
-### NetCDF Library 
+The requirements can be installed by running `install-requirements.sh` (Ubuntu or Debian distributions)
 
 ```
-sudo apt install libnetcdf-dev libnetcdf-cxx-legacy-dev
+cd forefire
+
+sh install-requirements.sh
 ```
 
+OR install manually with
+
+```
+apt-get update
+
+apt install build-essential -y
+
+apt install libnetcdf-dev libnetcdf-cxx-legacy-dev -y
+
+apt install scons -y
+```
+
+The following will be installed:
+
+C++ compiler
+- Compilation requires a c++ compiler, that usually comes pre-built with your linux distribution
+
+NetCDF Library
 - https://www.unidata.ucar.edu/software/netcdf/
 
 - NetCDF-C++ `legacy` is required for compatibilities issues
 https://www.unidata.ucar.edu/downloads/netcdf/netcdf-cxx/index.jsp
 
-
-### Scons
-
-The [SCons python tool](https://www.scons.org/) is used to make the executable and the python library
-```
-sudo apt get scons
-```
+Scons
+- The [SCons python tool](https://www.scons.org/) is used to make the executable and the python library
 
 ## 2. Building the executable
 
@@ -60,7 +64,7 @@ scons
 ```
 The command will output a `CommandShell` file inside the `bin` directory
 
-If it does not work, try using the `/tools/Sconstruct` file. Replace the `Sconstruct` file with `/tools/Sconstruct`. Set the environment variables, and insert the path to the Netcdf (and Java headers for JNI bindings if required).
+Troubleshooting: If it does not work, try using the `/tools/Sconstruct` file. Replace the `Sconstruct` file with `/tools/Sconstruct`. Set the environment variables, and insert the path to the Netcdf (and Java headers for JNI bindings if required).
 
 ## 3. Running an example
 
