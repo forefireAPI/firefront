@@ -29,3 +29,22 @@ print[]
     f.write(ff)
 
   return {'output_path': output_path, 'filename': filename}
+
+
+  class Forefire:
+    
+    def __init__(self, config):
+      self.projection = config['projection']
+      self.fuelsTableFile = config['fuelsTableFile']
+      self.spatialIncrement = config['spatialIncrement']
+      self.propagationModel = config['propagationModel']
+      self.minSpeed = config['minSpeed']
+      self.dumpMode = 'json'
+      self.caseDirectory = '.'
+      self.ForeFireDataDirectory = '.'
+      self.propagationSpeedAdjustmentFactor = config['propagationSpeedAdjustmentFactor']
+      self.ncFile = config['ncFile']
+      self.timestamp = config['timestamp']
+
+    def startFire(lon, lat):
+      pass
