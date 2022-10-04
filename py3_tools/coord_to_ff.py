@@ -14,24 +14,19 @@ def main():
         "--lon",
         help="longitude of fire start"
 		)
-	ap.add_argument(
-        "--t",
-        help="time step for simulation"
-		)
 	args = vars(ap.parse_args())
 	lat = args.get('lat')
 	lon = args.get('lon')
-	t = args.get('t')
-
-	[x, y] = reproject([lon, lat], inEpsg='epsg:4326', outEpsg='epsg:32632')
 
 	dir_path = os.path.dirname(os.path.realpath(__file__))
 	output_path = dir_path + '/../examples/aullene/'
-	filename = f'{x}_{y}_{t}.ff'
+	filename = f'{lon}_{lat}.ff'
 	complete_path = output_path + filename
 
+	[x, y] = reproject([lon, lat], inEpsg='epsg:4326', outEpsg='epsg:32632')
+
 	ff = Forefire()
-	ff.configBasicFf(lon=x, lat=y, t=t)
+	ff.configBasicFf(lon=x, lat=y)
 	ff.saveFf(complete_path)
 
 	os.system(f'cd {output_path}; ../../bin/CommandShell -i {filename}')
