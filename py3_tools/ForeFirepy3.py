@@ -34,15 +34,14 @@ print[]'''
 
 class Forefire:
 
-  year = date.today().year
-  month = date.today().month
-  day = date.today().day
-  
   def __init__(self):
     self.ff = '''setParameter[dumpMode=json]
 setParameter[caseDirectory=.]
 setParameter[ForeFireDataDirectory=.]
 '''
+    self.year = date.today().year
+    self.month = date.today().month
+    self.day = date.today().day
 
   def setProjection(self, proj='EPSG:32632'):
     self.ff += f'setParameter[projection={proj}]\n'
@@ -53,10 +52,10 @@ setParameter[ForeFireDataDirectory=.]
   def setPropagationModel(self, propagationModel='Rothermel'):
     self.ff += f'setParameter[propagationModel={propagationModel}]\n'
 
-  def setDate(self, day=day, month=month, year=year):
-    self.ff += f'setParameter[year={year}]\n'
-    self.ff += f'setParameter[month={month}]\n'
-    self.ff += f'setParameter[day={day}]\n'
+  def setDate(self):
+    self.ff += f'setParameter[year={self.year}]\n'
+    self.ff += f'setParameter[month={self.month}]\n'
+    self.ff += f'setParameter[day={self.day}]\n'
 
   def setParameter(self, parameter, value):
     self.ff += f'setParameter[{parameter}={value}]\n'
