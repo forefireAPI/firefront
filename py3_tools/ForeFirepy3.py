@@ -1,5 +1,7 @@
 import os
+from datetime import date
 
+# deprecated
 def create_ff(x, y):
   ff = f'''setParameter[projection=EPSG:32632]
 setParameter[fuelsTableFile=./fuels.ff]
@@ -31,6 +33,10 @@ print[]'''
 
 
 class Forefire:
+
+  year = date.today().year
+  month = date.today().month
+  day = date.today().day
   
   def __init__(self):
     self.ff = '''setParameter[dumpMode=json]
@@ -47,7 +53,7 @@ setParameter[ForeFireDataDirectory=.]
   def setPropagationModel(self, propagationModel='Rothermel'):
     self.ff += f'setParameter[propagationModel={propagationModel}]\n'
 
-  def setDate(self, day, month, year):
+  def setDate(self, day=day, month=month, year=year):
     self.ff += f'setParameter[year={year}]\n'
     self.ff += f'setParameter[month={month}]\n'
     self.ff += f'setParameter[day={day}]\n'
@@ -82,17 +88,13 @@ setParameter[ForeFireDataDirectory=.]
   def saveFf(self, path):
     with open(path, 'w', encoding='utf-8') as f:
       f.write(self.ff)
-
-
-aullene2 = Forefire()
-aullene2.setProjection()
-aullene2.setFuels()
-aullene2.setPropagationModel()
-aullene2.setDate(4,10,2022)
-aullene2.loadData()
-aullene2.startFire()
-aullene2.step(12000)
-aullene2.printOutput()
-#print(aullene2.ff)
-aullene2.saveFf('./examples/aullene/aullene2.ff')
-print(aullene2.ff)
+  
+  def configBasicFf(self, lon, lat, t=12000):
+    self.setProjection()
+    self.setFuels()
+    self.setPropagationModel()
+    self.setDate()
+    self.loadData()
+    self.startFire(lon, lat)
+    self.step(t)
+    self.printOutput()
