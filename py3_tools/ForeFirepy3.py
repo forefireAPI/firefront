@@ -39,32 +39,60 @@ setParameter[ForeFireDataDirectory=.]
 '''
 
   def setProjection(self, proj='EPSG:32632'):
-    self.ff += f'setParameter[projection={proj}]'
+    self.ff += f'setParameter[projection={proj}]\n'
 
   def setFuels(self, fuelsTableFile='./fuels.ff'):
-    pass
+    self.ff += f'setParameter[fuelsTableFile={fuelsTableFile}]\n'
 
   def setPropagationModel(self, propagationModel='Rothermel'):
-    pass
+    self.ff += f'setParameter[propagationModel={propagationModel}]\n'
 
   def setDate(self, day, month, year):
-    pass
+    self.ff += f'setParameter[year={year}]\n'
+    self.ff += f'setParameter[month={month}]\n'
+    self.ff += f'setParameter[day={day}]\n'
 
-  def setGenericParameter(self, parameter, value):
-    pass
+  def setParameter(self, parameter, value):
+    self.ff += f'setParameter[{parameter}={value}]\n'
 
-  def loadData(self, nc, isoDate):
-    pass
+  def loadData(self, nc='landscape.nc', isoDate='2009-07-24T11:37:39Z'):
+    self.ff += f'loadData[{nc};{isoDate}]\n'
 
   def setFireDomain(self, sw, ne):
-    pass
+    self.ff += f'FireDomain[sw={sw};ne={ne};t=0.]\n'
 
-  def setFirefront(self, t, coords_list, vel_list, t_list):
-    pass
+  def setFirefront(self, coords_list, vel_list):
+    if len(coords_list) == len(vel_list) > 0:
+      self.ff += 'FireFront[t=0.]\n'
+      for i in range(len(coords_list)):
+        self.ff += f'FireNode[loc={coords_list[i]};vel={vel_list[i]};t=0.]\n'
 
-  def startFire(self, lon, lat, date='0'):
-    pass
+  def startFire(self, lon=499073.45383159, lat=4619272.9498144, t=0):
+    self.ff += f'startFire[loc=({lon},{lat},0);t={t}]\n'
+
+  def goTo(self, t):
+    self.ff += f'goTo[t={t}]\n'
+
+  def step(self, dt):
+    self.ff += f'step[dt={dt}s]\n'
 
   def printOutput(self):
-    self.ff += '''print[./*count*-*ISOdate*.json]
-    print[]'''
+    self.ff += 'print[./*count*-*ISOdate*.json]\nprint[]'
+
+  def saveFf(self, path):
+    with open(path, 'w', encoding='utf-8') as f:
+      f.write(self.ff)
+
+
+aullene2 = Forefire()
+aullene2.setProjection()
+aullene2.setFuels()
+aullene2.setPropagationModel()
+aullene2.setDate(4,10,2022)
+aullene2.loadData()
+aullene2.startFire()
+aullene2.step(12000)
+aullene2.printOutput()
+#print(aullene2.ff)
+aullene2.saveFf('./examples/aullene/aullene2.ff')
+print(aullene2.ff)
