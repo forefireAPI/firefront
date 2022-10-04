@@ -4,6 +4,9 @@
 bin
 build
 
+#python
+__pycache__
+
 # compilation files
 *.dblite
 *.o

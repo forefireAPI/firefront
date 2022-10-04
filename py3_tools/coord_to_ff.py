@@ -1,4 +1,5 @@
 import argparse
+from turtle import st
 
 from ff2geojson import *
 from ForeFirepy3 import *
@@ -7,20 +8,26 @@ def main():
 	ap = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 	ap.add_argument(
         "--lat",
-        help="latitude in aullene"
+        help="latitude of fire start"
     )
 	ap.add_argument(
         "--lon",
-        help="longitude in aullene"
+        help="longitude of fire start"
 		)
 	args = vars(ap.parse_args())
 	lat = args.get('lat')
 	lon = args.get('lon')
 
+	dir_path = os.path.dirname(os.path.realpath(__file__))
+	output_path = dir_path + '/../examples/aullene/'
+	filename = f'{lon}_{lat}.ff'
+	complete_path = output_path + filename
+
 	[x, y] = reproject([lon, lat], inEpsg='epsg:4326', outEpsg='epsg:32632')
 
-	output_path = create_ff(x,y)['output_path']
-	filename = create_ff(x,y)['filename']
+	ff = Forefire()
+	ff.configBasicFf(lon=x, lat=y)
+	ff.saveFf(complete_path)
 
 	os.system(f'cd /firefront/examples/aullene; ../../bin/CommandShell -i {filename}')
 	
