@@ -14,8 +14,7 @@ loadData[landscape.nc;2009-07-24T11:37:39Z]
 startFire[loc=({x},{y},0);t=0]
 step[dt=12000]
 print[./*count*-*ISOdate*.json]
-print[]
-  '''
+print[]'''
 
   dir_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -31,20 +30,41 @@ print[]
   return {'output_path': output_path, 'filename': filename}
 
 
-  class Forefire:
-    
-    def __init__(self, config):
-      self.projection = config['projection']
-      self.fuelsTableFile = config['fuelsTableFile']
-      self.spatialIncrement = config['spatialIncrement']
-      self.propagationModel = config['propagationModel']
-      self.minSpeed = config['minSpeed']
-      self.dumpMode = 'json'
-      self.caseDirectory = '.'
-      self.ForeFireDataDirectory = '.'
-      self.propagationSpeedAdjustmentFactor = config['propagationSpeedAdjustmentFactor']
-      self.ncFile = config['ncFile']
-      self.timestamp = config['timestamp']
+class Forefire:
+  
+  def __init__(self):
+    self.ff = '''setParameter[dumpMode=json]
+setParameter[caseDirectory=.]
+setParameter[ForeFireDataDirectory=.]
+'''
 
-    def startFire(lon, lat):
-      pass
+  def setProjection(self, proj='EPSG:32632'):
+    self.ff += f'setParameter[projection={proj}]'
+
+  def setFuels(self, fuelsTableFile='./fuels.ff'):
+    pass
+
+  def setPropagationModel(self, propagationModel='Rothermel'):
+    pass
+
+  def setDate(self, day, month, year):
+    pass
+
+  def setGenericParameter(self, parameter, value):
+    pass
+
+  def loadData(self, nc, isoDate):
+    pass
+
+  def setFireDomain(self, sw, ne):
+    pass
+
+  def setFirefront(self, t, coords_list, vel_list, t_list):
+    pass
+
+  def startFire(self, lon, lat, date='0'):
+    pass
+
+  def printOutput(self):
+    self.ff += '''print[./*count*-*ISOdate*.json]
+    print[]'''
