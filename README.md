@@ -92,6 +92,11 @@ Use the script `ff2geojson.py` with the .json file as argument.
 ```
 The JSON will be converted to GeoJSON (EPSG 4326) of geometry type MultiPoint and saved in the same directory.
 
+### Running an example in a chosen location
+
+Use the script `coord_to_ff.py` using `--lon` and `--lat` flags to pass coordinates. An example simulation will be outputted in GeoJSON in `/examples/aullene`.
+
+
 ## 3. Building python Lib
 The "swig" repository contains python bindings requires numpy (and numpy.i), swig, and matplotlib for testing. 
 
