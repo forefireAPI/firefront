@@ -1,5 +1,4 @@
 import argparse
-from turtle import st
 
 from ff2geojson import *
 from ForeFirepy3 import *
