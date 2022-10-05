@@ -39,11 +39,20 @@ ScalarFromObsModel::ScalarFromObsModel(
 		const int & mindex, DataBroker* db) : FluxModel(mindex, db) {
 
 	/* defining the properties needed for the model */
-	nominalHeatFlux_bmap = registerProperty("FromObs_NominalHeatFlux");
-	EFScalar_bmap = registerProperty("FromObs_EFScalar");
-	residenceTime_bmap = registerProperty("FromObs_residenceTime");
-	radiation_fraction_bmap = registerProperty("FromObs_radiationFraction");
-	conversion_factor_bmap = registerProperty("FromObs_conversionFactor");
+	nominalHeatFlux_f_data = registerProperty("FromObs_NominalHeatFlux_flaming");
+	nominalHeatFlux_s_data = registerProperty("FromObs_NominalHeatFlux_smoldering");
+	
+	evaporationTime_data = registerProperty("FromObs_evaporationTime");
+    residenceTime_data = registerProperty("FromObs_residenceTime");
+    burningTime_data = registerProperty("FromObs_burningTime");
+
+	EFScalar_f_data = registerProperty("FromObs_EFScalar_flaming");
+	EFScalar_s_data = registerProperty("FromObs_EFScalar_smoldering");
+
+	radiation_fraction_f_data = registerProperty("FromObs_radiationFraction_flaming");
+	radiation_fraction_s_data = registerProperty("FromObs_radiationFraction_smoldering");
+	
+    conversion_factor_data = registerProperty("FromObs_conversionFactor");
 
     /* allocating the vector for the values of these properties */
 	if ( numProperties > 0 ) properties =  new double[numProperties];
@@ -73,16 +82,26 @@ double ScalarFromObsModel::getValue(double* valueOf
 	/* The heat flux is supposed to be constant from the arrival time (at)
 	 * and for a period of time of 'burningDuration', constant of the model */
     
-    double burningDuration = valueOf[residenceTime_bmap];
-    double nominalHeatFlux = valueOf[nominalHeatFlux_bmap];
-    double EFScalar = valueOf[EFScalar_bmap];
+    double nominalHeatFlux_f = valueOf[nominalHeatFlux_f_data];
+    double nominalHeatFlux_s = valueOf[nominalHeatFlux_s_data];
+    
+    double evaporationTime   = valueOf[evaporationTime_data];
+    double residenceTime     = valueOf[residenceTime_data];
+    double burningTime       = valueOf[burningTime_data];
+    
+    double EFScalar_f = valueOf[EFScalar_f_data];
+    double EFScalar_s = valueOf[EFScalar_s_data];
 
-    double HeatFlux = computeHeatFLuxFromBmap(burningDuration,nominalHeatFlux,bt,et,at);
-    double radiation_fraction = valueOf[radiation_fraction_bmap];
-    double conversion_factor = valueOf[conversion_factor_bmap];
+    double radiation_fraction_f = valueOf[radiation_fraction_f_data];
+    double radiation_fraction_s = valueOf[radiation_fraction_s_data];
+
+    double conversion_factor = valueOf[conversion_factor_data];
+    
+    SensibleheatFlux sensibleheatFlux = computeHeatFLuxFromBmap(burningTime,residenceTime, nominalHeatFlux_f,nominalHeatFlux_s, bt, et, evaporationTime+at);
 
     /*double ScalarFlux = EFScalar * (HeatFlux/(1.-radiation_fraction));      */
-    double ScalarFlux = EFScalar * conversion_factor * radiation_fraction * HeatFlux / (1.-radiation_fraction);
+    double ScalarFlux =   EFScalar_f * conversion_factor * radiation_fraction_f * 1.e-6 * sensibleheatFlux.flaming    / (1.-radiation_fraction_f) 
+                        + EFScalar_s * conversion_factor * radiation_fraction_s * 1.e-6 * sensibleheatFlux.smoldering / (1.-radiation_fraction_s);
 
 	return ScalarFlux;
 

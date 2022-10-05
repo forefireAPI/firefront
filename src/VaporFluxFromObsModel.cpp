@@ -39,12 +39,9 @@ VaporFluxFromObsModel::VaporFluxFromObsModel(
 		const int & mindex, DataBroker* db) : FluxModel(mindex, db) {
 
 	/* defining the properties needed for the model */
-	nominalHeatFlux_bmap = registerProperty("FromObs_NominalHeatFlux");
-	Moisture_bmap = registerProperty("FromObs_Moisture");
-	residenceTime_bmap = registerProperty("FromObs_residenceTime");
-	radiation_fraction_bmap = registerProperty("FromObs_radiationFraction");
-	conversion_factor_bmap = registerProperty("FromObs_conversionFactor");
-	
+	evaporationTime_data   = registerProperty("FromObs_evaporationTime");
+    nominalVaporFlux_data  = registerProperty("FromObs_VaporFlux_evaporation");
+
     /* allocating the vector for the values of these properties */
 	if ( numProperties > 0 ) properties =  new double[numProperties];
 
@@ -68,22 +65,45 @@ string VaporFluxFromObsModel::getName(){
 /* Model for the flux */
 /* ****************** */
 
+double computeVaporFLuxFromBmap(const double& evaporationTime, const double&  nominalVaporFlux, 
+                                 const double& bt, const double& et, const double& at){
+
+    /* Instantaneous flux */
+	/* ------------------ */
+	if ( bt == et ){
+		if ( bt < at ) return 0;
+		if ( bt < at + evaporationTime ) return nominalVaporFlux;
+		return 0;
+	}
+
+	/* Averaged flux */
+	/* ------------- */
+
+	/* looking outside burning interval */
+	if ( et < at or bt > at + evaporationTime ) return 0;
+	/* begin time outside interval, end time inside */
+	if ( bt < at and et <= at + evaporationTime ) return nominalVaporFlux*(et-at)/(et-bt);
+	/* begin time outside interval, end time outside */
+	if ( bt < at and et > at + evaporationTime ) return nominalVaporFlux*evaporationTime/(et-bt);
+	/* begin time inside interval, end time inside */
+	if ( bt >= at and et <= at + evaporationTime ) return nominalVaporFlux;
+	/* begin time inside interval, end time outside */
+	if ( bt >= at and et > at + evaporationTime ) return nominalVaporFlux*(at+evaporationTime-bt)/(et-bt);
+
+    return -999;
+}
+
 double VaporFluxFromObsModel::getValue(double* valueOf
 		, const double& bt, const double& et, const double& at){
 	/* Mean vapor flux released between the time interval [bt, et] */
 	/* The vapor flux is supposed to be constant from the arrival time (at)
 	 * and for a period of time of given by fuel properties tau0/sd */
 
-    double burningDuration = valueOf[residenceTime_bmap];
-    double nominalHeatFlux = valueOf[nominalHeatFlux_bmap];
-    double Moisture = valueOf[Moisture_bmap];
-    
-    double HeatFlux = computeHeatFLuxFromBmap(burningDuration,nominalHeatFlux,bt,et,at);
-    double radiation_fraction = valueOf[radiation_fraction_bmap];
-    double conversion_factor = valueOf[conversion_factor_bmap];
-	
-	/*double VaporFlux = EFVapor * (HeatFlux/(1.-radiation_fraction));*/
-    double VaporFlux = Moisture * conversion_factor * radiation_fraction * HeatFlux/(1.-radiation_fraction);
+    double evaporationTime = valueOf[evaporationTime_data];
+    double nominalVaporFlux = valueOf[nominalVaporFlux_data];
+   
+
+    double VaporFlux = computeVaporFLuxFromBmap(evaporationTime,nominalVaporFlux, bt, et, at);
 	
 	return VaporFlux;
 
