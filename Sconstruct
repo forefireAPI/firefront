@@ -7,7 +7,12 @@ print("          //     //\n")
 print(" ==================================\n")
 
 VariantDir('build', 'src', duplicate=0)
-env = Environment(CCFLAGS=['-Wall','-O3'])
+env = Environment(CCFLAGS=['-O3'])
+
+warnings = ARGUMENTS.get('w', 0)
+if int(warnings):
+  env.Append(CCFLAGS = '-Wall')
+
 
 files = Glob('./build/*.cpp')
 env.Program('./bin/CommandShell', files, LIBS=['netcdf_c++', 'netcdf'])

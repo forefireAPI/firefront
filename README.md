@@ -15,11 +15,9 @@ The main binaries are
   
   - An interpreter (executable)
   - A dynamic library (shared, with C/C++/Java and Fortran bindings)
-  - Pre-Post processing helping scripts
 
-## 1. Installation
+## 1. Requirements
 
-### 1.1 By script
 The requirements and ForeFire can be installed by running `install-forefire.sh` (Ubuntu or Debian distributions)
 
 ```
@@ -30,14 +28,7 @@ sudo sh install-requirements.sh
 
 The program will be built in: `/bin/forefire`
 
-To be executable from anywhere add it to path
-```
-export PATH=$PATH:./bin
-```
-
-### 1.2 Manual Instalation - Requirements
-
-Run
+OR run the commands:
 
 ```
 apt-get update
@@ -48,21 +39,15 @@ apt install libnetcdf-dev libnetcdf-cxx-legacy-dev -y
 
 apt install scons -y
 ```
-To install:
 
-C++ compiler
-- Compilation requires a c++ compiler, that usually comes pre-built with your linux distribution
+To install
+- The C++ compiler (that may come pre-built with your linux distribution)
+- [NetCDF Library](https://www.unidata.ucar.edu/software/netcdf/) and [NetCDF-C++ legacy](https://www.unidata.ucar.edu/downloads/netcdf/netcdf-cxx/index.jsp), for compatibilities issues
+- [SCons python tool](https://www.scons.org/), is used to build the executable and the python library
 
-NetCDF Library
-- https://www.unidata.ucar.edu/software/netcdf/
+## 2. Build
 
-- NetCDF-C++ `legacy` is required for compatibilities issues
-https://www.unidata.ucar.edu/downloads/netcdf/netcdf-cxx/index.jsp
-
-Scons
-- The [SCons python tool](https://www.scons.org/) is used to make the executable and the python library
-
-### 1.3 Manual installation - Building with scons
+### Scons
 
 A sample `SConstruct` file is included with the distribution.
 Run it with
@@ -74,12 +59,23 @@ scons
 
 Troubleshooting: If it does not work, try using the `/tools/Sconstruct` file. Replace the `Sconstruct` file with `/tools/Sconstruct`. Set the environment variables, and insert the path to the Netcdf (and Java headers for JNI bindings if required).
 
-## 2. Running an example
+To build with all warnings enabled
+```
+ scons -Q w=1
+```
+
+To make the program [executable from eveywhere](https://unix.stackexchange.com/questions/3809/how-can-i-make-a-program-executable-from-everywhere) (during the session) Add the bin folder to path
+```
+export PATH=$PATH:./bin
+```
+If you want to change it permanently add `export PATH=$PATH:</path/to/file>` to your ~/.bashrc file
+
+## 3. Running an example
 
 ```
 cd firefront/examples/aullene/
 
-../../bin/CommandShell -i aullene.ff
+../../bin/forefire -i aullene.ff
 ```
 The simulation result will be outputed in JSON format
 
@@ -92,10 +88,10 @@ Use the script `ff2geojson.py` with the .json file as argument.
 ```
 The JSON will be converted to GeoJSON (EPSG 4326) of geometry type MultiPoint and saved in the same directory.
 
-## 3. Building python Lib
+## 4. Building python Lib
 The "swig" repository contains python bindings requires numpy (and numpy.i), swig, and matplotlib for testing. 
 
-## 4. Building with Docker
+## 5. Building with Docker
 A sample Dockerfile can allow to build a Docker image with
 ```
 docker build . -t forefire
