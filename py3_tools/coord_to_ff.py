@@ -29,7 +29,7 @@ def main():
 	ff.configBasicFf(lon=x, lat=y)
 	ff.saveFf(complete_path)
 
-	os.system(f'cd /firefront/examples/aullene; ../../bin/CommandShell -i {filename}')
+	os.system(f'cd {output_path}; ../../bin/forefire -i {filename}')
 	
 	ffjson2geojson(output_path + '0-2009-07-24T14-57-39Z.json')
 
