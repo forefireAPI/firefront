@@ -3,6 +3,7 @@
 #build directories
 bin
 build
+cmakebuild
 
 #python
 __pycache__
