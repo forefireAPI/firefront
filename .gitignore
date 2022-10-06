@@ -3,6 +3,7 @@
 #build directories
 bin
 build
+lib
 cmakebuild
 
 #python
