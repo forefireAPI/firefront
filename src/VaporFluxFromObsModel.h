@@ -1,6 +1,6 @@
 /*
 
-Copyright (C) 2012 ForeFire Team, SPE, Universitï¿½ de Corse.
+Copyright (C) 2012 ForeFire Team, SPE, UniversitŽ de Corse.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -23,7 +23,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 
 #include "FluxModel.h"
 #include "FireDomain.h"
-#include "HeatFluxFromObsModel.h"
 
 namespace libforefire {
 
@@ -36,13 +35,11 @@ class VaporFluxFromObsModel: public FluxModel {
 	static int isInitialized;
 
 	/*! properties needed by the model */
-    size_t nominalHeatFlux_bmap;
-    size_t Moisture_bmap;
-    size_t residenceTime_bmap; 
-    size_t radiation_fraction_bmap;
-    size_t conversion_factor_bmap;
+    size_t evaporationTime_data;
+    size_t nominalVaporFlux_data; 
 	
     /*! coefficients needed by the model */
+	double FromObsVaporFlux;
 
 	/*! local variables */
 
@@ -58,6 +55,9 @@ public:
 };
 
 FluxModel* getVaporFluxFromObsModel(const int& = 0, DataBroker* = 0);
+
+double computeVaporFLuxFromBmap(const double&, const double&, 
+                                 const double&, const double&, const double&);
 
 } /* namespace libforefire */
 #endif /* VAPORFLUXFROMOBSMODEL_H_ */

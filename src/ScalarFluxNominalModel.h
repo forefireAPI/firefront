@@ -1,6 +1,6 @@
 /*
 
-Copyright (C) 2012 ForeFire Team, SPE, Universitï¿½ de Corse.
+Copyright (C) 2012 ForeFire Team, SPE, UniversitŽ de Corse.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -18,17 +18,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 
 */
 
-#ifndef HEATFLUXFROMOBSMODEL_H_
-#define HEATFLUXFROMOBSMODEL_H_
+#ifndef SCALARFLUXNOMINALMODEL_H_
+#define SCALARFLUXNOMINALMODEL_H_
 
 #include "FluxModel.h"
 #include "FireDomain.h"
 
-using namespace std;
-
 namespace libforefire {
 
-class HeatFluxFromObsModel: public FluxModel {
+class ScalarFluxNominalModel: public FluxModel {
 
 	/*! name the model */
 	static const string name;
@@ -37,17 +35,11 @@ class HeatFluxFromObsModel: public FluxModel {
 	static int isInitialized;
 
 	/*! properties needed by the model */
-    size_t evaporationTime_data;
-    size_t residenceTime_data;
-    size_t burningTime_data;
-    size_t nominalHeatFlux_f_data;
-    size_t nominalHeatFlux_s_data;
+	size_t tau0;
+	size_t sd;
 
 	/*! coefficients needed by the model */
-	double burningTime;
-	double residenceTime;
-
-	/*double nominalHeatFlux;*/
+	double nominalScalarFlux;
 
 	/*! local variables */
 
@@ -56,26 +48,13 @@ class HeatFluxFromObsModel: public FluxModel {
 			, const double&, const double&);
 
 public:
-	HeatFluxFromObsModel(const int& = 0, DataBroker* = 0);
-	virtual ~HeatFluxFromObsModel();
+	ScalarFluxNominalModel(const int& = 0, DataBroker* = 0);
+	virtual ~ScalarFluxNominalModel();
 
 	string getName();
-    
 };
 
-struct SensibleheatFlux{
-    double flaming;
-    double smoldering; 
-
-    SensibleheatFlux(double f, double s) : flaming(f), smoldering(s) {}
-};
-
-
-
-FluxModel* getHeatFluxFromObsModel(const int& = 0, DataBroker* = 0);
-    
-/*! \compute heat flux from local input */
-SensibleheatFlux computeHeatFLuxFromBmap(const double&, const double&, const double&, const double&, const double&, const double&, const double&);
+FluxModel* getScalarFluxNominalModel(const int& = 0, DataBroker* = 0);
 
 } /* namespace libforefire */
-#endif /* HEATFLUXFROMOBSMODEL_H_ */
+#endif /* SCALARFLUXNOMINALMODEL_H_ */

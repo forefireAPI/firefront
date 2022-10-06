@@ -18,3 +18,6 @@ files = Glob('./build/*.cpp')
 env.Program('./bin/CommandShell', files, LIBS=['netcdf_c++', 'netcdf'])
 
 env.Program('./bin/forefire', files, LIBS=['netcdf_c++', 'netcdf'])
+
+env.SharedLibrary('./lib/ForeFire', files, LIBS=['netcdf_c++', 'netcdf'])
+

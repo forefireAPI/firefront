@@ -1,6 +1,6 @@
 /*
 
-Copyright (C) 2012 ForeFire Team, SPE, Universitï¿½ de Corse.
+Copyright (C) 2012 ForeFire Team, SPE, UniversitŽ de Corse.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 */
 
 #ifndef SCALARFROMOBSMODEL_H_
-#define SCALARFROMOBSMODEL_H_
+#define SCALARFROMOBsMODEL_H_
 
 #include "FluxModel.h"
 #include "FireDomain.h"
@@ -38,11 +38,20 @@ class ScalarFromObsModel: public FluxModel {
 	static int isInitialized;
 
 	/*! properties needed by the model */
-    size_t nominalHeatFlux_bmap;
-    size_t EFScalar_bmap;
-    size_t residenceTime_bmap; 
-    size_t radiation_fraction_bmap;
-	size_t conversion_factor_bmap;
+    size_t nominalHeatFlux_f_data;
+    size_t nominalHeatFlux_s_data;
+    
+    size_t evaporationTime_data;
+    size_t residenceTime_data;
+    size_t burningTime_data;
+
+    size_t EFScalar_f_data;
+    size_t EFScalar_s_data;
+
+    size_t radiation_fraction_f_data;
+    size_t radiation_fraction_s_data;
+	
+    size_t conversion_factor_data;
     
 	/*! coefficients needed by the model */
 

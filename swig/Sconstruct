@@ -1,39 +1,19 @@
 
 import os
 
-#example
-#export  NETCDF_HOME=$HOME/soft/ ; export  NUMPY_HOME=$HOME/soft/lib/python/numpy/core/;export FOREFIRE_HOME=$HOME/workspace/LibForeFire/ ; export  PYTHON_HOME=/System/Library/Frameworks/Python.framework/Versions/2.7/include/python2.7  
 
-netcdfHome = "/Users/filippi/soft/"
-try:
-    netcdfHome = os.environ["NETCDF_HOME"]
-except KeyError:
-    print "!!!!!!!!!   NETCDF_HOME environment variable not set, trying :" + netcdfHome+ "\n!!!!!!!!!   if it does not compile, please export NETCDF_HOME=/path/to/include_and_lib_path where include/netcdf.h is located)"
 
-numpyIncludes = "/Users/filippi/anaconda2/lib/python2.7/site-packages/numpy/core/"
-try:
-    numpyIncludes = os.environ["NUMPY_HOME"]
-except KeyError:
-    print "!!!!!!!!!   NUMPY_HOME environment variable not set, trying :" + numpyIncludes+ "\n!!!!!!!!!   if it does not compile, please export NUMPY_HOME=/path/to/lib/python/numpy/core where include/numpy/numpyconfig.h is located)"
-
-pythonIncludes = "/Users/filippi/anaconda2/include/python2.7/"
-try:
-    pythonIncludes = os.environ["PYTHON_HOME"]
-except KeyError:
-    print "!!!!!!!!!   PYTHON_HOME environment variable not set, trying :" + pythonIncludes+ "\n!!!!!!!!!   if it does not compile, please export PYTHON_HOME=/path/to/include/python2.7 where Python.h is located)"
-
-ffPath = "/Users/filippi/workspace/libForeFire/"
-try:
-    ffPath = os.environ["FOREFIRE_HOME"]
-except KeyError:
-    print "!!!!!!!!!   FOREFIRE_HOME environment variable not set, trying :" + ffPath+ "\n!!!!!!!!!   if it does not compile, please export FOREFIRE_HOME=/path/to/libForeFire.[so,dll,dylib] and header files )"
-
+netcdfHome='/home/globc/paugam/anaconda3/envs/ff/'
+numpyIncludes='/home/globc/paugam/anaconda3/envs/ff/lib/python3.8/site-packages/numpy/core/'
+pythonIncludes='/home/globc/paugam/anaconda3/envs/ff/include/python3.8/'
+ffPath_src='/home/globc/paugam/Src/forefire/firefront/src/'
+ffPath_lib='/home/globc/paugam/Src/forefire/firefront/lib/'
 
    
-env = Environment(CPPPATH=[netcdfHome+'/include/',numpyIncludes+'/include/',pythonIncludes,ffPath],RPATH=['/Users/filippi/workspace/LibForeFire/'],CCFLAGS=['-fmessage-length=0','-g2'], LIBPATH=[netcdfHome+'/lib/' ])
+env = Environment(CPPPATH=[netcdfHome+'/include/',numpyIncludes+'/include/',pythonIncludes,ffPath_src],RPATH=[ffPath_lib],CCFLAGS=['-fmessage-length=0','-g2'], LIBPATH=[netcdfHome+'/lib/' , ffPath_lib, ])
 
 env.Append( SWIGFLAGS = '-c++ -python' )
-env.Append( LIBS = ['netcdf_c++', 'netcdf','ForeFire', 'python'] )
+env.Append( LIBS = ['netcdf_c++', 'netcdf','ForeFire', 'python3.8'] )
 env.Append( RPATH = env.Literal(os.path.join('\\$$ORIGIN', os.pardir, 'lib')))
 env.SharedLibrary( target = 'forefire.so', 
                    source = ['PLibForeFire.cpp', 'PLibForeFire.i' ], SHLIBPREFIX='_'  )
