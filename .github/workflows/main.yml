@@ -30,4 +30,4 @@ jobs:
         run: echo FOREFIRE
 
       - name: Forefirebuild
-        run: . ./install-forefire.sh
+        run: . sudo ./install-forefire.sh
