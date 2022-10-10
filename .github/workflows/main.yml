@@ -29,5 +29,8 @@ jobs:
       - name: Run a one-line script
         run: echo FOREFIRE
 
+      - name: Run LS
+        run: ls
+
       - name: Forefirebuild
-        run: sudo ./install-forefire.sh
+        run: sudo install-forefire.sh
