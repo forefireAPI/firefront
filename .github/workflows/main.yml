@@ -30,5 +30,4 @@ jobs:
         run: echo FOREFIRE
 
       - name: Forefirebuild
-        # run: . sudo ./install-forefire.sh
-        run: scons
+        run: sudo ./install-forefire.sh
