@@ -33,4 +33,4 @@ jobs:
         run: ls
 
       - name: Forefirebuild
-        run: sudo install-forefire.sh
+        run: sudo sh ./install-forefire.sh
