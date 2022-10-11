@@ -23,7 +23,7 @@ The requirements and ForeFire can be installed by running `install-forefire.sh` 
 ```
 cd forefire
 
-sudo sh install-requirements.sh
+sudo sh install-forefire.sh
 ```
 
 The program will be built in: `/bin/forefire`
@@ -52,21 +52,19 @@ To install
 A sample `SConstruct` file is included with the distribution.
 Run it with
 ```
-cd firefront
-
 scons
 ```
-
-Troubleshooting: If it does not work, try using the `/tools/Sconstruct` file. Replace the `Sconstruct` file with `/tools/Sconstruct`. Set the environment variables, and insert the path to the Netcdf (and Java headers for JNI bindings if required).
 
 To build with all warnings enabled
 ```
  scons -Q w=1
 ```
 
+Troubleshooting: If it does not work, try replacing the `Sconstruct` file with `/tools/Sconstruct`. Set the environment variables, and insert the path to the Netcdf (and Java headers for JNI bindings if required).
+
 To make the program [executable from eveywhere](https://unix.stackexchange.com/questions/3809/how-can-i-make-a-program-executable-from-everywhere) (during the session) Add the bin folder to path
 ```
-export PATH=$PATH:./bin
+export PATH=$PATH:`pwd`/bin
 ```
 If you want to change it permanently add `export PATH=$PATH:</path/to/file>` to your ~/.bashrc file
 
@@ -84,7 +82,7 @@ The simulation result will be outputed in JSON format
 
 Use the script `ff2geojson.py` with the .json file as argument.
 ```
- python3 py3_tools/ff2geojson.py examples/aullene/1-2009-07-24T15-01-00Z.json
+python3 py3_tools/ff2geojson.py examples/aullene/1-2009-07-24T15-01-00Z.json
 ```
 The JSON will be converted to GeoJSON (EPSG 4326) of geometry type MultiPoint and saved in the same directory.
 
@@ -93,7 +91,9 @@ The JSON will be converted to GeoJSON (EPSG 4326) of geometry type MultiPoint an
 Use the script `coord_to_ff.py` using `--lon` and `--lat` flags to pass coordinates. An example simulation will be outputted in GeoJSON in `/examples/aullene`.
 
 ## 4. Building python Lib
-The "swig" repository contains python bindings requires numpy (and numpy.i), swig, and matplotlib for testing. 
+The `/swig` folder contains and `Sconstruct` file for python bindings.
+
+Requires numpy (and numpy.i), swig, and matplotlib for testing. 
 
 ## 5. Building with Docker
 A sample Dockerfile can allow to build a Docker image with

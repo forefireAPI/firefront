@@ -19,6 +19,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 */
 
 #include "CommandShell.h"
+#include "Version.h"
 
 using namespace std;
 
@@ -43,16 +44,18 @@ int CommandShell::startShell(int argc, char* argv[]){
 	// Reading the options
 	int fileopt;
 	int EOO = -1;
-	while((fileopt = getopt(argc, argv, "w:i:o:")) != EOO) {
-        if (fileopt == 'w')
-        {
-            // Web Mode
-            FFWebShell(optarg);
-            return 1;
-        }
-		else if (fileopt == 'i') 
-        {
-            // Standard Mode
+	while((fileopt = getopt(argc, argv, "w:i:o:v")) != EOO) {
+		if (fileopt == 'v'){
+			cout << ff_version << endl;
+			return 1;
+		}
+		if (fileopt == 'w'){
+			// Web Mode
+			FFWebShell(optarg);
+			return 1;
+		}
+		else if (fileopt == 'i'){
+			// Standard Mode
 			inputStream = new ifstream(optarg);
 			if ( !inputStream ){
 				cout << "wrong input file, check your settings..." << optarg << endl;
@@ -105,7 +108,7 @@ void CommandShell::FFShell(ifstream* inputStream){
 			executor.ExecuteCommand(line);
 		}
 	} else {
-		cout << "Welcome to the ForeFireShell" << endl;
+		cout << "Welcome to the ForeFireShell " << ff_version << endl;
 		cout << "type 'help[]' for information" << endl;
 		// reading all the commands (one command per line) from the terminal
 		string line;
