@@ -4,10 +4,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 project(forefire VERSION 1.0)
 
+link_libraries("-lnetcdf_c++ -lnetcdf")
+
 file(GLOB_RECURSE SRC_FILES src/*.cpp)
 
-add_executable(forefire ${SRC_FILES})
-
-target_include_directories(forefire PUBLIC usr/include)
-
-# NOT WORKING YET -> SHOULD include netcdf
+add_executable(forefirecmake ${SRC_FILES})
