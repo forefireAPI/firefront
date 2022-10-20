@@ -1,5 +1,5 @@
 NETCDF = -lnetcdf_c++ -lnetcdf
-SRC_FILES := $(wildcard ./src/*.cpp)
+SRC_FILES := $(wildcard ../src/*.cpp)
 CXX = g++
 CXXFLAGS = -Wall -ggdb
 
