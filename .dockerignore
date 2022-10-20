@@ -5,6 +5,7 @@
 # ignore build folders
 bin
 build
+cmakebuild
 
 # ignore test files
 *.json

@@ -7,16 +7,12 @@ RUN apt install build-essential -y
 
 RUN apt install libnetcdf-dev libnetcdf-cxx-legacy-dev -y
 
-RUN apt install scons -y
+RUN apt install scons cmake -y
 
 # copy files inside docker
 WORKDIR /forefire
 
-COPY Sconstruct .
-
-COPY examples ./examples
-
-COPY src ./src
+COPY . .
 
 # install forefire
 RUN scons
