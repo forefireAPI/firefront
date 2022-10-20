@@ -26,7 +26,7 @@ cd forefire
 sudo sh install-forefire.sh
 ```
 
-The program will be built in: `/bin/forefire`
+The program will be built in: `./bin/forefire`
 
 OR run the commands:
 
@@ -47,7 +47,7 @@ To install
 
 ## 2. Build
 
-### Scons
+### 2.1 Scons
 
 A sample `SConstruct` file is included with the distribution.
 Run it with
@@ -60,13 +60,21 @@ To build with all warnings enabled
  scons -Q w=1
 ```
 
-Troubleshooting: If it does not work, try replacing the `Sconstruct` file with `/tools/Sconstruct`. Set the environment variables, and insert the path to the Netcdf (and Java headers for JNI bindings if required).
+Troubleshooting: If it does not work, try replacing the `Sconstruct` file with `./tools/Sconstruct`. Set the environment variables, and insert the path to the Netcdf (and Java headers for JNI bindings if required).
 
 To make the program [executable from eveywhere](https://unix.stackexchange.com/questions/3809/how-can-i-make-a-program-executable-from-everywhere) (during the session) Add the bin folder to path
 ```
 export PATH=$PATH:`pwd`/bin
 ```
 If you want to change it permanently add `export PATH=$PATH:</path/to/file>` to your ~/.bashrc file
+
+### 2.2 CMAKE and Other build systems
+
+Alternatively, forefire can be built with `cmake`. A `CMakeLists.txt` is available, and the script `cmake-build.sh` can be used
+
+A simple `makefile` is also available in the `tools` directory
+
+More info on build systems can be found on [this issue](https://github.com/forefireAPI/firefront/issues/9)
 
 ## 3. Running an example
 
