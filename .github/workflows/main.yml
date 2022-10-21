@@ -28,3 +28,6 @@ jobs:
       # Runs a single command using the runners shell
       - name: Forefirebuild
         run: sudo sh ./install-forefire.sh
+
+      - name: Check version
+        run: ./bin/forefire -v
