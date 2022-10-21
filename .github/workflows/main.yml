@@ -33,3 +33,6 @@ jobs:
 
       - name: Check version
         run: ./bin/forefire -v
+
+      - name: Test
+        run: sh ./test-forefire.sh
