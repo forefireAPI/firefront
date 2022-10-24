@@ -169,7 +169,7 @@ bool Array3DdataLayer<T>::inBound(
 		const size_t& ii, const size_t& jj, const size_t& kk){
 	return (ii >= 0) && (ii < nx)
 			&& (jj >= 0) && (jj < ny)
-			 && (kk >= 0) && (kk < nz);
+			&& (kk >= 0) && (kk < nz);
 }
 
 template<typename T>
