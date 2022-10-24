@@ -30,7 +30,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 #include "Simulator.h"
 #include "FireFront.h"
 #include "FireNode.h"
-#include "Futils.h"
+#include "include/Futils.h"
 #include "EventCommand.h"
 
 #ifndef COMMAND_DEBUG

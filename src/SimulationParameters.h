@@ -22,7 +22,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 #define SIMULATIONPARAMETERS_H_
 
 #include "FFPoint.h"
-#include "Futils.h"
+#include "include/Futils.h"
 
 using namespace std;
 

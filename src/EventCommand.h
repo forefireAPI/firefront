@@ -22,7 +22,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 #define EVENTCOMMAND_H_
 
 #include "Command.h"
-#include "Futils.h"
+#include "include/Futils.h"
 #include "ForeFireAtom.h"
 
 using namespace std;
