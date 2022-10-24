@@ -24,7 +24,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 #include "include/Futils.h"
 #include "FFPoint.h"
 #include "FFArrays.h"
-#include "FFConstants.h"
+#include "include/FFConstants.h"
 
 using namespace std;
 

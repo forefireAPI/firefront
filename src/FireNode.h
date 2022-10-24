@@ -25,7 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 #include "FFVector.h"
 #include "ForeFireAtom.h"
 #include "Visitable.h"
-#include "FFConstants.h"
+#include "include/FFConstants.h"
 #include "SimulationParameters.h"
 #include "include/Futils.h"
 

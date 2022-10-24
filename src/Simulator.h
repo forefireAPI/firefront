@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 
 #include "TimeTable.h"
 #include "FFEvent.h"
-#include "FFConstants.h"
+#include "include/FFConstants.h"
 #include "SimulationParameters.h"
 #include "include/Futils.h"
 

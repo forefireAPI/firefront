@@ -25,7 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 #include "Visitable.h"
 #include "FireNode.h"
 #include "ParallelException.h"
-#include "FFConstants.h"
+#include "include/FFConstants.h"
 #include "include/Futils.h"
 
 using namespace std;

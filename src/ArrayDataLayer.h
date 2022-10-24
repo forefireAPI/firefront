@@ -25,7 +25,7 @@ Foundation, Inc., 51  Street, Fifth Floor, Boston, MA 02110-1301 US
 #include "DataLayer.h"
 #include "FFArrays.h"
 #include "FireNode.h"
-#include "FFConstants.h"
+#include "include/FFConstants.h"
 
 using namespace std;
 
