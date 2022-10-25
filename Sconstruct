@@ -6,7 +6,7 @@ print("          //     //    ")
 print("          //     //\n")
 print(" ==================================\n")
 
-VariantDir('build', 'src', duplicate=0)
+VariantDir('sconsbuild', 'src', duplicate=0)
 env = Environment(CCFLAGS=['-O3'])
 
 warnings = ARGUMENTS.get('w', 0)
@@ -14,10 +14,8 @@ if int(warnings):
   env.Append(CCFLAGS = '-Wall')
 
 
-files = Glob('./build/*.cpp')
+files = Glob('./sconsbuild/*.cpp')
 env.Program('./bin/CommandShell', files, LIBS=['netcdf_c++', 'netcdf'])
-
-env.Program('./bin/forefire', files, LIBS=['netcdf_c++', 'netcdf'])
 
 env.SharedLibrary('./lib/ForeFire', files, LIBS=['netcdf_c++', 'netcdf'])
 

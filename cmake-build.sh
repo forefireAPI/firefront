@@ -1,4 +1,4 @@
-mkdir cmakebuild
-cd cmakebuild
+mkdir build
+cd build
 cmake ../
 make
