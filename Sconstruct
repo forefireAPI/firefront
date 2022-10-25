@@ -15,7 +15,8 @@ if int(warnings):
 
 
 files = Glob('./sconsbuild/*.cpp')
-env.Program('./bin/CommandShell', files, LIBS=['netcdf_c++', 'netcdf'])
 
-env.SharedLibrary('./lib/ForeFire', files, LIBS=['netcdf_c++', 'netcdf'])
+env.Program('./sconsbuild/bin/CommandShell', files, LIBS=['netcdf_c++', 'netcdf'])
+
+env.SharedLibrary('./sconsbuild/lib/ForeFire', files, LIBS=['netcdf_c++', 'netcdf'])
 
