@@ -37,17 +37,36 @@ apt install build-essential -y
 
 apt install libnetcdf-dev libnetcdf-cxx-legacy-dev -y
 
-apt install scons -y
+apt install cmake -y
 ```
 
 To install
 - The C++ compiler (that may come pre-built with your linux distribution)
 - [NetCDF Library](https://www.unidata.ucar.edu/software/netcdf/) and [NetCDF-C++ legacy](https://www.unidata.ucar.edu/downloads/netcdf/netcdf-cxx/index.jsp), for compatibilities issues
-- [SCons python tool](https://www.scons.org/), is used to build the executable and the python library
+- [cmake](https://cmake.org/), is used to build the executable and the python library
 
 ## 2. Build
 
-### 2.1 Scons
+### 2.1 Cmake
+
+To build with cmake run the script
+```
+sh cmake-build.sh
+```
+
+To make the program [executable from eveywhere](https://unix.stackexchange.com/questions/3809/how-can-i-make-a-program-executable-from-everywhere) (during the session) Add the bin folder to path
+```
+export PATH=$PATH:`pwd`/bin
+```
+If you want to change it permanently add `export PATH=$PATH:</path/to/file>` to your ~/.bashrc file
+
+
+### 2.2 Scons and Other build systems
+
+Forefire can also be built with [scons](https://www.scons.org/). Install it with
+```
+apt install scons -y
+```
 
 A sample `SConstruct` file is included with the distribution.
 Run it with
@@ -57,22 +76,12 @@ scons
 
 To build with all warnings enabled
 ```
- scons -Q w=1
+ scons -Q w=1 
 ```
 
 Troubleshooting: If it does not work, try replacing the `Sconstruct` file with `./tools/Sconstruct`. Set the environment variables, and insert the path to the Netcdf (and Java headers for JNI bindings if required).
 
-To make the program [executable from eveywhere](https://unix.stackexchange.com/questions/3809/how-can-i-make-a-program-executable-from-everywhere) (during the session) Add the bin folder to path
-```
-export PATH=$PATH:`pwd`/bin
-```
-If you want to change it permanently add `export PATH=$PATH:</path/to/file>` to your ~/.bashrc file
-
-### 2.2 CMAKE and Other build systems
-
-Alternatively, forefire can be built with `cmake`. A `CMakeLists.txt` is available, and the script `cmake-build.sh` can be used
-
-A simple `makefile` is also available in the `tools` directory
+Make: A simple `makefile` is also available in the `tools` directory
 
 More info on build systems can be found on [this issue](https://github.com/forefireAPI/firefront/issues/9)
 
