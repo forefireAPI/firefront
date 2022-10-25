@@ -1,6 +1,6 @@
 /*
 
-Copyright (C) 2012 ForeFire Team, SPE, UniversitŽ de Corse.
+Copyright (C) 2012 ForeFire Team, SPE, Universitï¿½ de Corse.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -20,6 +20,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 
 #include "StringRepresentation.h"
 
+#define GEOJSON_MODE  2
 #define JSON_MODE  1
 #define FF_MODE  0
 
@@ -83,7 +84,16 @@ void StringRepresentation::visit(FireDomain* fd) {
         outputstr << '{' << endl << '\t' << "\"fronts\": [";
         lastLevel = 0;
     }
-    
+    if (dumpMode == GEOJSON_MODE)
+    {
+        outputstr << '{' << endl;
+        outputstr << '\t' << "\"type\": \"Feature\"," << endl;
+        outputstr << '\t' << "\"geometry\": {" << endl ;
+        outputstr << '\t' << '\t' << "\"type\": \"Polygon\"," << endl;
+        outputstr << '\t' << '\t' << "\"coordinates\": [" << endl;
+        outputstr << '\t' << '\t' << "[";
+        lastLevel = 0;
+    }
     if (dumpMode == FF_MODE)
         outputstr << fd->toString() << endl;
 }
@@ -123,6 +133,35 @@ void StringRepresentation::visit(FireFront* ff) {
             lastLevel = 1;
         }
     }
+
+    // if (dumpMode == GEOJSON_MODE)
+    // {
+    //     SimulationParameters *simParam = SimulationParameters::GetInstance();
+        
+    //     if (ff->getDomain()->getSimulationTime() >= ff->getTime())
+    //     {
+    //         if (lastLevel >= 2)
+    //             outputstr << '"';
+    //         if (lastLevel >= 1)
+    //             outputstr << endl << '\t' << "},";
+            
+    //         double t = simParam->getInt("refTime") + ff->getDomain()->getSimulationTime();
+    //         int d = simParam->getInt("refDay");
+    //         int y = simParam->getInt("refYear");
+
+    //         outputstr.precision(3);
+    //         outputstr << endl << '\t' << '{';
+    //         outputstr << endl << "\t\t" << "\"area\":\"";
+    //         outputstr << fixed << (ff->getArea() / 10000) << "ha\",";
+    //         outputstr << endl << "\t\t" << "\"VAMO\":\"";
+    //         outputstr << SimulationParameters::FormatISODate(t, y, d) << "\",";
+    //         outputstr << endl << "\t\t" << "\"projection\":\"";
+    //         outputstr << SimulationParameters::GetInstance()->getParameter("projection") << "\",";
+    //         outputstr << endl << "\t\t" << "\"coordinates\":\"";
+    //         lastLevel = 1;
+    //     }
+    // }
+
 }
 
 void StringRepresentation::visit(FireNode* fn) {
@@ -145,6 +184,21 @@ void StringRepresentation::visit(FireNode* fn) {
         for ( size_t k=0; k < currentLevel; k++ ) outputstr << '\t';
         outputstr << fn->toString() << endl;
     }
+
+    if (dumpMode == GEOJSON_MODE)
+    {
+        if (fn->getFront()->getDomain()->getSimulationTime() >= fn->getFront()->getTime())
+        {
+            if (lastLevel == 2)
+                outputstr << ' ';
+
+            outputstr.precision(3);
+            outputstr << fixed << fn->getX() << ',' << fn->getY() << ' ';
+            lastLevel = 2;
+        }
+        return;
+    }
+
 }
 
 string StringRepresentation::dumpStringRepresentation() {
@@ -153,6 +207,8 @@ string StringRepresentation::dumpStringRepresentation() {
         dumpMode = JSON_MODE;
     else if (SimulationParameters::GetInstance()->getParameter("dumpMode") == "ff")
         dumpMode = FF_MODE;
+    else if (SimulationParameters::GetInstance()->getParameter("dumpMode") == "geojson")
+        dumpMode = GEOJSON_MODE;
     
 	currentLevel = 0;
     lastLevel = -1;
