@@ -7,7 +7,7 @@ RUN apt install build-essential -y
 
 RUN apt install libnetcdf-dev libnetcdf-cxx-legacy-dev -y
 
-RUN apt install scons cmake -y
+RUN apt install cmake -y
 
 # copy files inside docker
 WORKDIR /forefire
@@ -15,7 +15,7 @@ WORKDIR /forefire
 COPY . .
 
 # install forefire
-RUN scons
+RUN sh cmake-build.sh
 
 # add executable to PATH
 RUN cp /forefire/bin/forefire /bin
