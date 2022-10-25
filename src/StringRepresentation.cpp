@@ -193,7 +193,7 @@ void StringRepresentation::visit(FireNode* fn) {
                 outputstr << ' ';
 
             outputstr.precision(3);
-            outputstr << fixed << fn->getX() << ',' << fn->getY() << ' ';
+            outputstr << fixed << '\t' << '[' << fn->getX() << ',' << fn->getY() << ']' << ',' ;
             lastLevel = 2;
         }
         return;
@@ -224,6 +224,15 @@ string StringRepresentation::dumpStringRepresentation() {
             outputstr << endl << '\t' << '}';
         if (lastLevel >= 0)
             outputstr << ']' << endl << '}' << endl;
+    }
+
+    if (dumpMode == GEOJSON_MODE)
+    {
+        if (lastLevel >= 1)
+            outputstr << ']' << endl;
+            outputstr << '\t' << '\t' << ']' << endl;
+        if (lastLevel >= 0)
+            outputstr << '}' << endl << '}' << endl;
     }
     
 	return outputstr.str();
