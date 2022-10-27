@@ -20,7 +20,7 @@ def main():
 
 	dir_path = os.path.dirname(os.path.realpath(__file__))
 	output_path = dir_path + '/../examples/aullene/'
-	filename = f'{lon}_{lat}.ff'
+	filename = f'aullene2.ff'
 	complete_path = output_path + filename
 
 	[x, y] = reproject([lon, lat], inEpsg='epsg:4326', outEpsg='epsg:32632')
