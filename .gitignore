@@ -13,3 +13,6 @@ __pycache__
 # compilation files
 *.dblite
 *.o
+
+# editors
+.vscode
