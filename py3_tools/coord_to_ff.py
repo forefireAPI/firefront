@@ -1,7 +1,6 @@
 import argparse
 
-from ff2geojson import *
-from ForeFirepy3 import *
+from forefirepy.ForeFire import *
 
 def main():
 	ap = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -28,9 +27,9 @@ def main():
 	ff.configBasicFf(lon=x, lat=y)
 	ff.saveFf(complete_path)
 
-	os.system(f'cd {output_path}; ../../bin/forefire -i {filename}')
+	os.system(f'cd {output_path}; forefire -i {filename}')
 	
-	ffjson2geojson(output_path + '0-2009-07-24T14-57-39Z.json')
+	ff.convert_to_geojson(output_path + '0-2009-07-24T14-57-39Z.ffgeojson')
 
 
 if __name__ == '__main__':

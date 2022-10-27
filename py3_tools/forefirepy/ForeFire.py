@@ -1,10 +1,13 @@
 import os
 from datetime import date
+from .ff2geojson import *
 
 class Forefire:
 
+  version = '1.1.15'
+
   def __init__(self):
-    self.ff = '''setParameter[dumpMode=json]
+    self.ff = '''setParameter[dumpMode=geojson]
 setParameter[caseDirectory=.]
 setParameter[ForeFireDataDirectory=.]
 '''
@@ -51,7 +54,7 @@ setParameter[ForeFireDataDirectory=.]
     self.ff += f'step[dt={dt}s]\n'
 
   def printOutput(self):
-    self.ff += 'print[./*count*-*ISOdate*.json]\nprint[]'
+    self.ff += 'print[./*count*-*ISOdate*.ffgeojson]\nprint[]'
 
   def saveFf(self, path):
     with open(path, 'w', encoding='utf-8') as f:
@@ -66,3 +69,7 @@ setParameter[ForeFireDataDirectory=.]
     self.startFire(lon, lat)
     self.step(t)
     self.printOutput()
+
+  def convert_to_geojson(self, path):
+    ffjson2geojson(path)
+    return True
