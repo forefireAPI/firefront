@@ -86,12 +86,13 @@ void StringRepresentation::visit(FireDomain* fd) {
     }
     if (dumpMode == GEOJSON_MODE)
     {
-        outputstr << '{' << endl;
-        outputstr << '\t' << "\"type\": \"Feature\"," << endl;
-        outputstr << '\t' << "\"geometry\": {" << endl ;
-        outputstr << '\t' << '\t' << "\"type\": \"Polygon\"," << endl;
-        outputstr << '\t' << '\t' << "\"coordinates\": [" << endl;
-        outputstr << '\t' << '\t' << "[";
+        outputstr << '{' << "\"type\": \"FeatureCollection\"," << endl;
+        outputstr << '\t' << "\"features\": [" << endl;
+        outputstr << '\t' << '\t'  << '{' << "\"type\": \"Feature\"," << endl;
+        outputstr << '\t' << '\t' << '\t' << "\"geometry\": " << '{' << endl;
+        outputstr << '\t' << '\t' << '\t' << '\t' <<  "\"type\": \"Polygon\"," << endl;
+        outputstr << '\t' << '\t' << '\t' << '\t' <<  "\"coordinates\": [" << endl;
+        outputstr << '\t' << '\t' << '\t' << '\t' << "[";
         lastLevel = 0;
     }
     if (dumpMode == FF_MODE)
@@ -229,10 +230,14 @@ string StringRepresentation::dumpStringRepresentation() {
     if (dumpMode == GEOJSON_MODE)
     {
         if (lastLevel >= 1)
+            outputstr.seekp(-1, std::ios_base::end);
             outputstr << ']' << endl;
-            outputstr << '\t' << '\t' << ']' << endl;
+            outputstr << '\t' << '\t' << '\t' << '\t' << ']' << endl;
+            outputstr << '\t' << '\t' << '\t' << '}' << endl;
         if (lastLevel >= 0)
-            outputstr << '}' << endl << '}' << endl;
+            outputstr << '\t' << '\t' << '}' << endl ;
+            outputstr << '\t' << ']' << endl ;
+            outputstr << '}' << endl;
     }
     
 	return outputstr.str();
