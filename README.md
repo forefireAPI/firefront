@@ -9,12 +9,11 @@ Access the [demo simulator here](http://forefire.univ-corse.fr/sim/dev/)
 ![demo](./doc/sim-forefire.jpg)
 
 
-It has been designed and run on Unix systems, three modules can be built with the source code.
+It has been designed and runs on Unix systems. Three modules can be built with the source code.
 
-The main binaries are
-  
+The main binaries are  
   - An interpreter (executable)
-  - A dynamic library (shared, with C/C++/Java and Fortran bindings)
+  - A shared library (with C/C++/Java and Fortran bindings)
 
 ## 1. Requirements
 
@@ -41,9 +40,9 @@ apt install cmake -y
 ```
 
 To install
-- The C++ compiler (that may come pre-built with your linux distribution)
-- [NetCDF Library](https://www.unidata.ucar.edu/software/netcdf/) and [NetCDF-C++ legacy](https://www.unidata.ucar.edu/downloads/netcdf/netcdf-cxx/index.jsp), for compatibilities issues
-- [cmake](https://cmake.org/), is used to build the executable and the python library
+- The C++ compiler
+- [NetCDF Library](https://www.unidata.ucar.edu/software/netcdf/) and [NetCDF-C++ legacy](https://www.unidata.ucar.edu/downloads/netcdf/netcdf-cxx/index.jsp)
+- [Cmake](https://cmake.org/) build tool
 
 ## 2. Build
 
@@ -58,7 +57,14 @@ To make the program [executable from eveywhere](https://unix.stackexchange.com/q
 ```
 export PATH=$PATH:`pwd`/bin
 ```
-If you want to change it permanently add `export PATH=$PATH:</path/to/file>` to your ~/.bashrc file
+If you want to change it permanently, paste
+```
+export PATH=$PATH:</path/to/file>
+```
+at the end of your `~/.bashrc` file. The file can be edited with
+```
+nano ~/.bashrc
+```
 
 
 ### 2.2 Scons and Other build systems
@@ -87,6 +93,13 @@ More info on build systems can be found on [this issue](https://github.com/foref
 
 ## 3. Running an example
 
+An example for the region of aullene in south France is provided. The example contains 3 files
+- fuels.ff
+- aullene.ff
+- landscape.nc:
+
+Run the example with
+
 ```
 cd firefront/examples/aullene/
 
@@ -94,18 +107,27 @@ cd firefront/examples/aullene/
 ```
 The simulation result will be outputed in JSON format
 
-### Converting output JSON to GeoJSON
 
+### 4. Running with python
 
-Use the script `ff2geojson.py` with the .json file as argument.
+Installing requirements
 ```
-python3 py3_tools/ff2geojson.py examples/aullene/1-2009-07-24T15-01-00Z.json
+cd py3_tools
+pip install -r requirements.txt
 ```
-The JSON will be converted to GeoJSON (EPSG 4326) of geometry type MultiPoint and saved in the same directory.
 
-### Running an example in a chosen location
+You can use the script `coord_to_ff.py` to run the simulation in a default location
 
-Use the script `coord_to_ff.py` using `--lon` and `--lat` flags to pass coordinates. An example simulation will be outputted in GeoJSON in `/examples/aullene`.
+```
+python coord_to_ff.py
+```
+
+For running in a chosen location, the script accepts latitude and longitude in epsg:4326 projection as inputs. It reprojects the coordinates into epsg:32632 projection, used in aullene's landscape.
+```
+python coord_to_ff.py --lat 41.6 --lon 9.1
+```
+
+The GeoJSON of geometry type Polygon will be saved in the `/examples/aullene` folder
 
 ## 4. Building python Lib
 The `/swig` folder contains and `Sconstruct` file for python bindings.
