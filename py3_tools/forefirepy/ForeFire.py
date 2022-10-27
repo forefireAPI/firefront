@@ -4,7 +4,7 @@ from .ff2geojson import *
 
 class Forefire:
 
-  version = '1.1.15'
+  version = '1.1.20'
 
   def __init__(self):
     self.ff = '''setParameter[dumpMode=geojson]

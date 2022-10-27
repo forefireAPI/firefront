@@ -6,10 +6,12 @@ def main():
 	ap = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 	ap.add_argument(
         "--lat",
+				default=41.6,
         help="latitude of fire start"
     )
 	ap.add_argument(
         "--lon",
+				default=9.2,
         help="longitude of fire start"
 		)
 	args = vars(ap.parse_args())
