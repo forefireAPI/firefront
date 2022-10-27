@@ -59,11 +59,16 @@ export PATH=$PATH:`pwd`/bin
 ```
 If you want to change it permanently, paste
 ```
-export PATH=$PATH:</path/to/file>
+export PATH="</path/to/file>:$PATH"
+
 ```
 at the end of your `~/.bashrc` file. The file can be edited with
 ```
 nano ~/.bashrc
+```
+for example
+```
+export PATH="/mnt/c/gitrepos/forefire/bin:$PATH"
 ```
 
 
