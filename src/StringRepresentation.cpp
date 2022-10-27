@@ -86,9 +86,14 @@ void StringRepresentation::visit(FireDomain* fd) {
     }
     if (dumpMode == GEOJSON_MODE)
     {
+        SimulationParameters *simParam = SimulationParameters::GetInstance();
+        
         outputstr << '{' << "\"type\": \"FeatureCollection\"," << endl;
+        outputstr << "\t" << "\"projection\":\"";
+        outputstr << SimulationParameters::GetInstance()->getParameter("projection") << "\"," << endl;
         outputstr << '\t' << "\"features\": [" << endl;
         outputstr << '\t' << '\t'  << '{' << "\"type\": \"Feature\"," << endl;
+        outputstr << '\t' << '\t'  << '\t' << "\"properties\": " << '{' << '}' << ',' << endl;
         outputstr << '\t' << '\t' << '\t' << "\"geometry\": " << '{' << endl;
         outputstr << '\t' << '\t' << '\t' << '\t' <<  "\"type\": \"Polygon\"," << endl;
         outputstr << '\t' << '\t' << '\t' << '\t' <<  "\"coordinates\": [" << endl;
@@ -135,32 +140,10 @@ void StringRepresentation::visit(FireFront* ff) {
         }
     }
 
-    // if (dumpMode == GEOJSON_MODE)
-    // {
+    // if (dumpMode == GEOJSON_MODE){
     //     SimulationParameters *simParam = SimulationParameters::GetInstance();
-        
-    //     if (ff->getDomain()->getSimulationTime() >= ff->getTime())
-    //     {
-    //         if (lastLevel >= 2)
-    //             outputstr << '"';
-    //         if (lastLevel >= 1)
-    //             outputstr << endl << '\t' << "},";
-            
-    //         double t = simParam->getInt("refTime") + ff->getDomain()->getSimulationTime();
-    //         int d = simParam->getInt("refDay");
-    //         int y = simParam->getInt("refYear");
-
-    //         outputstr.precision(3);
-    //         outputstr << endl << '\t' << '{';
-    //         outputstr << endl << "\t\t" << "\"area\":\"";
-    //         outputstr << fixed << (ff->getArea() / 10000) << "ha\",";
-    //         outputstr << endl << "\t\t" << "\"VAMO\":\"";
-    //         outputstr << SimulationParameters::FormatISODate(t, y, d) << "\",";
-    //         outputstr << endl << "\t\t" << "\"projection\":\"";
-    //         outputstr << SimulationParameters::GetInstance()->getParameter("projection") << "\",";
-    //         outputstr << endl << "\t\t" << "\"coordinates\":\"";
-    //         lastLevel = 1;
-    //     }
+    //     outputstr << endl << "\t\t" << "\"projection\":\"";
+    //     outputstr << SimulationParameters::GetInstance()->getParameter("projection") << "\",";
     // }
 
 }
