@@ -141,10 +141,11 @@ void StringRepresentation::visit(FireFront* ff) {
     }
 
     // if (dumpMode == GEOJSON_MODE){
+    //     Maybe for properties
     //     SimulationParameters *simParam = SimulationParameters::GetInstance();
-    //     outputstr << endl << "\t\t" << "\"projection\":\"";
-    //     outputstr << SimulationParameters::GetInstance()->getParameter("projection") << "\",";
-    // }
+    //     outputstr << endl << "\t\t" << "\"date\":\"";
+    //     outputstr << SimulationParameters::FormatISODate(t, y, d) << "\",";
+    // // }
 
 }
 
@@ -213,7 +214,9 @@ string StringRepresentation::dumpStringRepresentation() {
     if (dumpMode == GEOJSON_MODE)
     {
         if (lastLevel >= 1)
+            // remove last ',' inserted
             outputstr.seekp(-1, std::ios_base::end);
+            
             outputstr << ']' << endl;
             outputstr << '\t' << '\t' << '\t' << '\t' << ']' << endl;
             outputstr << '\t' << '\t' << '\t' << '}' << endl;
