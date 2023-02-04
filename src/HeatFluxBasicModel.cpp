@@ -44,8 +44,9 @@ HeatFluxBasicModel::HeatFluxBasicModel(
 	if ( numProperties > 0 ) properties =  new double[numProperties];
 
 	/* registering the model in the data broker */
+ 
 	dataBroker->registerFluxModel(this);
-
+ 
 	/* Definition of the coefficients */
 	burningDuration = 30.;
 	if ( params->isValued("burningDuration") )

@@ -100,7 +100,7 @@ double Rothermel::getSpeed(double* valueOf){
 	double lDeltaH = valueOf[DeltaH] / 2326;// conversion J/kg -> BTU/lb
 	double normal_wind  = valueOf[normalWind] * 196.850394 ; //conversion m/s -> ft/min
 	double localngle =  valueOf[slope];
-
+	//	if (normal_wind  > 0) cout<<"wind is"<<valueOf[normalWind]<<endl;
 
 /*	lRhod = 30.0;
 	 lMd =0.1;
@@ -174,8 +174,8 @@ double Rothermel::getSpeed(double* valueOf){
 		//cout << "Rothermel =" << R * 0.0050 << endl; 
 		return R * 0.00508 ; // ft/min -> m/s
 	}else{
-		cout << " Rhod "<< lRhod << " lMd "<< lMd << " lsd "<< lsd << " le "<< le << " lSigmad "<< lSigmad <<endl;
-		cout << " R "<< R << " R0 "<< R0 << " phiv " << phiV <<" phiP" << phiP <<endl;
+		//cout << " Rhod "<< lRhod << " lMd "<< lMd << " lsd "<< lsd << " le "<< le << " lSigmad "<< lSigmad <<endl;
+		//cout << " R "<< R << " R0 "<< R0 << " phiv " << phiV <<" phiP" << phiP <<endl;
 	}
 	return 0;
 }

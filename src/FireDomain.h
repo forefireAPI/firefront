@@ -58,6 +58,16 @@ namespace libforefire{
  *  for the simulation.
  */
 class FireDomain: public ForeFireAtom, Visitable {
+	struct distributedDomainInfo{
+		size_t ID;
+		size_t atmoNX;
+		size_t atmoNY;
+		size_t refNX;
+		size_t refNY;
+		FFPoint* SWCorner;
+		FFPoint* NECorner;
+		double lastTime;
+	};
 
 	/* Internal variables of the simulation */
     /*--------------------------------------*/
@@ -65,6 +75,7 @@ class FireDomain: public ForeFireAtom, Visitable {
 	FireFront* domainFront; /*!< Container for the fireFront in the domain  */
 	list<FireFront*>::iterator currentfront;
 	FDCell** cells; /*!< Table of the FDCells matching the meteorological ones */
+
 	FDCell* trashCell; /*!< cell containing all the firenodes outside the domain */
 	TimeTable* schedule; /*!< timetable of the events taking place in the domain */
 	DataBroker* dataBroker; /*!< data broker of the simulation */
@@ -124,6 +135,7 @@ class FireDomain: public ForeFireAtom, Visitable {
 
 	double burningTresholdFlux;
 	double maxFrontDepth;
+	double BMapsResolution;
 
 	/* search algorithms */
     /*-------------------*/
@@ -142,6 +154,7 @@ class FireDomain: public ForeFireAtom, Visitable {
 	static list<FireNode*> trashNodes;
 	static list<FireFront*> trashFronts;
 
+	static list<distributedDomainInfo*> parallelDispatchDomains;
 	/* Factories of models */
     /*---------------------*/
 
@@ -172,6 +185,7 @@ class FireDomain: public ForeFireAtom, Visitable {
 	static const double endChain; /*!< Marker for the end of the chain */
 	static const double endCom; /*!< Marker for the end of communication */
 	static const double noCom; /*!< Marker for no communication (non-active halos) */
+	static const int maxComNodes; /*!< Max number of com markers */
 
 	/*! \brief list of link nodes */
 	list<FireNode*> linkNodes;
@@ -279,7 +293,6 @@ class FireDomain: public ForeFireAtom, Visitable {
 	FFPoint getBoundingBoxCornerFromIndex(const int&, FFPoint&, FFPoint&);
 	/*! \brief finding the frontier for a given point */
 	int getFrontierIndex(FFPoint loc);
-
 	/*! \brief looking to see if an incoming firenode already exists */
 	FireNode* alreadyPresentInOuterHalo(FireNodeData*);
 
@@ -320,6 +333,11 @@ class FireDomain: public ForeFireAtom, Visitable {
 	int getDayNumber(const int& = 2012, const int& = 1, const int& = 1);
 
 public:
+
+	
+	size_t numberOfRispatchDomains;
+
+
 
 	/* Propagation models */
 	static const size_t NUM_MAX_PROPMODELS = 50; /*!< maximum number of propagation models */
@@ -428,6 +446,7 @@ public:
 	double& NECornerY();
 	double& SECornerX();
 	double& SECornerY();
+	void readMultiDomainMetadata();
 
 	/*! \brief cell containing a firenode */
 	FDCell* getCell(FireNode*);
@@ -437,6 +456,9 @@ public:
 
 	/*! \brief Setting the safe mode for topology */
 	void setSafeTopologyMode(bool);
+
+	/*! \brief give Max com nodes */
+	int getMaxComNodes();
 
 	/*! \brief Setting parameters of the simulation */
 	void setParameter(string, string);
@@ -567,7 +589,8 @@ public:
 	void addToTrashNodes(FireNode*);
 	void stopOutgoingNode(FireNode*, FFPoint&, double&);
 	void addToTrashFronts(FireFront*);
-
+	void dumpCellsInBinary();
+	void loadCellsInBinary();
 	/*! \brief creating new atoms in the domain */
 	FireNode* FireNodeFactory();
 	FireFront* FireFrontFactory();

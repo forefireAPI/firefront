@@ -79,7 +79,9 @@ void MNHCreateDomain(const int id
 	session->fd = new FireDomain(id, year, month, day, t, lat, lon
 			, mdimx, meshx, mdimy, meshy, mdimz, dt);
 
-	executor.domain = session->fd;
+
+
+	//executor.setDomain(session->fd);
 
 	// A FireDomain has been created, the level is increased
 	executor.increaseLevel();
@@ -100,12 +102,14 @@ void MNHCreateDomain(const int id
 			<<SimulationParameters::GetInstance()->getParameter("outputFiles")
 			<<"."<<session->fd->getDomainID();
 	SimulationParameters::GetInstance()->setParameter("ffOutputsPattern", ffOutputsPattern.str());
-	session->outStrRep = new StringRepresentation(executor.domain);
+
+
+
+	session->outStrRep = new StringRepresentation(executor.getDomain());
 	if ( SimulationParameters::GetInstance()->getInt("outputsUpdate") != 0 ){
 		session->tt->insert(new FFEvent(session->outStrRep));
 	}
-// TODO	createNcFile(params->getParameter("ForeFireDataDirectory"), mdimx, mdimy, mdimz, meshx, meshy, zgrid);
-
+    // TODO	createNcFile(params->getParameter("ForeFireDataDirectory"), mdimx, mdimy, mdimz, meshx, meshy, zgrid);
 	// Reading all the information on the initialization of ForeFire
 	ostringstream initfile;
 	if ( SimulationParameters::GetInstance()->getInt("parallelInit") != 1 ) {
@@ -120,6 +124,8 @@ void MNHCreateDomain(const int id
 								<<SimulationParameters::GetInstance()->getParameter("InitFiles")
 								<<"."<<id<<"."<<SimulationParameters::GetInstance()->getParameter("InitTime");
 	}
+
+
 	ifstream inputInit(initfile.str().c_str());
 	if ( inputInit ) {
 		string line;
@@ -141,10 +147,10 @@ void MNHCreateDomain(const int id
 
 	// completing the last front
 	executor.completeFront(executor.currentSession.ff);
-
 	// Managing the communication matrices for parallel computation
 	if ( session->fd->parallel ) session->fd->createFirenodesMatrices();
 
+ 
 	// advancing the simulation to the beginning of the atmospheric simulation
 	double deltaT = session->fd->getSecondsFromReferenceTime(year, month, day, t);
 
@@ -232,7 +238,10 @@ void FFPutDoubleArray(const char* mname, double* x,
 		size_t sizein, size_t sizeout){
 	string tmpname(mname);
 	// searching for concerned layer
+
+	//cout<<session->fd->getDomainID()<<" is putting "<<tmpname<<endl;
 	DataLayer<double>* myLayer = session->fd->getDataLayer(tmpname);
+
 	if ( myLayer ){
 		FFArray<double>* myMatrix;
 		// getting the pointer
@@ -249,6 +258,8 @@ void FFGetDoubleArray(const char* mname, double t
 	string tmpname(mname);
 	double ct = executor.refTime + t;
 	// searching for the layer to put data
+	cout<<session->fd->getDomainID()<<" is getting "<<tmpname<<endl;
+
 	DataLayer<double>* myLayer = session->fd->getDataLayer(tmpname);
 	if ( myLayer ){
 		myLayer->setMatrix(tmpname, x, sizein, sizeout, ct);

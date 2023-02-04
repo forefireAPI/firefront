@@ -97,7 +97,9 @@ public:
 	void copyDataToFortran(T*);
 	/*!  \brief copying contained data from a Fortran array  */
 	void copyDataFromFortran(const T*);
+	void loadBin(std::ifstream&  );
 
+	void dumpBin(std::ofstream&  );
 	// Printing functions
 	string print2D(size_t = 0, size_t = 0);
 };
@@ -167,6 +169,38 @@ size_t FFArray<T>::getDim(string dim){
 	if ( dim == "t" ) return nt;
 	return size;
 }
+
+template<typename T>
+void FFArray<T>::dumpBin(std::ofstream&  FileOut){
+
+	FileOut.write(reinterpret_cast<const char*>(&nx), sizeof(size_t));
+	FileOut.write(reinterpret_cast<const char*>(&ny), sizeof(size_t));
+	FileOut.write(reinterpret_cast<const char*>(&nz), sizeof(size_t));
+	FileOut.write(reinterpret_cast<const char*>(&nt), sizeof(size_t));
+	FileOut.write(reinterpret_cast<const char*>(data), nx*ny*nz*nt*sizeof(T));
+	
+}
+template<typename T>
+void FFArray<T>::loadBin(std::ifstream&  FileIn){
+	size_t nnx;
+	size_t nny;
+	size_t nnz;
+	size_t nnt;
+	FileIn.read((char *)&nnx, sizeof(size_t));
+	FileIn.read((char *)&nny, sizeof(size_t));
+	FileIn.read((char *)&nnz, sizeof(size_t));
+	FileIn.read((char *)&nnt, sizeof(size_t));
+
+	FileIn.read((char *)data, nx*ny*nz*nt*sizeof(T));
+	if((nnx != nx) ||(nny != ny)) {
+
+		cout << "LOADING  NOT good dimentions in FARRAY "<<nx<<" and read "<<nnx<<":"<<nny<<":"<<nnz<<":"<<nnt<<":"<<endl;
+		FileIn.close();
+	
+	}
+	
+}
+
 
 template<typename T>
 void FFArray<T>::resize(size_t ni, size_t nj, size_t nk, size_t nl){

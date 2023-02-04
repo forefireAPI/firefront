@@ -360,6 +360,12 @@ void TwoTimeArrayLayer<T>::setMatrix(string& mname, double* inMatrix
 			// copying data from atmospheric matrix
 			tmpMatrix->copyDataFromFortran(inMatrix);
 			copyDomainInformation(tmpMatrix, arrayt2);
+
+			ofstream FileOut((params->getParameter("ffOutputsPattern")+"."+this->getKey()).c_str(), ios_base::binary);
+	
+			arrayt2->dumpBin(FileOut);
+			FileOut.close();
+
 		} else if ( mname == "outerWindU" or mname == "outerWindV" ){
 			/* Information concerning the outer wind velocities */
 			tmpMatrix->copyDataFromFortran(inMatrix);
@@ -389,6 +395,7 @@ template<typename T>
 string TwoTimeArrayLayer<T>::print(){
 	return arrayt2->print2D();
 }
+
 
 template<typename T>
 void TwoTimeArrayLayer<T>::dumpAsBinary(string filename, const double& t

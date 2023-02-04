@@ -39,14 +39,14 @@ def FiretoNC(filename, domainProperties, parametersProperties, fuelModelMap, ele
         ncfile.version = "FF.1.0"
         domain = ncfile.createVariable('domain', 'S1', ())
         domain.type = "domain" 
-        domain.SWx = domainProperties['SWx'] 
-        domain.SWy = domainProperties['SWy'] 
-        domain.SWz = domainProperties['SWz']  
-        domain.Lx =  domainProperties['Lx']  
-        domain.Ly =  domainProperties['Ly']  
-        domain.Lz =  domainProperties['Lz']  
-        domain.t0 =  domainProperties['t0']  
-        domain.Lt =  domainProperties['Lt'] 
+        domain.SWx = float(domainProperties['SWx'])
+        domain.SWy = float(domainProperties['SWy'] )
+        domain.SWz = float(domainProperties['SWz']  )
+        domain.Lx = float(domainProperties['Lx']  )
+        domain.Ly =  float(domainProperties['Ly']  )
+        domain.Lz =  float(domainProperties['Lz']  )
+        domain.t0 =  float(domainProperties['t0']  )
+        domain.Lt = float(domainProperties['Lt'] )
         parameters = ncfile.createVariable('parameters', 'S1', ())
         parameters.type = "parameters"       
 
@@ -87,11 +87,11 @@ def FiretoNC(filename, domainProperties, parametersProperties, fuelModelMap, ele
                 fVar.type = "flux" ;
                 for entry in fMap["table"].keys():
                     setattr(fVar, "model%dname"%fMap["table"][entry], entry)
-                fVar.indices = np.array(fMap["table"].values(),dtype=('i4'))
+                fVar.indices = np.array(list(fMap["table"].values()),dtype=('i4'))
                 fVar[0,0,:,:] = fMap["data"]
 
         
-        print "writing ", filename
+        print("writing ", filename)
         ncfile.sync()
         ncfile.close()
 

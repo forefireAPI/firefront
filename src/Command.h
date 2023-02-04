@@ -263,8 +263,10 @@ public:
 	struct Session{
 		SimulationParameters* params;
 		FireDomain* fd;
+		FireDomain* fdp;
 		FireFront* ff;
 		StringRepresentation* outStrRep;
+		StringRepresentation* outStrRepp;
 		TimeTable* tt;
 		Simulator* sim;
 		ostream* outStream;
@@ -273,7 +275,8 @@ public:
 
 	// Definition of the current session, on which the commands acts
 	static Session currentSession; /*!< session containing all the data of the ForeFire simulation */
-	static FireDomain* domain; /*!< pointer to the current fire domain */
+	//static FireDomain* domain; /*!< pointer to the current fire domain */ 
+	//static void setDomain(FireDomain*); /*!< pointer to the current fire domain */
 
 	// Vector of outputs directories
 	static vector<string> outputDirs; /*!< vector of outputs directories */
@@ -312,6 +315,8 @@ public:
 
 	/*! \brief backup of the simulation */
 	static string dumpString();
+
+	
 
 };
 

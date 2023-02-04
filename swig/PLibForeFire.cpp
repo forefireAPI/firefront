@@ -1,6 +1,6 @@
 /*
 
-Copyright (C) 2012 ForeFire Team, SPE, UniversitŽ de Corse.
+Copyright (C) 2012 ForeFire Team, SPE, Universitï¿½ de Corse.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -56,7 +56,7 @@ void PLibForeFire::createDomain( int id
 		session->fd = new FireDomain(id, year, month, day, t, lat, lon
 				, mdimx, meshx, mdimy, meshy, mdimz, dt);
 
-		pyxecutor->domain = session->fd;
+		pyxecutor->getDomain()= session->fd;
 
 		// A FireDomain has been created, the level is increased
 		pyxecutor->increaseLevel();
@@ -71,7 +71,7 @@ void PLibForeFire::createDomain( int id
 		session->sim = new Simulator(session->tt, session->fd->outputs);
 
 
-		session->outStrRep = new StringRepresentation(pyxecutor->domain);
+		session->outStrRep = new StringRepresentation(pyxecutor->getDomain());
 		if ( SimulationParameters::GetInstance()->getInt("outputsUpdate") != 0 ){
 			session->tt->insert(new FFEvent(session->outStrRep));
 		}
@@ -90,7 +90,7 @@ void PLibForeFire::createDomain( int id
 
 void PLibForeFire::addLayer(char *type, char* layername, char* keyname){
 
-	pyxecutor->domain->addLayer(string(type),string(layername),string(keyname));
+	pyxecutor->getDomain()->addLayer(string(type),string(layername),string(keyname));
 }
 
 void PLibForeFire::setInt(char* name, int val){
@@ -142,7 +142,7 @@ void PLibForeFire::addScalarLayer(char *type, char *name, double x0 , double y0,
 	size_t nk = nnz;
 	size_t nl = 1;
 
- 	pyxecutor->domain->addScalarLayer(type, lname,  x0,y0,  t0,                    width ,            height,  timespan,       ni,   nj,  nk, nl,values);
+ 	pyxecutor->getDomain()->addScalarLayer(type, lname,  x0,y0,  t0,                    width ,            height,  timespan,       ni,   nj,  nk, nl,values);
 
 }
 
@@ -157,11 +157,11 @@ void PLibForeFire::addIndexLayer(char *type,char *name, double x0 , double y0, d
 	size_t nk = nnz;
 	size_t nl = 1;
 
- 	pyxecutor->domain->addIndexLayer(ltype, lname,  x0,y0,  t0,                    width ,            height,  timespan,       ni,   nj,  nk, nl,values);
+ 	pyxecutor->getDomain()->addIndexLayer(ltype, lname,  x0,y0,  t0,                    width ,            height,  timespan,       ni,   nj,  nk, nl,values);
 }
 
 void PLibForeFire::getDoubleArray(char* name, double** outA, int* outNI, int* outNJ, int* outNK){
-	double lTime = pyxecutor->domain->getSimulationTime();
+	double lTime = pyxecutor->getDomain()->getSimulationTime();
 
 
 	PLibForeFire::getDoubleArray(name,lTime,outA,outNI,  outNJ,  outNK);
@@ -169,7 +169,7 @@ void PLibForeFire::getDoubleArray(char* name, double** outA, int* outNI, int* ou
 
 void PLibForeFire::getDoubleArray(char* name, double t, double** outA, int* outNI, int* outNJ, int* outNK){
 	string lname(name);
-	FluxLayer<double>* myFluxLayer = pyxecutor->domain->getFluxLayer(lname);
+	FluxLayer<double>* myFluxLayer = pyxecutor->getDomain()->getFluxLayer(lname);
 
 		if ( myFluxLayer ){
 			FFArray<double>* srcD;
@@ -183,7 +183,7 @@ void PLibForeFire::getDoubleArray(char* name, double t, double** outA, int* outN
 			}
 		}
 
-	DataLayer<double>* myDataLayer = pyxecutor->domain->getDataLayer(lname);
+	DataLayer<double>* myDataLayer = pyxecutor->getDomain()->getDataLayer(lname);
 
 		if ( myDataLayer ){
 			FFArray<double>* srcD;

@@ -21,9 +21,22 @@
 #include "FireDomain.h"
 #include "BurningMapLayer.h"
 
+#include <sys/stat.h>
 #include "RosLayer.h"
 
 namespace libforefire{
+//  On garde 1 domaine pour faire le parallele - domain 1
+//  
+//  
+//  
+//  Test - Domain 1 est celui qui a les fronts - il propage et il a des ghosts de sous domaines.
+//  Il faut qu'in conaisse la taille totale..Il lit ça dans le NC qui a la taille du domaine physique 
+// attention /etc/beegfs/beegfs-client.conf tuneRemoteFSync=true
+//  (pas de halos externes, faire attention  aux points de flux)
+//  Domain 1 va lire des fichiers de vents U/V a tous les updates
+//  Domain N va écrire des BMaps à tous les updates
+//  Recuperer les extents de tous les sous domaines... 
+//  On fait plus de chaines....
 
 	// Static variables
 	long ForeFireAtom::instanceNRCount = 0;
@@ -31,6 +44,7 @@ namespace libforefire{
 	const double FireDomain::endChain = -1.;
 	const double FireDomain::endCom = -10.;
 	const double FireDomain::noCom = -100.;
+	const int FireDomain::maxComNodes = 20;
 
 
 	const string FireDomain::altitude = "altitude";
@@ -41,7 +55,8 @@ namespace libforefire{
 	bool FireDomain::commandOutputs = false;
 	bool FireDomain::recycleNodes = false;
 	bool FireDomain::recycleFronts = false;
-
+	
+	list<FireDomain::distributedDomainInfo*> FireDomain::parallelDispatchDomains;
 	list<FireNode*> FireDomain::createdNodes;
 	list<FireNode*> FireDomain::trashNodes;
 	list<FireFront*> FireDomain::trashFronts;
@@ -70,21 +85,90 @@ namespace libforefire{
 	FireDomain::FireDomain() : ForeFireAtom(0.) {
 		cout<<"Trying to instantiate an empty FireDomain, not relevant"<<endl;
 	}
+	
+		
 
 	FireDomain::FireDomain(const double& t
 						   , FFPoint& sw, FFPoint& ne)
 	: ForeFireAtom(t), SWCorner(sw), NECorner(ne) {
 		propagationSpeedAdjustmentFactor =1;
+		numberOfRispatchDomains = 0;
 		params = SimulationParameters::GetInstance();
-
+		numIterationAtmoModel = 0;
 		// Maximum time-step for Firenodes is not constrained
 		dtMax = numeric_limits<double>::infinity();
 
-		// Mesh size
+
+
+		if (params->getParameter("runmode") == "masterMNH"){
+
+			
+			readMultiDomainMetadata();
+
+			
+
+ 
+	
+			if(numberOfRispatchDomains >0){
+
+			
+			distributedDomainInfo* fit = parallelDispatchDomains.front();
+			double Mswx = fit->SWCorner->getX();
+			double Mswy = fit->SWCorner->getY();
+			double Mnex = fit->NECorner->getX();
+			double Mney = fit->NECorner->getY();
+ 
+			double readRes = (Mnex-Mswx)/fit->atmoNX;
+			list<distributedDomainInfo*>::iterator it;
+			for (it = parallelDispatchDomains.begin(); it != parallelDispatchDomains.end(); it++)
+				{
+				 
+						Mswx = std::min(Mswx,(*it)->SWCorner->getX());
+						Mswy = std::min(Mswy,(*it)->SWCorner->getY());
+						Mnex = std::max(Mnex,(*it)->NECorner->getX());
+						Mney = std::max(Mney,(*it)->NECorner->getY());
+			 
+			}
+			SWCorner.setLoc(Mswx,Mswy);
+			NECorner.setLoc(Mnex,Mney); 
+			
+						atmoNX = (Mnex-Mswx)/readRes;
+						atmoNY = (Mney-Mswy)/readRes;
+
+						params->setSize("atmoNX",atmoNX);
+					 
+						params->setSize("atmoNY",atmoNY);
+			atmoNY = params->getSize("atmoNY");
+
+			
+
+			for (it = parallelDispatchDomains.begin(); it != parallelDispatchDomains.end(); it++)
+				{
+				 
+						(*it)->refNX = size_t(((*it)->SWCorner->getX()-Mswx)/readRes);
+						(*it)->refNY = size_t(((*it)->SWCorner->getY()-Mswy)/readRes);
+						cout<<(*it)->ID<<" HAVE A RESOLUTION OF "<< readRes <<" location "<<(*it)->refNX<<":"<<(*it)->refNY<<" coords:"<<(*it)->SWCorner->print() << ":"<<(*it)->NECorner->print()<<endl;
+						
+			}
+				
+					
+			}else{
+				cout<<"ERROR big problem master mode but 0 domains read, rerun for domain file caching"<<endl;
+				atmoNX = params->getSize("atmoNX");
+				atmoNY = params->getSize("atmoNY");
+	 
+			}
+
+
+	
+		}else{
+			params->setParameter("runmode", "standalone");
+			atmoNX = params->getSize("atmoNX");
+			atmoNY = params->getSize("atmoNY");
+		}
 		atmoNX = params->getSize("atmoNX");
 		atmoNY = params->getSize("atmoNY");
 		atmoNZ = params->getSize("atmoNZ");
-
 		// computing the cells' mesh
 		double cellsMeshX[atmoNX+1];
 		double cellsMeshY[atmoNY+1];
@@ -106,7 +190,6 @@ namespace libforefire{
 		params->setInt("parallel", 0);
 
 		// simulation won't be be run with mnh
-		params->setParameter("runmode", "standalone");
 		atmosphericCoupling = false;
 
 		// reference time
@@ -136,6 +219,7 @@ namespace libforefire{
 
 		getNewID(mpirank);
 
+		numIterationAtmoModel = 0;
 		params = SimulationParameters::GetInstance();
 
 		// Maximum time-step for Firenodes is constrained by the atmospheric model
@@ -156,10 +240,29 @@ namespace libforefire{
 		atmoNZ = (size_t) mdimz;
 		params->setSize("atmoNZ", atmoNZ);
 
+	string ffOutputsPattern(params->getParameter("caseDirectory")+'/'+params->getParameter("fireOutputDirectory")+'/'+params->getParameter("outputFiles")+"."+params->getParameter("mpirank"));
+	SimulationParameters::GetInstance()->setParameter("ffOutputsPattern", ffOutputsPattern);
+
+	
+
 		// computing the position of the physical and numerical corners
 		SWCorner = FFPoint(meshx[0], meshy[0]);
 		NECorner = FFPoint(2.*meshx[atmoNX-1]-meshx[atmoNX-2]
 						   , 2.*meshy[atmoNY-1]-meshy[atmoNY-2]);
+		bool dumpDomainInfo = true;
+		if (dumpDomainInfo){
+			ofstream FileOut((ffOutputsPattern+".domainData").c_str(), ios_base::binary);
+
+			FileOut.write(reinterpret_cast<const char*>(&atmoNX), sizeof(size_t));
+			FileOut.write(reinterpret_cast<const char*>(&atmoNY), sizeof(size_t));
+			FileOut.write(reinterpret_cast<const char*>(&SWCorner.x), sizeof(double));
+			FileOut.write(reinterpret_cast<const char*>(&SWCorner.y), sizeof(double));
+			FileOut.write(reinterpret_cast<const char*>(&NECorner.x), sizeof(double));
+			FileOut.write(reinterpret_cast<const char*>(&NECorner.y), sizeof(double));
+			FileOut.flush();   
+			FileOut.rdbuf()->pubsync(); 		
+			FileOut.close();
+		}
 
 		// computing the cells' mesh
 		double cellsMeshX[atmoNX+1];
@@ -230,6 +333,78 @@ namespace libforefire{
 		if ( mainFrontBackup != 0 ) delete mainFrontBackup;
 		mainFrontBackup = new FireFrontData(domainFront);
 	}
+inline size_t fileSize(const std::string& name) {
+  struct stat buffer;   
+      if(stat(name.c_str(), &buffer) != 0) {
+        return 0;
+    }
+    return buffer.st_size;   
+}
+void FireDomain::readMultiDomainMetadata(){
+
+		if (getDomainID()!=0) return;
+	/*	if (numberOfRispatchDomains > 0) return;
+ 
+		if (getNumIterationAtmoModel() < 1) return;*/
+		size_t numReadDom = 1;
+
+		//read all files for smaller domains
+		
+ 		string ffDomPattern(params->getParameter("caseDirectory")+'/'+params->getParameter("fireOutputDirectory")+'/'+params->getParameter("outputFiles")+".");
+ 
+		size_t domFileSize = fileSize(ffDomPattern+std::to_string(numReadDom)+".domainData");
+		while(domFileSize > 0){
+ 
+			numReadDom++;
+			domFileSize = fileSize(ffDomPattern+std::to_string(numReadDom)+".domainData");
+		}
+		numReadDom -=1;
+ 
+		numberOfRispatchDomains = numReadDom;
+	 
+		distributedDomainInfo *currentInfo = new distributedDomainInfo;
+ 		
+	
+
+		// info to gather : 1 global geometry
+		
+	
+ 
+
+		while(numReadDom > 0){
+
+			currentInfo->ID = numReadDom;
+		    
+			currentInfo->lastTime = 0;
+	  
+		    ifstream FileIn((ffDomPattern+std::to_string(numReadDom)+".domainData").c_str(), ios_base::binary);
+
+			size_t anx = 0;
+			size_t any = 0;
+			double nswx = 0;
+			double nswy = 0;
+			double nnex = 0;
+			double nney = 0;
+	
+			FileIn.read((char *)&anx, sizeof(size_t));
+			FileIn.read((char *)&any, sizeof(size_t));
+			FileIn.read((char *)&nswx, sizeof(double));
+			FileIn.read((char *)&nswy, sizeof(double));
+			FileIn.read((char *)&nnex, sizeof(double));
+			FileIn.read((char *)&nney, sizeof(double));
+		    FileIn.close();
+			currentInfo->atmoNX = anx;
+			currentInfo->atmoNY = any;
+			currentInfo->SWCorner = new FFPoint(nswx, nswy);
+			currentInfo->NECorner = new FFPoint(nnex, nney);
+
+			parallelDispatchDomains.push_back(currentInfo);;
+			currentInfo = new distributedDomainInfo;
+			numReadDom--;
+		}	
+	 
+	
+	} 
 
 	void FireDomain::restoreValidState(){
 		/* Restoring a previously saved valid state */
@@ -508,12 +683,12 @@ namespace libforefire{
 	FluxModel* FireDomain::fluxModelInstanciation(const int& index, string modelname){
 		FluxModelMap::iterator fmodel;
 
-
-
+			
 		fmodel = flux_instantiatorMap().find(modelname);
-
+		
 
 		if ( fmodel != flux_instantiatorMap().end() ){
+
 			return (fmodel->second)(index, dataBroker);
 		} else {
 			cout<<"ERROR: Flux model "<<modelname
@@ -527,7 +702,7 @@ namespace libforefire{
 	}
 
 	void FireDomain::registerFluxModel(const int& index, FluxModel* model){
-		cout << model->getName() <<endl;
+		 
 		fluxModelsTable[index] = model;
 	}
 
@@ -601,6 +776,7 @@ namespace libforefire{
 			if ( type == "flux" ){
 				size_t mindex = values[0];
 				string fmname = name;
+				
 				FluxModel* model = fluxModelInstanciation(mindex, fmname);
 				if ( model != 0 ){
 					/* Instantiating a flux layer related to this model */
@@ -830,8 +1006,10 @@ namespace libforefire{
 		int begSeg, endSeg;
 		FFPoint pInter = findIntersectionWithBoundingBox(pIn, pOut, swc, nec, endSeg);
 		FFPoint nInter = findIntersectionWithBoundingBox(nIn, nOut, swc, nec, begSeg);
-		px.push_back(nInter.getX());
-		py.push_back(nInter.getY());
+		if((nInter != outPoint )||(pInter != outPoint )){
+			px.push_back(nInter.getX());
+			py.push_back(nInter.getY());
+			
 
 		// Linking the last and first points to have a closed polygon
 		FFPoint corner;
@@ -853,7 +1031,9 @@ namespace libforefire{
 
 		px.push_back(pInter.getX());
 		py.push_back(pInter.getY());
-
+		}else{
+			cout << getDomainID()<<" have a problem for burning scan"<<endl;
+		}
 		delete [] xpoly;
 		delete [] ypoly;
 
@@ -1130,14 +1310,16 @@ namespace libforefire{
 	bool FireDomain::isBurning(FFPoint& loc, const double& t){
 		/* the location is considered to be burning if the heat released
 		 * by the fire is superior to a prescribed value (~500 W.m-2) */
-
+		
 		double at = getArrivalTime(loc);
-		if ( t >= at ){
+		if ( t >= at ){ 
 			int mind = dataBroker->heatFluxLayer->getFunctionIndexAt(loc, t);
 
 			double heatFlux = getModelValueAt(mind, loc, t, t, at);
-
-			if ( heatFlux > burningTresholdFlux ) return true;
+			
+			if ( heatFlux > burningTresholdFlux ) {
+				return true;
+			}
 		}
 		return false;
 	}
@@ -1240,6 +1422,114 @@ namespace libforefire{
 		return cells;
 	}
 
+	void FireDomain::dumpCellsInBinary(){
+		if (params->getParameter("runmode") == "masterMNH"){
+			if(getDomainID()==0){
+						string domOutPattern(params->getParameter("caseDirectory")+'/'+params->getParameter("fireOutputDirectory")+'/'+params->getParameter("outputFiles")+".");
+						list<distributedDomainInfo*>::iterator it;
+						for (it = parallelDispatchDomains.begin(); it != parallelDispatchDomains.end(); it++)
+							{
+								
+								ofstream FileOut((domOutPattern+to_string((*it)->ID)+".bmapcells").c_str(), ios_base::binary|ios_base::trunc  );
+								size_t anx = (*it)->atmoNX;
+								size_t any = (*it)->atmoNY;
+								size_t snx = (*it)->atmoNX*localBMapSizeX;
+								size_t sny = (*it)->atmoNY*localBMapSizeY;
+								size_t rnx = (*it)->refNX;
+								size_t rny = (*it)->refNY;
+								size_t localx = (*it)->refNX;
+								size_t localy = (*it)->refNY;
+								FileOut.write(reinterpret_cast<const char*>(&anx), sizeof(size_t));
+								FileOut.write(reinterpret_cast<const char*>(&any), sizeof(size_t));
+								FileOut.write(reinterpret_cast<const char*>(&snx), sizeof(size_t));
+								FileOut.write(reinterpret_cast<const char*>(&sny), sizeof(size_t));
+								size_t cntCell = 0;
+
+								for ( size_t i = rnx; i < rnx+anx; i++ ) {
+									localx = (i-rnx);
+									for ( size_t j = rny; j < rny+any; j++ ) {
+										localy = (j-rny);
+												if(cells[i][j].isActiveForDump()){
+													
+													FileOut.write(reinterpret_cast<const char*>(&localx), sizeof(size_t));
+													FileOut.write(reinterpret_cast<const char*>(&localy), sizeof(size_t));
+													cells[i][j].getBurningMap()->getMap()->dumpBin(FileOut);
+													cntCell++;
+												}
+									}
+								}
+								FileOut.flush();   
+								FileOut.rdbuf()->pubsync(); 	
+								FileOut.close();
+								
+						}		
+
+	
+			/*	string ffOutputsPattern(params->getParameter("caseDirectory")+'/'+params->getParameter("fireOutputDirectory")+'/'+params->getParameter("outputFiles")+"."+params->getParameter("mpirank"));
+				ofstream FileOut((params->getParameter("PffOutputsPattern")+".bmapcells").c_str(), ios_base::binary);
+				FileOut.write(reinterpret_cast<const char*>(&atmoNX), sizeof(size_t));
+				FileOut.write(reinterpret_cast<const char*>(&atmoNY), sizeof(size_t));
+				FileOut.write(reinterpret_cast<const char*>(&globalBMapSizeX), sizeof(size_t));
+				FileOut.write(reinterpret_cast<const char*>(&globalBMapSizeY), sizeof(size_t));
+				size_t cntCell = 0;
+				for ( size_t i = 0; i < atmoNX; i++ ) {
+					for ( size_t j = 0; j < atmoNY; j++ ) {
+						if(cells[i][j].isActive()){
+							FileOut.write(reinterpret_cast<const char*>(&i), sizeof(size_t));
+							FileOut.write(reinterpret_cast<const char*>(&j), sizeof(size_t));
+							cells[i][j].getBurningMap()->getMap()->dumpBin(FileOut);
+							cntCell++;
+						}
+						}
+				}
+				FileOut.close();
+				*/
+				
+			}
+		}
+	}
+
+	void FireDomain::loadCellsInBinary(){
+
+		if(getDomainID()>0){
+			size_t size_of_header = 4*sizeof(size_t);
+			size_t size_of_cell = 6*sizeof(size_t)+(localBMapSizeX*localBMapSizeX*sizeof(double));
+			
+			string domInName(params->getParameter("caseDirectory")+'/'+params->getParameter("fireOutputDirectory")+'/'+params->getParameter("outputFiles")+"."+to_string(getDomainID())+".bmapcells");
+			size_t domFsize = fileSize(domInName);
+				if(domFsize >size_of_header){
+
+					size_t	cntCell = (domFsize-size_of_header)/size_of_cell;
+					size_t	leftover = (domFsize-size_of_header)%size_of_cell; 
+					
+				 	ifstream FileIn(domInName.c_str(), ios_base::binary);
+					size_t nni;
+					size_t nnj;
+					size_t nnx;
+					size_t nny;
+					size_t nnz;
+					size_t nnt; 
+
+					FileIn.read((char *)&nnx, sizeof(size_t));
+					FileIn.read((char *)&nny, sizeof(size_t));
+					FileIn.read((char *)&nnz, sizeof(size_t));
+					FileIn.read((char *)&nnt, sizeof(size_t));
+	
+					for ( size_t ci = 0; ci < cntCell; ci++ ) {
+							FileIn.read((char *)&nni, sizeof(size_t));
+							FileIn.read((char *)&nnj, sizeof(size_t));					
+							cells[nni][nnj].loadBin(FileIn);
+						}
+						if(cntCell>0) cout<<cntCell<<" cells read in domain "<< getDomainID()<<" leftover "<<leftover<<endl;
+					FileIn.close();
+			
+				}
+
+			
+			
+			}
+					
+	}
 	// finding the cell with the the location
 	FDCell* FireDomain::getCell(FFPoint p){
 		return getCell(p.getX(), p.getY());
@@ -1449,16 +1739,16 @@ namespace libforefire{
 		}
 
 		// checking the effective linking of the marker ith the others
-		bool correctlyLinked = true;
+		//bool correctlyLinked = true;
 		size_t maxCounts = 100000;
 		size_t nmarker = 0;
 		FireNode* tmpfn = fn->getNext();
 		while ( tmpfn != fn and tmpfn != 0 and nmarker < maxCounts ) tmpfn = tmpfn->getNext();
-		if ( tmpfn == 0 or nmarker == maxCounts ) correctlyLinked = false;
+		//if ( tmpfn == 0 or nmarker == maxCounts ) correctlyLinked = false;
 		nmarker = 0;
 		tmpfn = fn->getPrev();
 		while ( tmpfn != fn and tmpfn != 0 and nmarker < maxCounts ) tmpfn = tmpfn->getPrev();
-		if ( tmpfn == 0 or nmarker == maxCounts ) correctlyLinked = false;
+		//if ( tmpfn == 0 or nmarker == maxCounts ) correctlyLinked = false;
 
 		/* Detecting the changes needed in the topology */
 		/* -------------------------------------------- */
@@ -1574,7 +1864,8 @@ namespace libforefire{
 		// Adding the firenode in the prescribed front
 		// if no front, it is a node coming from a parallelization process
 		FireNode* newfn = FireNodeFactory();
-		newfn->initialize(loc, vel, t, fDepth, kappa, this, ff, prevNode);
+	
+		newfn->initialize(loc, vel, t, fDepth, kappa, this, ff, prevNode); 
 		newfn->setState(state);
 		// If a domain and and id is specified, imposing it
 		if ( dom != 0 and id != 0 ) newfn->setID(dom, id);
@@ -1635,6 +1926,7 @@ namespace libforefire{
 													  FFPoint& pointA, FFPoint& pointB){
 		/* Finding the intersection with frontiers of the domain */
 		FFPoint inter = outPoint;
+ 
 		list<Frontier*>::iterator frontier = frontiers.begin();
 		while ( inter == outPoint and frontier != frontiers.end() ){
 			inter = findIntersection(pointA, pointB
@@ -1862,14 +2154,15 @@ namespace libforefire{
 
 	/* managing the firenodes in the halo */
 	void FireDomain::manageHaloFirenodes(const double& t){
-
-		debugOutput.str("");
+		outputs=false;
+		//cout<< debugOutput.str();
 		debugOutput.clear();
 
 		try {
 
 			/* Populating the list of firenodes in the halo
 			 * from the information given by other processors */
+
 			createHaloFirenodesList(haloFirenodesData);
 
 			debugOutput<<getDomainID()<<": before controlling the chains: "<<endl
@@ -1879,47 +2172,94 @@ namespace libforefire{
 				debugOutput<<getDomainID()<<":"<<'\t'<<(*data)->toString()<<endl;
 			}
 
-			correctChains(haloFirenodesData);
+			//correctChains(haloFirenodesData);
 
-			debugOutput<<getDomainID()<<": final list of incoming data is: "<<endl
-					<<"------------------------------------"<<endl;
-			for ( data = haloFirenodesData.begin(); data != haloFirenodesData.end(); ++data ){
-				debugOutput<<getDomainID()<<":"<<'\t'<<(*data)->toString()<<endl;
+		//	debugOutput<<getDomainID()<<": final list of incoming data is: "<<endl
+		//			<<"------------------------------------"<<endl;
+			        
+		/*
+		
+
+				FFVector vel1 = FFVector(0, 1);
+				FFVector vel2 = FFVector(1, -1);
+				FFVector vel3 = FFVector(-1, -1);
+				FFVector diffP1 = perimRes*vel1;
+				FFVector diffP2 = perimRes*vel2;
+				FFVector diffP3 = perimRes*vel3;
+
+				FFPoint pos1 = pos+diffP1.toPoint();
+				FFPoint pos2 = pos+diffP2.toPoint();
+				FFPoint pos3 = pos+diffP3.toPoint();
+				
+				vel1 *= 0.1;
+				vel2 *= 0.1;
+				vel3 *= 0.1;
+
+			
+				
+				FireNode* lastnode =  addFireNode(pos1, vel1, t, fdepth, kappa, currentSession.ff, 0);
+				lastnode =  addFireNode(pos2, vel2, t, fdepth, kappa, currentSession.ff, lastnode);
+			    addFireNode(pos3, vel3, t, fdepth, kappa, currentSession.ff, lastnode);
+				completeFront(currentSession.ff);
+			*/
+			if ( haloFirenodesData.size() > 0 ){
+ 
+				cout<< "TIME " <<getTime()<<" dom:"<<getDomainID()<< " there is " <<haloFirenodesData.size()<<" incoming nodes, adding a front "<<endl;
+				data = haloFirenodesData.begin();
+				
+				FireFront* newFront = addFireFront((*data)->time,domainFront);
+		 
+			 
+				FireNode* curfn = addFireNode(*data, newFront);
+				curfn->setDomain(this);
+				FireNode* prev;
+				++data;
+				//cout<<getDomainID()<<"  is first "<<'\t'<<(*data)->toString()<<endl;
+				while ( data != haloFirenodesData.end() ){
+					if ((*data)->id > 0){
+			 
+						prev = curfn;
+						curfn = addFireNode(*data, newFront, prev);
+						curfn->setDomain(this);
+						//cout<<getDomainID()<<":"<<'\t'<<curfn->toString()<<endl;
+					}
+					++data;
+				}
 			}
 
+
 			/* Looking for excessive nodes */
-			findExcessFirenodes(haloFirenodesData, excessHaloFirenodes);
+			//findExcessFirenodes(haloFirenodesData, excessHaloFirenodes);
 
 			if ( haloFirenodesData.size() > 0 ){
 
 				/* deleting the previous link nodes */
-				deleteLinkNodes(linkNodes);
+				//deleteLinkNodes(linkNodes);
 
 				/* clearing the list of matched ids during formIncomingStructures */
 				matchedIds.clear();
 
 				/* Forming the incoming structures of markers */
-				formIncomingStructures(haloFirenodesData
-									   , excessHaloFirenodes, recentlyIDChangedNodes
-									   , endsExcessFirenodes, impactedFronts);
+				//formIncomingStructures(haloFirenodesData  , excessHaloFirenodes, recentlyIDChangedNodes , endsExcessFirenodes, impactedFronts);
 
 			}
 
 			/* Deleting remaining excessive nodes */
-			deleteExcessFirenodes(excessHaloFirenodes, endsExcessFirenodes);
+			//deleteExcessFirenodes(excessHaloFirenodes, endsExcessFirenodes);
 
 			/* Validating the topology in all the cells */
-			validateTopology("parallel");
+			//validateTopology("parallel");
 
-			debugOutput<<printMainFronts()<<getDomainID()<<": END HALO"<<endl;
+			debugOutput<<getDomainID()<<": END HALO"<<endl;
 
 			if ( outputs ) cout<<debugOutput.str();
 
 		} catch ( const ParallelException& e ) {
+			cout<<getDomainID()<<": error in halo "<< endl;
 			cout<<getDomainID()<<": "<<e.what();
 			restoreValidState();
 		}
-
+		
 		debugOutput.str("");
 		debugOutput.clear();
 
@@ -1938,11 +2278,14 @@ namespace libforefire{
 		/* constructing the lists in each outer halo */
 		list<Halo*>::iterator halo;
 		list<FireNodeData*>* currentChain = new list<FireNodeData*>;
+	 
 		for ( halo = outerHalos.begin(); halo != outerHalos.end(); ++halo ){
 			if ((*halo)->isActive) (*halo)->readHaloNodeList(endCom, noCom);
+			
 			currentChain = popChainAt((*halo)->nodeDataList, 0);
 			while ( currentChain != 0 ){
 				addChainToList(haloList, *currentChain);
+				return;
 				currentChain = popChainAt((*halo)->nodeDataList, 0);
 			}
 		}
@@ -1953,21 +2296,21 @@ namespace libforefire{
 									, list<FireNodeData*>& chain){
 
 		int posOfChain = getPositionOfRelatedChain(hlist, chain);
-
+		
 		/* if chain has only new data, appending it to the list */
 		if ( posOfChain == -1 ){
 			appendChain(hlist, chain);
 			return;
 		}
-
+		
 		/* else merging with the chains containing same data */
-		list<FireNodeData*>* oldChain;
-		list<FireNodeData*>* newChain;
-		oldChain = popChainAt(hlist, posOfChain);
-		newChain = mergeChains(chain, *oldChain);
+		//list<FireNodeData*>* oldChain;
+		//list<FireNodeData*>* newChain;
+		//oldChain = popChainAt(hlist, posOfChain);
+		//newChain = mergeChains(chain, *oldChain);
 
 		/* recursive call for other possible merges */
-		addChainToList(hlist, *newChain);
+		//addChainToList(hlist, *newChain);
 
 	}
 
@@ -2019,6 +2362,7 @@ namespace libforefire{
 		schedule = 0;
 		/* boolean of parallel simulations */
 		parallel = (bool) params->getInt("parallel");
+ 
 		/* number of the iteration of the Atmospheric Model */
 		numIterationAtmoModel = 0;
 		/* heat flux treshold for considering a location burning */
@@ -2118,7 +2462,7 @@ namespace libforefire{
 		}
 
 		// Burning map resolution
-		double BMapsResolution = getBurningMapResolution(spatialIncrement
+		BMapsResolution = getBurningMapResolution(spatialIncrement
 														 , params->getDouble("minimalPropagativeFrontDepth"));
 		localBMapSizeX = (size_t) (dx/BMapsResolution );
 
@@ -2137,6 +2481,7 @@ namespace libforefire{
 
 
 
+	
 		/*--------------------*/
 		/* Defining the cells */
 		/*--------------------*/
@@ -2164,6 +2509,41 @@ namespace libforefire{
 					cells[i][j].setGlobalCoordinates(i,j);
 				}
 			}
+
+
+     	//now i can compute total geometry
+		// for the cells - I assign to each cell the right dumpDomainID and dumpIndice..
+		//  at dump time : loop trough all and make lists to dump and a table with count to dump
+		//  i go trough the count to dump 
+		// at read time I see if a file exist and I read/create it
+		///for the wind, need to knwo where I read data...first read/write all then see if only read/write it if I have a bmap
+		// where to read it is from that domain reference
+
+
+			
+		// Mesh size
+			// read all domains and create list
+				/*
+				BMAP Parallel shit
+				*/
+				if (params->getParameter("runmode") == "masterMNH"){
+				
+					if(getDomainID()==0){
+					list<distributedDomainInfo*>::iterator it;
+						for (it = parallelDispatchDomains.begin(); it != parallelDispatchDomains.end(); it++)
+							{
+								for ( size_t i = (*it)->refNX; i < ((*it)->refNX+(*it)->atmoNX); i++ ) {
+									for ( size_t j = (*it)->refNY; j < ((*it)->refNY+(*it)->atmoNY); j++ ) {
+										// setting the parent Fire domain
+										//cout<<"assigning "<<(*it)->ID<<" with "<<i<<":"<<j<<endl;
+										cells[i][j].toDumpDomainID =(*it)->ID;
+									}
+								}
+						}
+					}
+					cout <<"Domain "<<getDomainID()<<"    size:"<<atmoNX<<":"<<atmoNY<<":"<<atmoNZ<<" coord:"<<(NECornerX()-SWCornerX())<<":"<<(NECornerY()-SWCornerY())<<" my bmap is "<<globalBMapSizeX<<":"<<globalBMapSizeY<< " res " <<burningMatrixResX<<":"<< burningMatrixResY<< endl;
+				}
+
 		} catch ( const bad_alloc & ) {
 			// deleting what has been allocated
 			for ( size_t i = 0; i < allocated_dim; ++i ) {
@@ -2177,17 +2557,19 @@ namespace libforefire{
 		trashCell = new FDCell(this);
 		trashCell->makeTrash();
 
+
 		/*----------------------------------------------------*/
 		/* Reading A-time state from a file                   */
 		/*----------------------------------------------------*/
 		/* If a matrix is already stored with given values, taken it */
 
+
 		if ( params->isValued("BMapFiles") ){
 
-			size_t i = 0;
+			/*size_t i = 0;
 			size_t j = 0;
 			size_t ii = 0;
-			size_t jj = 0;
+			size_t jj = 0;*/
 			ostringstream oss;
 			if ( params->getInt("parallelInit") != 0 ){
 				oss<<params->getParameter("caseDirectory")<<'/'
@@ -2202,6 +2584,9 @@ namespace libforefire{
 
 			#ifdef NETCDF_NOT_LEGACY
 			cout << "FireDomain:: reading BMap file " << " newCDF Not Implemented" << endl;
+
+
+
 			#else
 			NcFile dataFile(oss.str().c_str(), NcFile::ReadOnly);
 
@@ -2497,18 +2882,25 @@ namespace libforefire{
 
 		/* initializations for the flux models */
 		for ( size_t i = 0; i < NUM_MAX_FLUXMODELS; i++ ) fluxModelsTable[i] = NULL;
+	
 		dataBroker->initializeFluxLayers(infile.str());
 
 		/* loading the layers for atmospheric variables and coupling variables */
 		if ( atmosphericCoupling ) {
+			 
 			dataBroker->initializeAtmosphericLayers(getTime()
 													, globalBMapSizeX, globalBMapSizeY);
 		}
 
+		
 		/* loading the data from a netCDF file */
 		dataBroker->loadFromNCFile(infile.str());
 		/* Insuring the presence of needed layers */
+		if (dataBroker->getLayer("windU") == 0) 
+			cout<<"Windu do not exist at "<<getDomainID()<<endl;
 		dataBroker->insureLayersExistence();
+			if (dataBroker->getLayer("windU") == 0) 
+			cout<<"Windu still not exist at "<<getDomainID()<<endl;
 		/* Initializing flux layers */
 		dataBroker->initFluxLayers(getTime());
 		/* Initializing the burning map layer */
@@ -2527,7 +2919,8 @@ namespace libforefire{
 				cout<<"WARNING: but this proc has an mpi rank of "<<getDomainID()<<endl;
 			}
 		}
-
+		if (dataBroker->getLayer("windU") == 0) 
+			cout<<"Windu still very not exist at "<<getDomainID()<<endl;
 
 
 	}
@@ -2801,12 +3194,15 @@ namespace libforefire{
 								 , const list<FireNodeData*>& chain){
 
 		if ( chain.empty() ) return;
-
 		list<FireNodeData*>::const_iterator data;
 
 		// append the data in the chain
 		for ( data = chain.begin(); data != chain.end(); ++data ){
-			hlist.push_back(*data);
+
+		
+		 
+				hlist.push_back(*data);
+			 
 		}
 
 		// append a marker for end of chain
@@ -3754,7 +4150,9 @@ namespace libforefire{
 		if ( abs(loc.getY()-SWCornerY()) < EPSILONX ) return 3;
 		return -1;
 	}
-
+	int FireDomain::getMaxComNodes(){
+		return maxComNodes;
+	}
 	FireNode* FireDomain::findRelatedPreviousLink(
 												  list<FireNode*> prevLinks, FFPoint loc){
 
@@ -4190,6 +4588,8 @@ namespace libforefire{
 
 	// Visitor function
 	void FireDomain::accept(Visitor* v) {
+
+		 
 		v->visit(this);
 		domainFront->accept(v);
 	}
@@ -4216,6 +4616,8 @@ namespace libforefire{
 	void FireDomain::dumpBurningMatrixAsBinary(){
 		// Binary file
 		ostringstream oss;
+		
+
 		oss<<params->getParameter("ffOutputsPattern")<<".bmap";
 		fstream binary_file(oss.str().c_str(),ios::out|ios::binary);
 		binary_file.write(reinterpret_cast<char *>(&globalBMapSizeX),sizeof(size_t));

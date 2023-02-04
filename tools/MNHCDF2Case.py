@@ -17,10 +17,20 @@
 
 import numpy as np
 import sys
-
+import xarray as xr
 import netCDF4 as nc4
 
+def forceDim(arrIn, newD=None, kind='edge'):
+    print(np.shape(arrIn))
+    if (newD[0][1] < 0):
+        newr = arrIn[newD[0][0]:newD[0][1],newD[1][0]:newD[1][1]]
+        print("new shape ",np.shape(newr))
+        return(newr)
     
+    if(newD==None):
+        return arrIn
+    return np.pad(arrIn, newD, kind)
+
 
 execfile("genForeFireCase.py")
 
@@ -28,10 +38,10 @@ execfile("genForeFireCase.py")
 #    print "Usage MNHCDF2Case MNHSrcFile.nc FFDestFile.nc a.x,a.y b.x,b.y ...."
 #    exit(0)
 #fname = "/Volumes/brando/cases/paugham/02_mesonh/ff2ideal.nc" #sys.argv[1]
-fname="/Volumes/brando/cases/couleeLaveLES/STRAP.1.SEG01.001.nc4"
+fname="/Users/filippi_j/soft/MNH-V5-5-1/MY_RUN/KTEST/016_PEDROGAO/srcData/JUN17.3.EXP03.031.nc"
 
 
-fout = "../swig/lava/caseTule.nc" #sys.argv[2]
+fout = "/Users/filippi_j/soft/MNH-V5-5-1/MY_RUN/KTEST/016_PEDROGAO/002_mesonh/ForeFire/psimple.nc" #sys.argv[2]
 d2dvar=["ZS",]
 d2dnames=["altitude",]
 scalarNames=["THT","UM","VM"]
@@ -55,8 +65,8 @@ domainProperties['t0']   = 0
 domainProperties['Lt']   = np.Inf
 
 dom= "FireDomain[sw=(%d,%f,0);ne=(%f,%f,0);]"%(domainProperties['SWx'],domainProperties['SWy'],domainProperties['SWx']+domainProperties['Lx'],domainProperties['SWy']+domainProperties['Ly'])
-print domainProperties['Lx'] ,domainProperties['Ly'] ,len(nc.variables['XHAT'][:])
-print "   ori ", nc.variables['LAT0'].getValue(), nc.variables['LON0'].getValue()
+print( domainProperties['Lx'] ,domainProperties['Ly'] ,len(nc.variables['XHAT'][:]))
+print ("   ori ", nc.variables['LAT0'].getValue(), nc.variables['LON0'].getValue())
  
  
 SVM = nc.variables['ZS'][:]
@@ -69,58 +79,66 @@ NI = len(SVM[0])-2
 NJT = len(SVM) 
 NIT = len(SVM[0]) 
  
+padDim = ((4,4),(4,4))
+#padDim = ((135,-135),(135,-135))
+
 
 DeltaY = nc.variables['YHAT'][1]-nc.variables['YHAT'][0]
 DeltaX = nc.variables['XHAT'][1]-nc.variables['XHAT'][0]
 
 dt = 0
 lastTime = 0
-lastTime = nc.variables['DTCUR__TIME'].getValue()
-firstTime = nc.variables['DTCUR__TIME'].getValue()
+
+lastTime = 0#nc.variables['DTCUR'].getValue()
+firstTime = 0#nc.variables['DTCUR'].getValue()
+
 
 domainProperties= {}
-domainProperties['SWx']  = nc.variables['XHAT'][0]
-domainProperties['SWy']  = nc.variables['YHAT'][0]
+domainProperties['SWx']  = -400#nc.variables['XHAT'][0]
+domainProperties['SWy']  = -400#nc.variables['YHAT'][0]
 domainProperties['SWz']  = 0
-domainProperties['Lx']   = nc.variables['XHAT'][-1]+DeltaX-nc.variables['XHAT'][0]
-domainProperties['Ly']   = nc.variables['YHAT'][-1]+DeltaY-nc.variables['YHAT'][0]
+domainProperties['Lx']   = 24400#nc.variables['XHAT'][-1]+DeltaX-nc.variables['XHAT'][0]
+domainProperties['Ly']   = 24400#nc.variables['YHAT'][-1]+DeltaY-nc.variables['YHAT'][0]
 domainProperties['Lz']   = 0
 domainProperties['t0']   = 0
 domainProperties['Lt']   = np.Inf
 
 dom= "FireDomain[sw=(%d,%f,0);ne=(%f,%f,0);t=%f]"%(domainProperties['SWx'],domainProperties['SWy'],domainProperties['SWx']+domainProperties['Lx'],domainProperties['SWy']+domainProperties['Ly'],lastTime)
-print dom
-print "\n".join(nc.variables)
+ 
 
 parametersProperties= {}
 parametersProperties['projectionproperties']  = "41.551998,8.828396,41.551998,8.828396" ;
-parametersProperties['date']  = "2009-07-23_12:00:00" ;
-parametersProperties['duration']  = 360000;
+parametersProperties['date']  = "2017-06-17_14:00:00" ;
+parametersProperties['duration']  = 32400;
 parametersProperties['projection']  = "OPENMAP" ;
-parametersProperties['refYear']  = 2013 ;
-parametersProperties['refDay']  = 30 ;
+parametersProperties['refYear']  = 2017 ;
+parametersProperties['refDay']  = 168 ;
 
 
 elevation =  nc.variables['ZS'][:,:]
+
 
 # Tout le combustible a 1
 fuelMap   =  1*np.ones(np.shape(elevation),dtype=('i4'))
 
 wind =  {}
+ 
 
-wind["zonal"]    = np.array(nc.variables['UT'][0,:,:])
-wind["meridian"] = np.array(nc.variables['VT'][0,:,:])
+wind["zonal"]    = np.array(nc.variables['UT'][0,1,:,:])
+wind["meridian"] = np.array(nc.variables['VT'][0,1,:,:])
+
+print("max wind is",np.max(wind["zonal"] ),np.shape(forceDim(wind["zonal"],padDim)))
 
 heatFluxModelMap = {}
 heatFluxModelMap["name"] =  "heatFlux"
-heatFluxModelMap["data"] =  np.zeros(np.shape(fuelMap),dtype=('i4'))
+heatFluxModelMap["data"] =  forceDim(np.zeros(np.shape(fuelMap),dtype=('i4')),padDim)
 heatFluxModelMap["table"] =  {"heatFluxBasic":0,}
 
 vaporFluxModelMap = {}
 vaporFluxModelMap["name"] =  "vaporFlux"
-vaporFluxModelMap["data"] =  np.ones(np.shape(fuelMap),dtype=('i4'))
+vaporFluxModelMap["data"] =  forceDim(np.ones(np.shape(fuelMap),dtype=('i4')),padDim)
 vaporFluxModelMap["table"] =  {"vaporFluxBasic":1,}
 
 nc.close()
 
-FiretoNC(fout, domainProperties,parametersProperties,fuelMap,elevation=elevation, wind=wind, fluxModelMap = (heatFluxModelMap,vaporFluxModelMap))
+FiretoNC(fout, domainProperties,parametersProperties,forceDim(fuelMap,padDim),elevation=None, wind=None, fluxModelMap = (heatFluxModelMap,vaporFluxModelMap))
