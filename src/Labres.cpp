@@ -63,6 +63,7 @@ Labres::Labres(const int & mindex, DataBroker* db)
 	X0 = registerProperty("fuel.X0");
 	r00 = registerProperty("fuel.r00");
 	Blai = registerProperty("fuel.Blai");
+	me = registerProperty("fuel.me");
 
 
 
@@ -100,6 +101,7 @@ double Labres::getSpeed(double* valueOf){
 	double lDeltaH = valueOf[DeltaH] / 2326;// conversion J/kg -> BTU/lb
 	double normal_wind  = valueOf[normalWind] * 196.850394 ; //conversion m/s -> ft/min
 	double localngle =  valueOf[slope];
+	double Mchi = valueOf[me]; // Moisture of extinction
 
 
 /*	lRhod = 30.0;
@@ -116,8 +118,6 @@ double Labres::getSpeed(double* valueOf){
 	double tanangle = localngle;
 	if (tanangle<0) tanangle=0;
 
-
-	double Mchi = 0.3; // Moisture of extinction
 
 	double Etas = 1; // no mineral damping
 

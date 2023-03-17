@@ -58,6 +58,7 @@ class Labres : public PropagationModel {
 	size_t X0;
 	size_t r00;
 	size_t Blai;
+	size_t me;
 
 	/*! coefficients needed by the model */
 
