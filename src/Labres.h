@@ -1,6 +1,6 @@
 /*
 
-Copyright (C) 2012 ForeFire Team, SPE, UniversitŽ de Corse.
+Copyright (C) 2012 ForeFire Team, SPE, Universitï¿½ de Corse.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -18,8 +18,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 
 */
 
-#ifndef ROTHERMEL_H_
-#define ROTHERMEL_H_
+#ifndef LABRES_H
+#define LABRES_H
 
 #include "PropagationModel.h"
 #include "FireDomain.h"
@@ -27,7 +27,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 
 namespace libforefire {
 
-class Rothermel: public PropagationModel {
+class Labres : public PropagationModel {
 
 	/*! name the model */
 	static const string name;
@@ -67,14 +67,14 @@ class Rothermel: public PropagationModel {
 	double getSpeed(double*);
 
 public:
-	Rothermel(const int& = 0, DataBroker* db=0);
-	virtual ~Rothermel();
+	Labres(const int& = 0, DataBroker* db=0);
+	virtual ~Labres();
 
 	string getName();
 
 };
 
-PropagationModel* getRothermelModel(const int& = 0, DataBroker* db=0);
+PropagationModel* getLabresModel(const int& = 0, DataBroker* db=0);
 
 } /* namespace libforefire */
 #endif /* ROTHERMEL_H_ */

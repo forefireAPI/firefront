@@ -18,26 +18,26 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 
  */
 
-#include "Rothermel.h"
+#include "Labres.h"
 
 using namespace std;
 
 namespace libforefire {
 
 /* name of the model */
-const string Rothermel::name = "Rothermel";
+const string Labres::name = "Labres";
 
 /* instantiation */
-PropagationModel* getRothermelModel(const int & mindex, DataBroker* db) {
-	return new Rothermel(mindex, db);
+PropagationModel* getLabresModel(const int & mindex, DataBroker* db) {
+	return new Labres(mindex, db);
 }
 
 /* registration */
-int Rothermel::isInitialized =
-		FireDomain::registerPropagationModelInstantiator(name, getRothermelModel );
+int Labres::isInitialized =
+		FireDomain::registerPropagationModelInstantiator(name, getLabresModel );
 
 /* constructor */
-Rothermel::Rothermel(const int & mindex, DataBroker* db)
+Labres::Labres(const int & mindex, DataBroker* db)
 : PropagationModel(mindex, db) {
 	/* defining the properties needed for the model */
 
@@ -77,11 +77,11 @@ Rothermel::Rothermel(const int & mindex, DataBroker* db)
 }
 
 /* destructor (shoudn't be modified) */
-Rothermel::~Rothermel() {
+Labres::~Labres() {
 }
 
 /* accessor to the name of the model */
-string Rothermel::getName(){
+string Labres::getName(){
 	return name;
 }
 
@@ -89,7 +89,7 @@ string Rothermel::getName(){
 /* Model for the propagation velovity of the front */
 /* *********************************************** */
 
-double Rothermel::getSpeed(double* valueOf){
+double Labres::getSpeed(double* valueOf){
 
 	double lRhod = valueOf[Rhod] * 0.06; // conversion kg/m^3 -> lb/ft^3
 	double lMd  = valueOf[Md];
