@@ -1,12 +1,12 @@
 # ForeFire
 
-![logo](./doc/forefire.jpg)
+![logo](./doc/images/forefire.jpg)
 
 ForeFire is an [open-source code for wildland fire spread models](https://www.researchgate.net/publication/278769168_ForeFire_open-source_code_for_wildland_fire_spread_models), developed and maintained by Université de Corse Pascal Paoli.
 
 Access the [demo simulator here](http://forefire.univ-corse.fr/sim/dev/)
 
-![demo](./doc/sim-forefire.jpg)
+![demo](./doc/images/sim-forefire.jpg)
 
 
 It has been designed and runs on Unix systems. Three modules can be built with the source code.
@@ -73,28 +73,7 @@ export PATH="/mnt/c/gitrepos/forefire/bin:$PATH"
 
 
 ### 2.2 Scons and Other build systems
-
-Forefire can also be built with [scons](https://www.scons.org/). Install it with
-```
-apt install scons -y
-```
-
-A sample `SConstruct` file is included with the distribution.
-Run it with
-```
-scons
-```
-
-To build with all warnings enabled
-```
- scons -Q w=1 
-```
-
-Troubleshooting: If it does not work, try replacing the `Sconstruct` file with `./tools/Sconstruct`. Set the environment variables, and insert the path to the Netcdf (and Java headers for JNI bindings if required).
-
-Make: A simple `makefile` is also available in the `tools` directory
-
-More info on build systems can be found on [this issue](https://github.com/forefireAPI/firefront/issues/9)
+More information on other build systems are available [here](./doc/buildSystems/readme.MD)
 
 ## 3. Running an example
 
