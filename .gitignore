@@ -16,3 +16,6 @@ __pycache__
 
 # editors
 .vscode
+
+# jupyter notebooks checkpoints
+.ipynb_checkpoints
