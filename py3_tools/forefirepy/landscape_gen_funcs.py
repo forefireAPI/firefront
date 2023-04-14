@@ -10,6 +10,11 @@ def fuel_model_map_generator(fuel_filepath):
     fuel_model_map = fuel_ds[0]
     return fuel_model_map
 
+def elevation_generator(elevation_filepath):
+    '''elevation_filepath is path to TIF DEM file'''
+    elevation_ds = rio.open_rasterio(elevation_filepath)
+    return elevation_ds[0]
+
 def default_wind_generator(elevation_array):
     '''generates 8 bands in 8 directions of default 10 m/s wind'''
     wind_dict = {}
