@@ -1,19 +1,16 @@
+from rasterio.crs import CRS
+from rasterio.enums import Resampling
+# from rasterio.transform import Affine
+from rasterio.vrt import WarpedVRT
 import rasterio as rio
 from math import floor
 import numpy as np
 from datetime import *
 import netCDF4 as netcdf
+from pyproj import Transformer
+import affine
 
-def fuel_model_map_generator(fuel_filepath):
-    '''fuel_filepath is path to TIF fuel file where fuel classes correspond to the fuels.ff (sample or custom)'''
-    fuel_ds = rio.open_rasterio(fuel_filepath)
-    fuel_model_map = fuel_ds[0]
-    return fuel_model_map
-
-def elevation_generator(elevation_filepath):
-    '''elevation_filepath is path to TIF DEM file'''
-    elevation_ds = rio.open_rasterio(elevation_filepath)
-    return elevation_ds[0]
+# functions may need to be adapted depending on the specific use case
 
 def default_wind_generator(elevation_array):
     '''generates 8 bands in 8 directions of default 10 m/s wind'''
@@ -36,13 +33,70 @@ def default_wind_generator(elevation_array):
         wind_dict['wind_u'].append(u)
         wind_dict['wind_v'].append(v)
 
-def domain_generator(fuel_model_map):
-    meta = fuel_model_map[1]
+def prop_vrt_Warp(src_path, epsg):         
+    src = rio.open(src_path)
+    bbox = src.bounds
+
+    min_long, min_lat = (bbox[0], bbox[1])
+    max_long, max_lat = (bbox[2], bbox[3])
+
+    transformer = Transformer.from_crs("epsg:4326", f'epsg:{epsg}')
+    min_x, min_y = transformer.transform( min_long, min_lat)
+    max_x, max_y = transformer.transform( max_long, max_lat)
+    
+    right = max_x
+    bottom = min_y
+    left = min_x
+    top = max_y
+    
+    dst_crs = CRS.from_epsg(epsg)
+    resolution = 30
+
+    dst_width = floor((right - left)/resolution)
+    dst_height = floor((top - bottom)/resolution)
+
+    xres = (right - left) / dst_width
+    yres =  (top - bottom) / dst_height
+
+    dst_transform = affine.Affine(xres, 0.0, left,
+                                  0.0, -yres, top)
+    
+    vrt_options = {
+        'resampling': Resampling.nearest,
+        'crs': dst_crs,
+        'transform': dst_transform,
+        'height': dst_height,
+        'width': dst_width,
+    }
+
+    with rio.open(src_path) as src:
+
+        with WarpedVRT(src, **vrt_options) as vrt:
+            
+            data = vrt.read(1)
+
+    return vrt, data
+
+def fuel_model_map_generator(fuel_filepath, epsg):
+    '''fuel_filepath is path to TIF fuel file where fuel classes correspond to the fuels.ff (sample or custom)'''
+    fuel_ds = prop_vrt_Warp(fuel_filepath, epsg)
+    fuel_model_map = fuel_ds[1]
+    return fuel_model_map
+
+def elevation_generator(elevation_filepath, epsg):
+    '''elevation_filepath is path to TIF DEM file'''
+    elevation_ds = prop_vrt_Warp(elevation_filepath, epsg)
+    elevation_map = elevation_ds[1]
+    return elevation_map
+
+def domainGenerator(fuelModelMap):
+    
+    meta = fuelModelMap[0].meta['transform']
     res_y = meta[0]
     res_x = meta[4]
 
-    shp_y = fuel_model_map[0].shape[0]
-    shp_x = fuel_model_map[0].shape[1]
+    shp_y = fuelModelMap[0].shape[0]
+    shp_x = fuelModelMap[0].shape[1]
     
     x = meta[2] #+ res_x*shp_x
     y = meta[5] - res_y*shp_y
@@ -50,17 +104,18 @@ def domain_generator(fuel_model_map):
     Lx = shp_x*res_x
     Ly = shp_y*res_y
    
-    domain_properties= {}
-    domain_properties['SWx']  = x
-    domain_properties['SWy']  = y
-    domain_properties['SWz']  = 0
-    domain_properties['Lx']   = -Lx
-    domain_properties['Ly']   = Ly
-    domain_properties['Lz']   = 0
-    domain_properties['t0']   = 0
-    domain_properties['Lt']   = 0
-    # print(domain_properties)
-    return domain_properties
+    domainProperties= {}
+    domainProperties['SWx']  = x
+    domainProperties['SWy']  = y
+    domainProperties['SWz']  = 0
+    domainProperties['Lx']   = -Lx
+    domainProperties['Ly']   = Ly
+    domainProperties['Lz']   = 0
+    domainProperties['t0']   = 0
+    domainProperties['Lt']   = 0
+    
+    print(domainProperties)
+    return domainProperties
 
 def parameter_generator(projection):
     today = datetime.now()
@@ -95,7 +150,7 @@ def landscape_generator(filename, domain_properties, parameters_properties, proj
     ncfile.createDimension('ny', elevation.shape[0])
     ncfile.createDimension('nx', elevation.shape[1])
     
-    ncfile.projection = projection # e.g. 5880
+    ncfile.projection = projection
     
     domain = ncfile.createVariable('domain', 'S1', ())
     domain.type = "domain" 
@@ -133,3 +188,21 @@ def landscape_generator(filename, domain_properties, parameters_properties, proj
     ncfile.sync()
     ncfile.close()
     return
+
+
+### WRAPPING EVERYTHING IN AN EXAMPLE FUNCTION TO GENERATE LANDSCAPE
+
+def example_landscape_gen():
+    fuel_filepath = 'path/to/fuel.tif'
+    elevation_filepath = 'path/to/elevation.tif'
+    epsg = 5880
+
+    fuel_model_map = fuel_model_map_generator(fuel_filepath, epsg)
+    elevation_map = elevation_generator(elevation_filepath, epsg)
+    wind_dict = default_wind_generator(elevation_map)
+
+    src = prop_vrt_Warp(fuel_filepath, epsg)
+    domain = domainGenerator(src)
+    parameters = parameter_generator(epsg)
+    
+    landscape_generator('custom_landscape.nc', domain, parameters, epsg, fuel_model_map, wind_dict, elevation_map)
