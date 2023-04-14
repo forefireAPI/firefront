@@ -2,9 +2,11 @@
 
 ![logo](./doc/images/forefire.jpg)
 
+_Refer to the [Wiki](https://github.com/forefireAPI/firefront/wiki) for a more detailed guide on using ForeFire._
+
 ForeFire is an [open-source code for wildland fire spread models](https://www.researchgate.net/publication/278769168_ForeFire_open-source_code_for_wildland_fire_spread_models), developed and maintained by Université de Corse Pascal Paoli.
 
-Access the [demo simulator here](http://forefire.univ-corse.fr/sim/dev/)
+Access the [demo simulator here](http://forefire.univ-corse.fr/sim/dev/).
 
 ![demo](./doc/images/sim-forefire.jpg)
 
