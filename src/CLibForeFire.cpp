@@ -258,7 +258,7 @@ void FFGetDoubleArray(const char* mname, double t
 	string tmpname(mname);
 	double ct = executor.refTime + t;
 	// searching for the layer to put data
-	cout<<session->fd->getDomainID()<<" is getting "<<tmpname<<endl;
+	//cout<<session->fd->getDomainID()<<" is getting "<<tmpname<<endl;
 
 	DataLayer<double>* myLayer = session->fd->getDataLayer(tmpname);
 	if ( myLayer ){

@@ -368,6 +368,7 @@ public:
 	static bool outputs; /*! boolean for outputs */
 	static bool recycleNodes; // to recycle nodes in memory
 	static bool recycleFronts; //to recycle fronts in memory
+	static size_t atmoIterNumber;
 
 	/*! \brief halos */
 	Halo* southOuterHalo;
@@ -381,7 +382,7 @@ public:
 
 	bool atmosphericCoupling; /*! boolean for coupled simulations */
 	bool parallel; /*! boolean for parallel simulations */
-
+	bool isFireActive; /*! boolean if some has been read*/
 	/*! \brief Default constructor */
 	FireDomain();
 	/*! \brief Constructor with boundaries and time */
@@ -590,6 +591,8 @@ public:
 	void stopOutgoingNode(FireNode*, FFPoint&, double&);
 	void addToTrashFronts(FireFront*);
 	void dumpCellsInBinary();
+	void loadWindDataInBinary(double);
+	void dumpWindDataInBinary();
 	void loadCellsInBinary();
 	/*! \brief creating new atoms in the domain */
 	FireNode* FireNodeFactory();

@@ -139,6 +139,7 @@ SimulationParameters::SimulationParameters(){
 	parameters.insert(make_pair("caseDirectory", (getenv("PWD")==NULL?".":getenv("PWD"))));
 	parameters.insert(make_pair("ForeFireDataDirectory", "ForeFire"));
 	parameters.insert(make_pair("experiment", "ForeFire"));
+	parameters.insert(make_pair("PPath", "parallel"));
 
 	parameters.insert(make_pair("NetCDFfile", "data.nc"));
 	parameters.insert(make_pair("fuelsTableFile", "fuels.ff"));
@@ -173,6 +174,7 @@ SimulationParameters::SimulationParameters(){
 	parameters.insert(make_pair("minSpeed","0.005"));
 	parameters.insert(make_pair("relax","0.5"));
 	parameters.insert(make_pair("smoothing","1"));
+	parameters.insert(make_pair("windReductionFactor","0.4"));
 
 	parameters.insert(make_pair("atmoNX", "100"));
 	parameters.insert(make_pair("atmoNY", "100"));

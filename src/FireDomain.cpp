@@ -62,7 +62,7 @@ namespace libforefire{
 	list<FireFront*> FireDomain::trashFronts;
 
 	FireFrontData* FireDomain::mainFrontBackup;
-
+	size_t FireDomain::atmoIterNumber = 0;
 	FireDomain::FrontDepthScheme FireDomain::fdScheme = FireDomain::normalDir;
 
 	const size_t FireDomain::NUM_MAX_PROPMODELS;
@@ -89,15 +89,16 @@ namespace libforefire{
 		
 
 	FireDomain::FireDomain(const double& t
-						   , FFPoint& sw, FFPoint& ne)
-	: ForeFireAtom(t), SWCorner(sw), NECorner(ne) {
+						   , FFPoint& swc, FFPoint& nec)
+	: ForeFireAtom(t), SWCorner(swc), NECorner(nec) {
+		isFireActive = false;
 		propagationSpeedAdjustmentFactor =1;
 		numberOfRispatchDomains = 0;
 		params = SimulationParameters::GetInstance();
 		numIterationAtmoModel = 0;
 		// Maximum time-step for Firenodes is not constrained
 		dtMax = numeric_limits<double>::infinity();
-
+		double readRes = 0;
 
 
 		if (params->getParameter("runmode") == "masterMNH"){
@@ -118,7 +119,7 @@ namespace libforefire{
 			double Mnex = fit->NECorner->getX();
 			double Mney = fit->NECorner->getY();
  
-			double readRes = (Mnex-Mswx)/fit->atmoNX;
+			readRes = (Mnex-Mswx)/fit->atmoNX;
 			list<distributedDomainInfo*>::iterator it;
 			for (it = parallelDispatchDomains.begin(); it != parallelDispatchDomains.end(); it++)
 				{
@@ -150,7 +151,6 @@ namespace libforefire{
 						cout<<(*it)->ID<<" HAVE A RESOLUTION OF "<< readRes <<" location "<<(*it)->refNX<<":"<<(*it)->refNY<<" coords:"<<(*it)->SWCorner->print() << ":"<<(*it)->NECorner->print()<<endl;
 						
 			}
-				
 					
 			}else{
 				cout<<"ERROR big problem master mode but 0 domains read, rerun for domain file caching"<<endl;
@@ -172,19 +172,19 @@ namespace libforefire{
 		// computing the cells' mesh
 		double cellsMeshX[atmoNX+1];
 		double cellsMeshY[atmoNY+1];
-		cellsMeshX[0] = sw.getX();
-		cellsMeshY[0] = sw.getY();
+		cellsMeshX[0] = SWCorner.getX();
+		cellsMeshY[0] = SWCorner.getY();
 		double dx, dy;
-		dx = (ne.getX()-sw.getX())/atmoNX;
-		dy = (ne.getY()-sw.getY())/atmoNY;
+		dx = (NECorner.getX()-SWCorner.getX())/atmoNX;
+		dy = (NECorner.getY()-SWCorner.getY())/atmoNY;
 		for ( size_t i = 1; i < atmoNX; i++ ) {
 			cellsMeshX[i] = cellsMeshX[i-1] + dx;
 		}
 		for ( size_t j = 1; j < atmoNY; j++ ) {
 			cellsMeshY[j] = cellsMeshY[j-1] + dy;
 		}
-		cellsMeshX[atmoNX] = ne.getX();
-		cellsMeshY[atmoNY] = ne.getY();
+		cellsMeshX[atmoNX] = NECorner.getX();
+		cellsMeshY[atmoNY] = NECorner.getY();
 
 		// simulation won't be run in parallel
 		params->setInt("parallel", 0);
@@ -206,6 +206,36 @@ namespace libforefire{
         
 		// Common initialization for all constructors
 		commonInitialization(cellsMeshX,cellsMeshY , year, yday);
+
+		if ((params->getParameter("runmode") == "masterMNH")&&(readRes>0)){
+
+				double dx = readRes;
+				double dy = readRes;
+
+				// Loading the atmospheric layers
+				FFPoint windUOrigin = FFPoint(SWCorner.getX() - dx,
+						SWCorner.getY() - 0.5 * dy);
+				FFArray<double>* GwindU = new FFArray<double>("WindU", 0., atmoNX+2, atmoNY+2);
+				FFArray<double>* GoldWindU = new FFArray<double>("oldWindU", 0., atmoNX+2, atmoNY+2);
+				FFArray<double>* GwindV = new FFArray<double>("WindV", 0., atmoNX+2, atmoNY+2);
+				FFArray<double>* GoldWindV = new FFArray<double>("oldWindV", 0., atmoNX+2, atmoNY+2);
+
+				TwoTimeArrayLayer<double>* wul = new TwoTimeArrayLayer<double>("windU",
+						GwindU, getTime(), GoldWindU, getTime(),
+						windUOrigin, dx, dy);
+				dataBroker->registerLayer("windU", wul);
+
+
+				cout<<"creating big wind data atmo resolution is "<<readRes<<" size "<< atmoNX+2<<":"<< atmoNY+2 <<endl;
+				FFPoint windVOrigin = FFPoint(SWCorner.getX() - 0.5 * dx,
+						SWCorner.getY() - dy);
+				TwoTimeArrayLayer<double>* wvl = new TwoTimeArrayLayer<double>("windV",
+						GwindV, getTime(), GoldWindV, getTime(),
+						windVOrigin, dx, dy);
+				dataBroker->registerLayer("windV", wvl);
+				///////////////////
+		}
+
 	}
 
 	FireDomain::FireDomain(const int& mpirank
@@ -218,7 +248,7 @@ namespace libforefire{
 	: ForeFireAtom(t), refLatitude(lat), refLongitude(lon) {
 
 		getNewID(mpirank);
-
+		isFireActive = false;
 		numIterationAtmoModel = 0;
 		params = SimulationParameters::GetInstance();
 
@@ -250,8 +280,10 @@ namespace libforefire{
 		NECorner = FFPoint(2.*meshx[atmoNX-1]-meshx[atmoNX-2]
 						   , 2.*meshy[atmoNY-1]-meshy[atmoNY-2]);
 		bool dumpDomainInfo = true;
+
+		string ffDomPattern(params->getParameter("caseDirectory")+'/'+params->getParameter("PPath")+'/'+params->getParameter("mpirank")+".domainData");
 		if (dumpDomainInfo){
-			ofstream FileOut((ffOutputsPattern+".domainData").c_str(), ios_base::binary);
+			ofstream FileOut(ffDomPattern.c_str(), ios_base::binary);
 
 			FileOut.write(reinterpret_cast<const char*>(&atmoNX), sizeof(size_t));
 			FileOut.write(reinterpret_cast<const char*>(&atmoNY), sizeof(size_t));
@@ -349,8 +381,8 @@ void FireDomain::readMultiDomainMetadata(){
 		size_t numReadDom = 1;
 
 		//read all files for smaller domains
-		
- 		string ffDomPattern(params->getParameter("caseDirectory")+'/'+params->getParameter("fireOutputDirectory")+'/'+params->getParameter("outputFiles")+".");
+		string ffDomPattern(params->getParameter("caseDirectory")+'/'+params->getParameter("PPath")+'/');
+ 		//string ffDomPattern(params->getParameter("caseDirectory")+'/'+params->getParameter("fireOutputDirectory")+'/'+params->getParameter("outputFiles")+".");
  
 		size_t domFileSize = fileSize(ffDomPattern+std::to_string(numReadDom)+".domainData");
 		while(domFileSize > 0){
@@ -363,13 +395,6 @@ void FireDomain::readMultiDomainMetadata(){
 		numberOfRispatchDomains = numReadDom;
 	 
 		distributedDomainInfo *currentInfo = new distributedDomainInfo;
- 		
-	
-
-		// info to gather : 1 global geometry
-		
-	
- 
 
 		while(numReadDom > 0){
 
@@ -402,7 +427,7 @@ void FireDomain::readMultiDomainMetadata(){
 			currentInfo = new distributedDomainInfo;
 			numReadDom--;
 		}	
-	 
+	
 	
 	} 
 
@@ -1425,12 +1450,12 @@ void FireDomain::readMultiDomainMetadata(){
 	void FireDomain::dumpCellsInBinary(){
 		if (params->getParameter("runmode") == "masterMNH"){
 			if(getDomainID()==0){
-						string domOutPattern(params->getParameter("caseDirectory")+'/'+params->getParameter("fireOutputDirectory")+'/'+params->getParameter("outputFiles")+".");
+						string domOutPattern(params->getParameter("caseDirectory")+'/'+params->getParameter("PPath")+'/'+to_string((FireDomain::atmoIterNumber+1)%2)+"/");	
+					
+					//	string domOutPattern(params->getParameter("caseDirectory")+'/'+params->getParameter("fireOutputDirectory")+'/'+params->getParameter("outputFiles")+".");
 						list<distributedDomainInfo*>::iterator it;
 						for (it = parallelDispatchDomains.begin(); it != parallelDispatchDomains.end(); it++)
 							{
-								
-								ofstream FileOut((domOutPattern+to_string((*it)->ID)+".bmapcells").c_str(), ios_base::binary|ios_base::trunc  );
 								size_t anx = (*it)->atmoNX;
 								size_t any = (*it)->atmoNY;
 								size_t snx = (*it)->atmoNX*localBMapSizeX;
@@ -1439,10 +1464,7 @@ void FireDomain::readMultiDomainMetadata(){
 								size_t rny = (*it)->refNY;
 								size_t localx = (*it)->refNX;
 								size_t localy = (*it)->refNY;
-								FileOut.write(reinterpret_cast<const char*>(&anx), sizeof(size_t));
-								FileOut.write(reinterpret_cast<const char*>(&any), sizeof(size_t));
-								FileOut.write(reinterpret_cast<const char*>(&snx), sizeof(size_t));
-								FileOut.write(reinterpret_cast<const char*>(&sny), sizeof(size_t));
+								ofstream FileOut;
 								size_t cntCell = 0;
 
 								for ( size_t i = rnx; i < rnx+anx; i++ ) {
@@ -1450,6 +1472,14 @@ void FireDomain::readMultiDomainMetadata(){
 									for ( size_t j = rny; j < rny+any; j++ ) {
 										localy = (j-rny);
 												if(cells[i][j].isActiveForDump()){
+													if(cntCell == 0){
+														FileOut.open((domOutPattern+to_string((*it)->ID)+".bmapcells").c_str(), ios_base::binary|ios_base::trunc  );
+														
+														FileOut.write(reinterpret_cast<const char*>(&anx), sizeof(size_t));
+														FileOut.write(reinterpret_cast<const char*>(&any), sizeof(size_t));
+														FileOut.write(reinterpret_cast<const char*>(&snx), sizeof(size_t));
+														FileOut.write(reinterpret_cast<const char*>(&sny), sizeof(size_t));
+													}
 													
 													FileOut.write(reinterpret_cast<const char*>(&localx), sizeof(size_t));
 													FileOut.write(reinterpret_cast<const char*>(&localy), sizeof(size_t));
@@ -1458,49 +1488,55 @@ void FireDomain::readMultiDomainMetadata(){
 												}
 									}
 								}
-								FileOut.flush();   
-								FileOut.rdbuf()->pubsync(); 	
-								FileOut.close();
+								if(cntCell ==0){
+									FileOut.flush();   
+									FileOut.rdbuf()->pubsync(); 	
+									FileOut.close();
+									}
 								
 						}		
-
-	
-			/*	string ffOutputsPattern(params->getParameter("caseDirectory")+'/'+params->getParameter("fireOutputDirectory")+'/'+params->getParameter("outputFiles")+"."+params->getParameter("mpirank"));
-				ofstream FileOut((params->getParameter("PffOutputsPattern")+".bmapcells").c_str(), ios_base::binary);
-				FileOut.write(reinterpret_cast<const char*>(&atmoNX), sizeof(size_t));
-				FileOut.write(reinterpret_cast<const char*>(&atmoNY), sizeof(size_t));
-				FileOut.write(reinterpret_cast<const char*>(&globalBMapSizeX), sizeof(size_t));
-				FileOut.write(reinterpret_cast<const char*>(&globalBMapSizeY), sizeof(size_t));
-				size_t cntCell = 0;
-				for ( size_t i = 0; i < atmoNX; i++ ) {
-					for ( size_t j = 0; j < atmoNY; j++ ) {
-						if(cells[i][j].isActive()){
-							FileOut.write(reinterpret_cast<const char*>(&i), sizeof(size_t));
-							FileOut.write(reinterpret_cast<const char*>(&j), sizeof(size_t));
-							cells[i][j].getBurningMap()->getMap()->dumpBin(FileOut);
-							cntCell++;
-						}
-						}
-				}
-				FileOut.close();
-				*/
 				
 			}
 		}
 	}
-
+void FireDomain::dumpWindDataInBinary(){
+	dataBroker->dumpWindDataInBinary();
+}
+void FireDomain::loadWindDataInBinary(double refTime){
+			if(getDomainID()!=0)return;
+			if (params->getParameter("runmode") != "masterMNH") return;
+	
+		if(numberOfRispatchDomains >0){
+			size_t refNXs[numberOfRispatchDomains];
+			size_t refNYs[numberOfRispatchDomains];
+			list<distributedDomainInfo*>::iterator it;
+			size_t numreadDom = 0;
+			for (it = parallelDispatchDomains.begin(); it != parallelDispatchDomains.end(); it++)
+				{
+						refNXs[(*it)->ID-1] =  (*it)->refNX;
+						refNYs[(*it)->ID-1] =  (*it)->refNY;
+						numreadDom++;
+			}
+			dataBroker->loadMultiWindBin(refTime,numreadDom,refNXs,refNYs);
+		}
+}
 	void FireDomain::loadCellsInBinary(){
 
 		if(getDomainID()>0){
 			size_t size_of_header = 4*sizeof(size_t);
 			size_t size_of_cell = 6*sizeof(size_t)+(localBMapSizeX*localBMapSizeX*sizeof(double));
 			
-			string domInName(params->getParameter("caseDirectory")+'/'+params->getParameter("fireOutputDirectory")+'/'+params->getParameter("outputFiles")+"."+to_string(getDomainID())+".bmapcells");
+			string domInName(params->getParameter("caseDirectory")+'/'+params->getParameter("PPath")+'/'+to_string(FireDomain::atmoIterNumber%2)+"/"+to_string(getDomainID())+".bmapcells");
 			size_t domFsize = fileSize(domInName);
+			if(domFsize < size_of_header){
+				// no files yet
+				 return;
+				 }
 				if(domFsize >size_of_header){
-
+					isFireActive=true;
 					size_t	cntCell = (domFsize-size_of_header)/size_of_cell;
 					size_t	leftover = (domFsize-size_of_header)%size_of_cell; 
+					if(leftover == 0 ){
 					
 				 	ifstream FileIn(domInName.c_str(), ios_base::binary);
 					size_t nni;
@@ -1520,9 +1556,18 @@ void FireDomain::readMultiDomainMetadata(){
 							FileIn.read((char *)&nnj, sizeof(size_t));					
 							cells[nni][nnj].loadBin(FileIn);
 						}
-						if(cntCell>0) cout<<cntCell<<" cells read in domain "<< getDomainID()<<" leftover "<<leftover<<endl;
+					//	if(cntCell>0) cout<<cntCell<<" cells read in domain "<< getDomainID()<<" leftover "<<leftover<<endl;
 					FileIn.close();
+					}else{
+						 cout<<"CELL READ PROBLEM DATA LEFT IN "<< getDomainID()<<" bytes "<<leftover<<endl;
+					
+					}
 			
+				}else{
+					if(domFsize < size_of_header){
+					 cout<<"CELL READ PROBLEM IN "<< getDomainID()<<" bytes "<<domFsize<<endl;
+					}
+					isFireActive=false;
 				}
 
 			
@@ -1538,13 +1583,13 @@ void FireDomain::readMultiDomainMetadata(){
 		return getCell(fnd->posX, fnd->posY);
 	}
 	FDCell* FireDomain::getCell(const double& px, const double& py){
-
+		
 		if ( !striclyWithinDomain(px, py) ) return trashCell;
-
+		
 		double di, dj;
 		di = (px-SWCornerX())*inverseCellSizeX;
 		dj = (py-SWCornerY())*inverseCellSizeY;
-
+		
 		if ( di < EPSILONX ) di = 0;
 		if ( di > atmoNX - EPSILONX ) di = atmoNX - 1;
 		if ( dj < EPSILONX ) dj = 0;
@@ -1623,7 +1668,12 @@ void FireDomain::readMultiDomainMetadata(){
 		min_position = 0;
 		double min_dist = dist;
 		double d;
+		
+		
 		FDCell* curCell = getCell(fn);
+
+		//cout<<getDomainID()<<" scanning  "<<fn->getLoc().getX()<<":"<<fn->getLoc().getY()<<endl;
+	
 		FFPoint center = 0.5*(curCell->getSWCorner() + curCell->getNECorner());
 		double dx = curCell->getNECorner().getX() - curCell->getSWCorner().getX();
 		double dy = curCell->getNECorner().getY() - curCell->getSWCorner().getY();
@@ -1636,11 +1686,13 @@ void FireDomain::readMultiDomainMetadata(){
 		// Scanning the current cell and neighbors for close enough firenodes
 		list<FireNode*>::iterator ofn;
 		FFPoint rep;
+		
 		for ( int i=-numCellsX; i<numCellsX+1; i++ ){
 			for ( int j=-numCellsY; j<numCellsY+1; j++ ){
 				rep = center + i*vdx + j*vdy;
 				searchedCell = getCell(rep);
 				if ( searchedCell == trashCell ) continue;
+		
 				for ( ofn = searchedCell->fireNodes.begin();
 					 ofn != searchedCell->fireNodes.end(); ++ofn ) {
 					if ( *ofn != fn ){
@@ -1659,6 +1711,7 @@ void FireDomain::readMultiDomainMetadata(){
 				}
 			}
 		}
+		
 	}
 
 	/* Finding the firenodes, in the physical domain,
@@ -1758,9 +1811,11 @@ void FireDomain::readMultiDomainMetadata(){
 
 			/* Detecting possible merging */
 			if ( fn->mergeAllowed() ){
+
 				/* computing the new firenode proximity list */
 				getPotentialMergingNodes(fn, d);
 				if ( closeNodes.size() >= 1 ) {
+				
 					// there exists a firenode too close -> merging
 					FireNode* fnb = closeNodes[min_position];
 					fn->setMerging(fnb);
@@ -1794,8 +1849,7 @@ void FireDomain::readMultiDomainMetadata(){
 	}
 
 	void FireDomain::merge(FireNode* fna, FireNode* fnb){
-		debugOutput<<getDomainID()<<": merging "<<fna->toShort()
-			<<" and "<<fnb->toShort()<<endl;
+	
 		if ( fna->getFront() == fnb->getFront() ) {
 			/* Merging firenodes from the same front */
 			FireFront* tmpfront = fna->getFront();
@@ -2655,8 +2709,8 @@ void FireDomain::readMultiDomainMetadata(){
 
 			cell_active->get(&cellActiveF[0][0],CELLSPACE1_DIM2,CELLSPACE1_DIM1);
 
-			for (i = 0; i < CELLSPACE1_DIM1 ; i++){
-					for (j = 0; j < CELLSPACE1_DIM2 ; j++){
+			for (size_t i = 0; i < CELLSPACE1_DIM1 ; i++){
+					for (size_t j = 0; j < CELLSPACE1_DIM2 ; j++){
 								cellActive[i][j] =cellActiveF[j][i];
 					}
 			}
@@ -2666,14 +2720,14 @@ void FireDomain::readMultiDomainMetadata(){
 			double max_time = params->getDouble("InitTime");
 			// cout << " j "<<SWCorner.getX()<<"  "<<Xorigin<<"        "<<startSlabInFilej<< " i "<<startSlabInFilei<<endl;
 
-			for (i = 0; i < atmoNX ; i++){
-				for (j = 0; j < atmoNY ; j++){
+			for (size_t i = 0; i < atmoNX ; i++){
+				for (size_t j = 0; j < atmoNY ; j++){
 					if(cellActive[startSlabInFilei+i][startSlabInFilej+j] > 0){
 						atime->set_cur((startSlabInFilej+j)*INCELLSPACE1_DIM2,(startSlabInFilei+i)*INCELLSPACE1_DIM1);
 						atime->get( &matrixBufferF[0][0],INCELLSPACE1_DIM2,INCELLSPACE1_DIM1);
 
-						for (ii = 0; ii < INCELLSPACE1_DIM1 ; ii++){
-							for (jj = 0; jj < INCELLSPACE1_DIM2 ; jj++){
+						for (size_t ii = 0; ii < INCELLSPACE1_DIM1 ; ii++){
+							for (size_t jj = 0; jj < INCELLSPACE1_DIM2 ; jj++){
 								if ((matrixBufferF[jj][ii] == -9999)  or (matrixBufferF[jj][ii] > max_time)){
 									matrixBuffer[ii][jj] = numeric_limits<double>::infinity();
 								}else{

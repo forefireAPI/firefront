@@ -79,7 +79,7 @@ FFArray<double>* BurningMap::getMap(){
 
 // Mutators
 void BurningMap::loadBin(std::ifstream&  FileIn){
- 	size_t nnx;
+
 				/*	size_t nny;
 					size_t nnz;
 					size_t nnt;
@@ -90,7 +90,7 @@ void BurningMap::loadBin(std::ifstream&  FileIn){
 		FileIn.read((char *)&nnt, sizeof(size_t));
 		FileIn.read((char *)&vals, sizeof(vals));*/
 	//cout<<" EHHHOUI "<<arrivalTimeMap->loadBin()<<" and "<<nnx*nny<<endl;
-						arrivalTimeMap->loadBin(	FileIn);
+		arrivalTimeMap->loadBin(	FileIn);
  
 	
 }
@@ -122,7 +122,7 @@ double BurningMap::maxTime(){
 	for ( size_t i = 0; i < sizeX; i++ ) {
 		for ( size_t j = 0; j < sizeY; j++ ) {
 			myMax = max((*arrivalTimeMap)(i,j),myMax);
-			 if(myMax == infHere) return myMax;
+			 if(myMax == infHere) return infHere;
 		}
 	}
 	return myMax;

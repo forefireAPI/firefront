@@ -597,9 +597,14 @@ int Command::goTo(const string& arg, size_t& numTabs){
 			/* ******************************************** */
 			/* Advancing the simulation to the desired time */
 			/* ******************************************** */
+			//cout<<getDomain()->getDomainID()<<"  iteration : "<<FireDomain::atmoIterNumber<<" and "<<getDomain()->getNumIterationAtmoModel()<<endl;
+			FireDomain::atmoIterNumber = FireDomain::atmoIterNumber+1;
+			currentSession.params->setInt("atmoIterNumber",FireDomain::atmoIterNumber);
 			currentSession.fd->loadCellsInBinary();
+			getDomain()->loadWindDataInBinary(endTime);
 			currentSession.sim->goTo(endTime);
 			getDomain()->dumpCellsInBinary();
+			//currentSession.fd->dumpWindDataInBinary();
 			startTime = endTime;
 			getDomain()->increaseNumIterationAtmoModel();
 

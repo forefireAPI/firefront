@@ -610,9 +610,7 @@ void FireFront::merge(FireNode* fna, FireNode* fnb){
 		FFPoint nec = FFPoint(maxX, maxY);
 		double t = fna->getTime();
 
-		if (outputs) cout<<getDomainID()
-				<<": merging "<<fna->toShort()<<" and "
-				<<fnb->toShort()<<" from "<<toString()<<endl;
+		
 
 		/* test to see if merging successive nodes */
 		if ( fna == fnb->getNext() or fnb == fna->getNext() ){

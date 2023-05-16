@@ -40,6 +40,7 @@ int Rothermel::isInitialized =
 Rothermel::Rothermel(const int & mindex, DataBroker* db)
 : PropagationModel(mindex, db) {
 	/* defining the properties needed for the model */
+	windReductionFactor = params->getDouble("windReductionFactor");
 
 	slope = registerProperty("slope");
 	normalWind = registerProperty("normalWind");
@@ -93,11 +94,11 @@ double Rothermel::getSpeed(double* valueOf){
 
 	double lRhod = valueOf[Rhod] * 0.06; // conversion kg/m^3 -> lb/ft^3
 	double lMd  = valueOf[Md];
-	double lsd  = valueOf[sd] / 3.2808399; // conversion m -> ft
-	double le   = valueOf[e] * 3.2808399;
+	double lsd  = valueOf[sd] / 3.2808399; // conversion 1/m -> 1/ft
+	double le   = valueOf[e] * 3.2808399; // conversion m -> ft
 	if (le==0) return 0;
 	double lSigmad = valueOf[Sigmad] * 0.2048; // conversion kg/m^2 -> lb/ft^2
-	double lDeltaH = valueOf[DeltaH] / 2326;// conversion J/kg -> BTU/lb
+	double lDeltaH = valueOf[DeltaH] / 2326.0;// conversion J/kg -> BTU/lb
 	double normal_wind  = valueOf[normalWind] * 196.850394 ; //conversion m/s -> ft/min
 	double localngle =  valueOf[slope];
 	//	if (normal_wind  > 0) cout<<"wind is"<<valueOf[normalWind]<<endl;
@@ -108,7 +109,7 @@ double Rothermel::getSpeed(double* valueOf){
 	  le =1.0;
 	  lSigmad =1044.27171; */
 
-	normal_wind *= 0.4; // factor in the data seen in 2013
+	normal_wind *= windReductionFactor; // factor in the data seen in 2013
 
 	if (normal_wind < 0) normal_wind = 0;
 
@@ -152,9 +153,13 @@ double Rothermel::getSpeed(double* valueOf){
 	double E = 0.715* exp(-3.59*(10E-4 * lsd));
 
 	double Ir = Rprime*Wn*lDeltaH*Etam*Etas;
-
-	/// wind limit 2013 //
-	double Uf = 96.81*pow(Ir, 1./3);
+	double Uf = 0.9*Ir;
+	
+	// wind limit 2013 10.1071/WF12122 andrews/cruz/rothermel
+	if(windReductionFactor < 1.0){
+		Uf = 96.81*pow(Ir, 1./3);
+	}
+	
 
 	if (normal_wind>Uf) {
 		normal_wind = Uf;

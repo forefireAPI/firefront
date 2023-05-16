@@ -372,6 +372,26 @@ void DataBroker::initializeAtmosphericLayers(const double& time,
 	registerLayer("altitude", alt);
 }
 
+void DataBroker::loadMultiWindBin(double refTime,size_t numberOfDomains, size_t* startI, size_t* startJ){
+	string windFileName(params->getParameter("caseDirectory")+'/'+params->getParameter("PPath")+'/'+to_string(FireDomain::atmoIterNumber%2)+"/");
+
+					if (windULayer != 0){	
+						((TwoTimeArrayLayer<double>* )windULayer)->loadMultiWindBin(windFileName,refTime,numberOfDomains,startI,startJ);
+					}
+					if (windVLayer != 0){
+						((TwoTimeArrayLayer<double>* )windVLayer)->loadMultiWindBin(windFileName,refTime,numberOfDomains,startI,startJ);
+					}
+}
+void DataBroker::dumpWindDataInBinary(){
+	//string windFileName(params->getParameter("caseDirectory")+'/'+params->getParameter("PPath")+'/'+to_string((FireDomain::atmoIterNumber+1)%2)+"/"+to_string(domain->getDomainID()));
+	
+				//	if (windULayer != 0)	((TwoTimeArrayLayer<double>* )windULayer)->setAtmoNumber(FireDomain::atmoIterNumber);
+						//((TwoTimeArrayLayer<double>* )windULayer)->dumpMultiWindBin(windFileName);
+					
+				//	if (windVLayer != 0)	((TwoTimeArrayLayer<double>* )windULayer)->setAtmoNumber(FireDomain::atmoIterNumber);
+						//((TwoTimeArayLayer<double>* )windVLayer)->dumpMultiWindBin(windFileName);
+					
+}
 void DataBroker::initializeParallelProperties(const size_t& nx,
 		const size_t& ny, const size_t& nz, const double& initval) {
 

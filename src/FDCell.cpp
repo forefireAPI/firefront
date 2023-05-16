@@ -272,7 +272,7 @@ double FDCell::applyModelsOnBmap(string layername, const double& bt, const doubl
 				modelIndex = layer->getFunctionIndexAt(center, bt);
 				// Return 0 if no model defined in the area
 				value = modelIndex<0?0:domain->getModelValueAt(modelIndex, center, bt, et, arrivalTime);
-				if(!isnan(value)){
+				if(!std::isnan(value)){
 					cellFlux += value;
 					if (value > 0)
 						modelCount[modelIndex] = modelCount[modelIndex]+1;

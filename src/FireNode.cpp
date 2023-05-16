@@ -125,6 +125,7 @@ void FireNode::update(){
 		double oldTime = getTime();
 		// updating the position of the firenode in the cells
 		domain->updateFireNodeInCells(this);
+
 		// updating the position of the firenode
 		setTime(getUpdateTime());
 		setLoc(nextloc);
@@ -708,6 +709,7 @@ bool FireNode::splitAllowed(){
 
 void FireNode::setMerging(FireNode* fn){
 	setState(merging);
+	
 	setMergingNode(fn);
 }
 
@@ -721,7 +723,7 @@ bool FireNode::isMerging(){
 }
 
 bool FireNode::mergeAllowed(){
-	if ( getDomainID() != domain->getDomainID() ) return false;
+	//if ( getDomainID() != domain->getDomainID() ) return false;
 	if ( currentState == moving ) return true;
 	if ( currentState == final ) return true;
 	return false;
