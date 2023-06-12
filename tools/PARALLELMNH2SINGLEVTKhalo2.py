@@ -13,7 +13,29 @@ import csv
 import shutil
 from copy import copy
 
-
+#        CALL FOREFIRE_DUMP_FIELDS_n(XUT, XVT, XWT, XSVT&
+#                   , XTHT(:,:,:)*(XPABST(:,:,:)/ XP00) **(XRD/XCPD), XRT(:,:,:,1), XRT(:,:,:,6), XTKET&
+#                   , XRT(:,:,:,2), XRHODREF(:,:,:),XINPRR3D&
+#                   , IDIM1+2, IDIM2+2, NKMAX+2)
+#                CALL MNH_DUMP_DOUBLEARRAY(FFNMODEL, PROCID, sT, FF_TIME, TH, NX*NY*NZ, NX, NY, NZ, 1)
+#                CALL MNH_DUMP_DOUBLEARRAY(FFNMODEL, PROCID, sMoist, FF_TIME, R, NX*NY*NZ, NX, NY, NZ, 1)
+#                CALL MNH_DUMP_DOUBLEARRAY(FFNMODEL, PROCID, sP, FF_TIME, PABS, NX*NY*NZ, NX, NY, NZ, 1)
+#                CALL MNH_DUMP_DOUBLEARRAY(FFNMODEL, PROCID, sTKE, FF_TIME, TKE, NX*NY*NZ, NX, NY, NZ, 1)
+#                CALL MNH_DUMP_DOUBLEARRAY(FFNMODEL, PROCID, sCloud, FF_TIME, CLOUDFR, NX*NY*NZ, NX, NY, NZ, 1)
+#                CALL MNH_DUMP_DOUBLEARRAY(FFNMODEL, PROCID, sRho, FF_TIME, RHOR, NX*NY*NZ, NX, NY, NZ, 1)
+#                CALL MNH_DUMP_DOUBLEARRAY(FFNMODEL, PROCID, sRainFR, FF_TIME, RAINFR, NX*NY*NZ, NX, NY, NZ, 1)
+#       CHARACTER(LEN=4, KIND=C_CHAR)   :: sRho = C_CHAR_'Rho'//C_NULL_CHAR
+#        CHARACTER(LEN=5, KIND=C_CHAR)   :: sCloud= C_CHAR_'Cloud'//C_NULL_CHAR
+#        CHARACTER(LEN=7, KIND=C_CHAR)   :: sRainFR = C_CHAR_'RainFR'//C_NULL_CHAR
+#        CHARACTER(LEN=2, KIND=C_CHAR)   :: sU = C_CHAR_'U'//C_NULL_CHAR
+#        CHARACTER(LEN=2, KIND=C_CHAR)   :: sV = C_CHAR_'V'//C_NULL_CHAR
+#        CHARACTER(LEN=2, KIND=C_CHAR)   :: sW = C_CHAR_'W'//C_NULL_CHAR
+#        CHARACTER(LEN=2, KIND=C_CHAR)   :: sT = C_CHAR_'T'//C_NULL_CHAR
+#        CHARACTER(LEN=2, KIND=C_CHAR)   :: sP = C_CHAR_'P'//C_NULL_CHAR
+#        CHARACTER(LEN=4, KIND=C_CHAR)   :: sTKE = C_CHAR_'TKE'//C_NULL_CHAR
+#        CHARACTER(LEN=6, KIND=C_CHAR)   :: sMoist = C_CHAR_'moist'//C_NULL_CHAR
+#        CHARACTER(LEN=9, KIND=C_CHAR)   :: sHeatFlux = C_CHAR_'heatFlux'//C_NULL_CHAR
+#        CHARACTER(LEN=10, KIND=C_CHAR)  :: sVaporFlux = C_CHAR_'vaporFlux'//C_NULL_CHAR
 class LaserShot():
 
     valueName = "PR2"
@@ -806,6 +828,7 @@ Allsteps = np.sort(tsteps)
 
 steps = []
 gf = VtkGroup("%s/%sgroupsfields"%(outPath,fprefix))
+gp = VtkGroup("%s/%sgrouppoints"%(outPath,fprefix))
 for stepV in Allsteps[:]:
     outname = "%s/%s.full.%d.vts"%(outPath,fprefix,stepV) 
     fpoutGname = "%s/%sPoints%d.vtu"%(outPath,fprefix,stepV);
@@ -822,6 +845,8 @@ for stepV in Allsteps[:]:
     if ((norecompute or cleanFile) and os.path.isfile(outname)):
         print("%d, "%stepV, end = '') 
         gf.addFile(filepath = "%s"%outname, sim_time = stepV)
+        gp.addFile(filepath = "%s"%fpoutGname, sim_time = stepV)
+        
     else:
         steps.append(stepV) 
     
@@ -914,10 +939,10 @@ if genDomainExtent != None:
                 print(" %s identical domain exist"%fDomFileName)   
     exit(0)
      
-
+numOfDomains = 0
 while(domainID > 0):
-    domFFFileName = "%s.%d.%d"%(inFFpattern, domainID,domFFBaseNumber)
-    #print domFFFileName
+    domFFFileName = "%s.%d.%d"%(inFFpattern, domainID, domFFBaseNumber)
+    print("looking  domains ",domFFFileName) 
     if os.path.isfile(domFFFileName) : 
         domainID +=1
         numOfDomains += 1
@@ -1116,28 +1141,32 @@ for stepV in selectedSteps:
             print("processing sub-domains %d to %d at step %d"%(indom,indom+100, stepV))
         if (indom%10 == 0) : 
             print("*", end='')
-        ffrontFileName = "%s.%d.%d"%(inFFpattern, indom+1,stepV)
-        if os.path.isfile(ffrontFileName) :
-            fDomFile = open(ffrontFileName, 'r')
-            fDomFile.readline()
-            fDomFile.readline()
-            domainLines = fDomFile.read().split("\n")
-            cfront = []
-            
-            for dline in domainLines:
-                if "FireFront" in dline:
+        if(indom == 0) : 
+            ffrontFileName = "%s.%d.%d"%(inFFpattern, indom,(stepV-5))
+            print("Tentative of ",ffrontFileName," read") 
+            if os.path.isfile(ffrontFileName) :
+                fDomFile = open(ffrontFileName, 'r')
+                fDomFile.readline()
+                fDomFile.readline()
+                domainLines = fDomFile.read().split("\n")
+                cfront = []
+                
+                for dline in domainLines:
+                    if "FireFront" in dline:
+                        if (len(cfront)> 5):
+                            fronts.append(cfront)
+                        cfront = []
+                    if "FireNode" in dline:
+                        loc = dline.split("loc=(")[1].split(")")[0].split(',');
+                        vel = dline.split("vel=(")[1].split(")")[0].split(',');    
+                        velMod = np.sqrt((float(vel[0])*float(vel[0]))+(float(vel[1])*float(vel[1]))+(float(vel[2])*float(vel[2])))
+                        ntotPoints = ntotPoints +1
+                        if np.abs(velMod) > 0.00:    
+                            cfront.append(((float(loc[0]),float(loc[1]),float(loc[2])),(float(vel[0]),float(vel[1]),float(vel[2]))))
+                      
+                if (len(cfront)> 5):
+                    print("front of ",len(cfront)," read")
                     fronts.append(cfront)
-                    cfront = []
-                if "FireNode" in dline:
-                    loc = dline.split("loc=(")[1].split(")")[0].split(',');
-                    vel = dline.split("vel=(")[1].split(")")[0].split(',');    
-                    velMod = np.sqrt((float(vel[0])*float(vel[0]))+(float(vel[1])*float(vel[1]))+(float(vel[2])*float(vel[2])))
-                    ntotPoints = ntotPoints +1
-                    if np.abs(velMod) > 0.00:    
-                        cfront.append(((float(loc[0]),float(loc[1]),float(loc[2])),(float(vel[0]),float(vel[1]),float(vel[2]))))
-                        
-            if (len(cfront)> 0):
-                fronts.append(cfront)
         
         
         nx,ny,nz =     domainshapesInPoint[indom]
