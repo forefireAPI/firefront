@@ -86,9 +86,9 @@ execfile("genForeFireCase.py")
 #fname = "/Volumes/brando/cases/paugham/02_mesonh/ff2ideal.nc" #sys.argv[1]
 imgPath = None#"/Users/filippi_j/codes/Prunelli/bg5c.png"
 #imgPath = None
-fname="/Users/filippi_j/Volumes/fcouto/KDATABASE/nestPattern150/006_runff/PGD_D80m.nested.nc"
+fname="/Users/filippi_j/Volumes/fcouto/KDATABASE/DB59/001_pgd/PGD_D80mDB59A.nested.nc"
 #fname="/Users/filippi_j/soft/firefront/py3_tools/PGD_D80mA.nested.nc"
-fout = "/Users/filippi_j/Volumes/fcouto/KDATABASE/nestPattern150/006_runff/caseFF.nc" #sys.argv[2]
+fout = "/Users/filippi_j/Volumes/fcouto/KDATABASE/DB59/006_runff/caseFF.nc" #sys.argv[2]
 
 
 
