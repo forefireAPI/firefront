@@ -12,10 +12,12 @@ import matplotlib.path as mpath
 import matplotlib.patches as mpatches
 import matplotlib.colors as mcolors
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+import matplotlib.image as mpimg
 import os.path
 import struct
-plt.rcParams['figure.figsize'] = [10.0, 10.0]
-plt.rcParams['figure.dpi'] = 100
+#plt.rcParams['figure.figsize'] = [10.0, 10.0]
+#plt.rcParams['figure.dpi'] = 100
 
 def readBMAP(fname, vals= None):
     if os.path.isfile(fname):
@@ -41,8 +43,9 @@ def readBMAP(fname, vals= None):
             vals = np.transpose(vals)
         
         ncells = int(fleft/(struct.calcsize(formatMetaRecord)+struct.calcsize(formatData)))
-        
-        print(np.shape(vals), ncells)
+       # if (ncells > 0):
+       # print(ncells, " read ",fname)
+         
         for n in range(ncells):
             iNX,iNY,nx,ny,nz,nt = struct.unpack(formatMetaRecord,c_file.read(struct.calcsize(formatMetaRecord)))
             items = struct.unpack(formatData, c_file.read(struct.calcsize(formatData)))
@@ -55,6 +58,7 @@ def readBMAP(fname, vals= None):
         vals[vals == np.inf] = 0
         
         return np.transpose(vals)
+    print(fname, " not found")
     return None
 def read2DBin(fname):
     if os.path.isfile(fname):
@@ -218,21 +222,42 @@ def printToPathe(linePrinted):
 
     return pathes;
 
+
+
+basePath="/Users/filippi_j/soft/MNH-V5-5-1/MY_RUN/KTEST/016_PEDROGAO/002_mesonh/"
+inistep =0
 NumDomains =1
-for nid in range(15):
-    fname = "/Users/filippi_j/soft/MNH-V5-5-1/MY_RUN/KTEST/016_PEDROGAO/002_mesonh/ForeFire/Outputs/output.%d.0"%(nid) 
+for nid in range(1000):
+    fname = basePath+"ForeFire/Outputs/output.%d.%d"%(nid,inistep) 
     if os.path.isfile(fname):
         NumDomains = nid 
-     
+print(NumDomains, " domains found ")
+    
 
-RunDuration=30000
+RunDuration=300000
 domains = range(0 ,NumDomains+1)
-steps =  range(0,RunDuration,10) 
+steps =  range(inistep,inistep+RunDuration,10) 
 domColor = ['red','blue','black','pink','yellow','green','green','green','green','red','blue','black','pink',]
 #list(mcolors.TABLEAU_COLORS.keys())
 print(domColor)
 fig, ax = plt.subplots() 
 
+simTime = 10
+
+def onclick(event):
+    global ix, iy
+    global simTime
+    ix, iy = event.xdata, event.ydata
+    print("startFire[loc=(%d.,%d.,0.);t=%d]"%(ix, iy,simTime))
+    simTime = simTime +50
+    coords = []
+    coords.append((ix, iy))
+
+    if len(coords) == 2:
+        fig.canvas.mpl_disconnect(cid)
+
+
+#cid = fig.canvas.mpl_connect('button_press_event', onclick)
 pathes = []
 domPatches= []
 testarr = None
@@ -249,16 +274,17 @@ quivNorm = mcolors.Normalize(vmin=0, vmax=10)
 arrBMAP = {}
 for domainID in domains:
     
-    fname = "/Users/filippi_j/soft/MNH-V5-5-1/MY_RUN/KTEST/016_PEDROGAO/002_mesonh/ForeFire/Outputs/output.%d.0"%(domainID)
-    fnameWindV = "/Users/filippi_j/soft/MNH-V5-5-1/MY_RUN/KTEST/016_PEDROGAO/002_mesonh/ForeFire/Outputs/output.%d.windV"%(domainID)
-    fnameWindU = "/Users/filippi_j/soft/MNH-V5-5-1/MY_RUN/KTEST/016_PEDROGAO/002_mesonh/ForeFire/Outputs/output.%d.windU"%(domainID)
-    fnameBMAP ="/Users/filippi_j/soft/MNH-V5-5-1/MY_RUN/KTEST/016_PEDROGAO/002_mesonh/ForeFire/Outputs/output.%d.bmapcells"%(domainID)
+    fname = basePath+"ForeFire/Outputs/output.%d.%d"%(domainID,inistep)
+    fnameWindV = basePath+"parallel/0/%d.windV"%(domainID)
+    fnameWindU = basePath+"parallel/0/%d.windU"%(domainID)
+    fnameBMAP =basePath+"parallel/0/%d.bmapcells"%(domainID)
     arrBMAP[domainID] = None
     bmImage[domainID] = None
     if os.path.isfile(fname):
         f= open(fname,'r')  
         square = getDomainExtent(f.readline())
         extentsImage[domainID]=square
+        print (square)
         domPatches.append(mpatches.Rectangle((square[0], square[2]), square[1]-square[0], square[3]-square[2],edgecolor ='black',fill=False,lw=2))
         f.close()
  
@@ -279,17 +305,18 @@ for domainID in domains:
             aru = ((arrWindu[2:-1,2:-1]))
             arv = ((arrWindv[2:-1,2:-1]))
             speedW = np.sqrt((aru*aru)+(arv*arv)).flatten()
-            quivWind[domainID] = ax.quiver(XW[domainID], YW[domainID] , aru, arv, speedW,norm=quivNorm, cmap='jet',scale_units='dots',scale=sctest)
+            quivWind[domainID] = None#ax.quiver(XW[domainID], YW[domainID] , aru, arv, speedW,norm=quivNorm, cmap='jet',scale_units='dots',scale=sctest)
             
-          #  print("scale is",quivWind[domainID].scale)
+    
         
       
-        arrBMAP[domainID] = readBMAP(fnameBMAP,arrBMAP[domainID])
+        arrBMAP[domainID] = None#readBMAP(fnameBMAP,arrBMAP[domainID])
         if(arrBMAP[domainID] is not None)  :
            bmImage[domainID] =  ax.imshow(arrBMAP[domainID],extent=square,origin='lower')
-        
+#ax.imshow(imgRR,extent=extentsImage[0])
 #ax.quiverkey(quivWind[domains[0]], X=0.3, Y=1.1, U=10, label='Quiver key, length = 10', labelpos='E')
  
+
 
 inited = False
 
@@ -298,11 +325,13 @@ for doms in domPatches:
 
 lastFoundOutputs = 0
 oneshot = True     
+
 while(oneshot):
    #ax.clear()
+    pathes = []
     for fi, originstep in enumerate(steps):
         for domainID in domains:
-            fname = "/Users/filippi_j/soft/MNH-V5-5-1/MY_RUN/KTEST/016_PEDROGAO/002_mesonh/ForeFire/Outputs/output.%d.%d"%(domainID,originstep)
+            fname = basePath+"ForeFire/Outputs/output.%d.%d"%(domainID,originstep)
             if os.path.isfile(fname):
                 lastFoundOutputs = fi
                 
@@ -310,47 +339,46 @@ while(oneshot):
         ax.add_patch(doms)      
       
     originstep = steps[lastFoundOutputs]   
-    pathes = []
+  
     for domainID in domains:        
-        fname = "/Users/filippi_j/soft/MNH-V5-5-1/MY_RUN/KTEST/016_PEDROGAO/002_mesonh/ForeFire/Outputs/output.%d.%d"%(domainID,originstep)
-        
+        fname = basePath+"ForeFire/Outputs/output.%d.%d"%(domainID,originstep)
+        fnameBMAP =basePath+"parallel/0/%d.bmapcells"%(domainID)
         arrBMAP[domainID] = readBMAP(fnameBMAP,arrBMAP[domainID])
-        
+
              
-        if(arrBMAP[domainID] is not None)  :
+        if(arrBMAP[domainID] is not None):
             if(bmImage[domainID] is not None):
                 bmImage[domainID].remove()
             bmImage[domainID] = None          
           
             bmImage[domainID] = ax.imshow(arrBMAP[domainID],extent=extentsImage[domainID],origin='lower')  
-            
-        if os.path.isfile(fname):
-            f= open(fname,'r') 
-            newPathes= printToPathe(f.read())
-            print("Domain {} iter {} has {} fronts".format(domainID,originstep,len(newPathes)))
-            pathes += newPathes
-            f.close()
-        for path in pathes:
-           patch = mpatches.PathPatch(path,edgecolor=domColor[domainID], facecolor='none', alpha=1)
-           ax.add_patch(patch)
+        if domainID == 0:
+            if os.path.isfile(fname):
+                f= open(fname,'r') 
+                newPathes= printToPathe(f.read())
+                pathes += newPathes
+                f.close()
+            for path in pathes:
+                patch = mpatches.PathPatch(path,edgecolor=domColor[domainID], facecolor='none', alpha=1)
+                ax.add_patch(patch)
  
-        fnameWindV = "/Users/filippi_j/soft/MNH-V5-5-1/MY_RUN/KTEST/016_PEDROGAO/002_mesonh/ForeFire/Outputs/output.%d.windV"%(domainID)
-        fnameWindU = "/Users/filippi_j/soft/MNH-V5-5-1/MY_RUN/KTEST/016_PEDROGAO/002_mesonh/ForeFire/Outputs/output.%d.windU"%(domainID)
-        fnameBMAP ="/Users/filippi_j/soft/MNH-V5-5-1/MY_RUN/KTEST/016_PEDROGAO/002_mesonh/ForeFire/Outputs/output.%d.bmapcells"%(domainID)
-
-        
+ 
+        fnameWindV = basePath+"parallel/0/%d.windV"%(domainID)
+        fnameWindU = basePath+"parallel/0/%d.windU"%(domainID)
+            
         arWu = read2DBin(fnameWindU)
         arWv = read2DBin(fnameWindV)
         if(arWu is not None) and (arWv is not None) :
             aru = arWu[1:-2,1:-2]
             arv = arWv[1:-2,1:-2]
             speedW = np.sqrt((aru*aru)+(arv*arv)).flatten()
-           
-            quivWind[domainID].remove()
+            if(quivWind[domainID] is not None):
+                quivWind[domainID].remove()
             quivWind[domainID] = None
-            
-            quivWind[domainID] = ax.quiver(XW[domainID], YW[domainID], aru, arv, speedW,norm=quivNorm, cmap='jet',scale_units='dots',scale=sctest)
-        
+            if (domainID==0):
+                quivWind[domainID] = None#ax.quiver(XW[domainID], YW[domainID], aru, arv, speedW,norm=quivNorm, cmap='Spectral_r',scale_units='dots',scale=sctest)
+            else:
+                quivWind[domainID] = None# ax.quiver(XW[domainID], YW[domainID], aru, arv, speedW,norm=quivNorm, cmap='jet',scale_units='dots',scale=sctest)
 
 
     ax.set_title(f"step {originstep}")
@@ -360,8 +388,8 @@ while(oneshot):
     inited = True
     
     
-    plt.pause(2)
-    #oneshot = True    
+    plt.pause(1)
+    oneshot = False    
 
  
 
