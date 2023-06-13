@@ -14,48 +14,6 @@
 # FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
 # more details.
 
-'''
-netcdf dataROB {
-dimensions:
-	DIMX = 302 ;
-	DIMY = 302 ;
-	DIMZ = 1 ;
-	DIMT = 1 ;
-variables:
-	int fuel(DIMT, DIMZ, DIMY, DIMX) ;
-		fuel:type = "fuel" ;
-	int heatFlux(DIMT, DIMZ, DIMY, DIMX) ;
-		heatFlux:type = "flux" ;
-		heatFlux:model0name = "IndFlux" ;
-		heatFlux:indices = 0 ;
-	int vaporFlux(DIMT, DIMZ, DIMY, DIMX) ;
-		vaporFlux:type = "flux" ;
-		vaporFlux:model1name = "IndVap" ;
-		vaporFlux:indices = 1 ;
-	char domain ;
-		domain:type = "domain" ;
-		domain:SWx = 288520. ;
-		domain:SWy = 282520. ;
-		domain:SWz = 0 ;
-		domain:Lx = 24160. ;
-		domain:Ly = 24160. ;
-		domain:Lz = 0 ;
-		domain:t0 = 0 ;
-		domain:Lt = Infinityf ;
-	char parameters ;
-		parameters:type = "parameters" ;
-		parameters:projectionproperties = "41.551998,8.828396,41.551998,8.828396" ;
-		parameters:date = "2017-06-17_14:00:00" ;
-		parameters:duration = 100000 ;
-		parameters:projection = "OPENMAP" ;
-		parameters:refYear = 2017 ;
-		parameters:refDay = 168 ;
-
-// global attributes:
-		:version = "FF.1.0" ;
-}
-
-    '''
 import numpy as np
 import sys
 import xarray as xr
@@ -77,19 +35,23 @@ def forceDim(arrIn, newD=None, kind='edge'):
 
     return np.pad(arrIn, newD, kind)
 
+ 
+exec(compile(open("genForeFireCase.py", "rb").read(), "genForeFireCase.py", 'exec'))
 
-execfile("genForeFireCase.py")
-
-#if(len(sys.argv)==1):
-#    print "Usage MNHCDF2Case MNHSrcFile.nc FFDestFile.nc a.x,a.y b.x,b.y ...."
-#    exit(0)
-#fname = "/Volumes/brando/cases/paugham/02_mesonh/ff2ideal.nc" #sys.argv[1]
+if(len(sys.argv)==1):
+    print("Usage prealCF2Case inMNH_PGD_File.nc outFFDCaseFile.nc   opt:pngFuelFile")
+    sys.exit(0)
+   
+ 
 imgPath = None#"/Users/filippi_j/codes/Prunelli/bg5c.png"
-#imgPath = None
-fname="/Users/filippi_j/Volumes/fcouto/KDATABASE/DB59/001_pgd/PGD_D80mDB59A.nested.nc"
-#fname="/Users/filippi_j/soft/firefront/py3_tools/PGD_D80mA.nested.nc"
-fout = "/Users/filippi_j/Volumes/fcouto/KDATABASE/DB59/006_runff/caseFF.nc" #sys.argv[2]
 
+if(len(sys.argv)>3):
+    imgPath=sys.argv[3]
+     
+fname = sys.argv[1]
+fout = sys.argv[2]
+print("reading %s generationg %s with %s as fuel"%(fname,fout,imgPath))
+#.png"
 
 
 #geometry 
