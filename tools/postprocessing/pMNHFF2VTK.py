@@ -942,7 +942,7 @@ if genDomainExtent != None:
 numOfDomains = 0
 while(domainID > 0):
     domFFFileName = "%s.%d.%d"%(inFFpattern, domainID, domFFBaseNumber)
-    print("looking  domains ",domFFFileName) 
+ 
     if os.path.isfile(domFFFileName) : 
         domainID +=1
         numOfDomains += 1
@@ -1142,8 +1142,8 @@ for stepV in selectedSteps:
         if (indom%10 == 0) : 
             print("*", end='')
         if(indom == 0) : 
-            ffrontFileName = "%s.%d.%d"%(inFFpattern, indom,(stepV-5))
-            print("Tentative of ",ffrontFileName," read") 
+            ffrontFileName = "%s.%d.%d"%(inFFpattern, indom,(stepV))
+
             if os.path.isfile(ffrontFileName) :
                 fDomFile = open(ffrontFileName, 'r')
                 fDomFile.readline()
