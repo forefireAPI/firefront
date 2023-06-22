@@ -77,7 +77,7 @@ for i in range(sh[1]):
             sDist=dst 
 
 
-dom= "FireDomain[sw=(%d,%d,0);ne=(%d,%d,0);t=0]"%(nc['XHAT'][0],nc['YHAT'][0],nc['XHAT'][-1]+DeltaX,nc['YHAT'][-1]+DeltaY)
+dom= "FireDomain[sw=(%d,%d,0);ne=(%d,%d,0);t=%d]"%(nc['XHAT'][0],nc['YHAT'][0],nc['XHAT'][-1]+DeltaX,nc['YHAT'][-1]+DeltaY,seconds)
 dom+= "\nstartFire[loc=(%d,%d,0.);t=%d]"%( nc['XHAT'][closest[0][2]],nc['YHAT'][closest[0][1]],seconds)  
 
 print(dom)
