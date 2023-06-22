@@ -5,9 +5,7 @@ These scripts create the files necessary to run a coupled simulation with MesoNH
 
 to couple the simulation with MesoNH you should also edit the &NAM_FOREFIRE namelist in the EXSEG file [http://mesonh.aero.obs-mip.fr/mesonh56/BooksAndGuides?action=AttachFile&do=get&target=forefire.pdf] 
 
-
 #  Preprocessing Scripts
-
 
 List of preprocessing scripts:
 - ***clickImageToLocation.py*** sets the coordinates for the Init.ff file 
@@ -175,11 +173,52 @@ run with `sbatch --array=0-2 script_vtk_array 2 10` :  will launch 3 tasks SLURM
  so ID 1 will compute 11-12 13-14 15-16 17-18 19-20
  so ID 2 will compute 21-22 23-24 25-26 27-28 29-30
  Typically fo 2000 outputs on 10 tasks : "sbatch --array=0-9 script_vtk_array 20 200"
-
-
-
-
  
+When all steps are computed, run another time:
+```
+ python3.9 ~/soft/firefront/tools/postprocessing/pMNHFF2VTK.py  MODEL3/output ForeFire/Outputs/output vtkout3/
 ```
 
+with that all time steps will be sincg=hronized with MesoNH time 
+
+#  BUGFIX
+
+## When launching a simulation do always the following steps
+ 
+- check that all directories called in RUN_MNH_Nproc are really there, otherwise this will cause errors difficult to debug:
+
 ```
+  ~/runMNH 
+rm -rf MODEL/*
+rm -rf vtkout/*
+rm -rf ForeFire/Outputs/*
+rm -rf parallel/*.domain*
+rm -rf parallel/1/*
+rm -rf parallel/0/*
+
+
+ln -sf ../001_pgd/PGD_D* .
+ln -sf ../002_real/AND1.* .
+ln -sf ../003_run/JUL19.1.RUN1D.008* .
+#ln -sf ../004_SpawnReal/AND2.* .
+#ln -sf ../005_SpawnReal/AND3.* .
+
+```
+- When launching the simultaions, sometiles bmap is not good!! check with
+```
+grep bmap | logfile.out
+```
+if everything is ok you will have something of the type:
+```
+ Domain 0    size:202:202:52 coord:24240:24240 my bmap is 2424:2424 res 10:10
+```
+then you can comment the following line in the RUN_MNH script to avoid such problem in the future:
+```
+rm -rf parallel/*.domain*
+```
+
+- The vtk postprocesser pMNHFF2VTK gives the error:
+```
+found no domains
+```
+if is so you should move all the output.1*  output.2* ... (with the exception of the output.0* files) in a new directory *pathForefireOutputGeom* and use that one in the post processing   
