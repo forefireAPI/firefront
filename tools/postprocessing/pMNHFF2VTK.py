@@ -13,29 +13,6 @@ import csv
 import shutil
 from copy import copy
 
-#        CALL FOREFIRE_DUMP_FIELDS_n(XUT, XVT, XWT, XSVT&
-#                   , XTHT(:,:,:)*(XPABST(:,:,:)/ XP00) **(XRD/XCPD), XRT(:,:,:,1), XRT(:,:,:,6), XTKET&
-#                   , XRT(:,:,:,2), XRHODREF(:,:,:),XINPRR3D&
-#                   , IDIM1+2, IDIM2+2, NKMAX+2)
-#                CALL MNH_DUMP_DOUBLEARRAY(FFNMODEL, PROCID, sT, FF_TIME, TH, NX*NY*NZ, NX, NY, NZ, 1)
-#                CALL MNH_DUMP_DOUBLEARRAY(FFNMODEL, PROCID, sMoist, FF_TIME, R, NX*NY*NZ, NX, NY, NZ, 1)
-#                CALL MNH_DUMP_DOUBLEARRAY(FFNMODEL, PROCID, sP, FF_TIME, PABS, NX*NY*NZ, NX, NY, NZ, 1)
-#                CALL MNH_DUMP_DOUBLEARRAY(FFNMODEL, PROCID, sTKE, FF_TIME, TKE, NX*NY*NZ, NX, NY, NZ, 1)
-#                CALL MNH_DUMP_DOUBLEARRAY(FFNMODEL, PROCID, sCloud, FF_TIME, CLOUDFR, NX*NY*NZ, NX, NY, NZ, 1)
-#                CALL MNH_DUMP_DOUBLEARRAY(FFNMODEL, PROCID, sRho, FF_TIME, RHOR, NX*NY*NZ, NX, NY, NZ, 1)
-#                CALL MNH_DUMP_DOUBLEARRAY(FFNMODEL, PROCID, sRainFR, FF_TIME, RAINFR, NX*NY*NZ, NX, NY, NZ, 1)
-#       CHARACTER(LEN=4, KIND=C_CHAR)   :: sRho = C_CHAR_'Rho'//C_NULL_CHAR
-#        CHARACTER(LEN=5, KIND=C_CHAR)   :: sCloud= C_CHAR_'Cloud'//C_NULL_CHAR
-#        CHARACTER(LEN=7, KIND=C_CHAR)   :: sRainFR = C_CHAR_'RainFR'//C_NULL_CHAR
-#        CHARACTER(LEN=2, KIND=C_CHAR)   :: sU = C_CHAR_'U'//C_NULL_CHAR
-#        CHARACTER(LEN=2, KIND=C_CHAR)   :: sV = C_CHAR_'V'//C_NULL_CHAR
-#        CHARACTER(LEN=2, KIND=C_CHAR)   :: sW = C_CHAR_'W'//C_NULL_CHAR
-#        CHARACTER(LEN=2, KIND=C_CHAR)   :: sT = C_CHAR_'T'//C_NULL_CHAR
-#        CHARACTER(LEN=2, KIND=C_CHAR)   :: sP = C_CHAR_'P'//C_NULL_CHAR
-#        CHARACTER(LEN=4, KIND=C_CHAR)   :: sTKE = C_CHAR_'TKE'//C_NULL_CHAR
-#        CHARACTER(LEN=6, KIND=C_CHAR)   :: sMoist = C_CHAR_'moist'//C_NULL_CHAR
-#        CHARACTER(LEN=9, KIND=C_CHAR)   :: sHeatFlux = C_CHAR_'heatFlux'//C_NULL_CHAR
-#        CHARACTER(LEN=10, KIND=C_CHAR)  :: sVaporFlux = C_CHAR_'vaporFlux'//C_NULL_CHAR
 class LaserShot():
 
     valueName = "PR2"
@@ -238,7 +215,24 @@ def imageToVTK(path, origin = (0.0,0.0,0.0), spacing = (1.0,1.0,1.0), cellData =
     w.save()
     return w.getFileName()
 
+def gridToCdf(path, x, y, z, cellData = None, pointData = None, vectData = None,start = None, end = None):
+    import xarray as xr
+    
 
+    ds = xr.Dataset()
+    coords={'x': np.linspace(0, x.shape[0]+1, num=x.shape[0]),'y': np.linspace(0, x.shape[1]+1, num=x.shape[1]),'z': np.linspace(0, x.shape[2]+1, num=x.shape[2])}
+    dims=["x", "y", "z"]
+   # ds["altitude"] = xr.DataArray(z,dims,coords)
+    print(coords,x.shape,y.shape,z.shape)
+    for pkey in pointData.keys():
+        
+        ds[pkey] = xr.DataArray(pointData[pkey],dims,coords)
+        
+
+#    for vkey in vectData.keys():
+#        ds[vkey] = xr.DataArray(vectData[vkey],coords,dims)
+
+    ds.to_netcdf(path)
 
 def gridToVTK(path, x, y, z, cellData = None, pointData = None, vectData = None,start = None, end = None):
 
@@ -468,19 +462,14 @@ def readBinS(inpattern,domnum,stepV,vkey, appendedDict, zkey=None, bestshape=Non
     D = np.zeros((nx + 1, ny + 1, nz + 1), dtype=np.float32)
         
  
-    
-   # print tstep, nxt,nyt,nzt, sizeOfData, "%dd" % (nxt*nyt*nzt), (nxt*nyt*nzt)
-    #print(fname, sizeOfData,"%dd" % (nxt*nyt*nzt))    
     items = struct.unpack("%dd" % (nxt*nyt*nzt) , c_file.read(sizeOfData))
  
     for j in range(1,nyt):
         for i in range(1,nxt):
             for k in range(1,nzt): 
                 indice =  (k*nyt*nxt)+(j*nxt)+i
-                #D[nxt-i-2,nyt-j-2,k-1]=items[indice]
                 D[i-1,j-1,k-1]=items[indice]
     
-    #print  fname," max ", np.max(D) ," minimum ", np.min(D), "  val"
     c_file.close()
     return D
 
@@ -554,8 +543,6 @@ def _appendDataToFile(vtkFile, cellData, pointData):
             vtkFile.appendData(data)
 
 def iround(x):
-    """iround(number) -> integer
-    Round a number to the nearest integer."""
     return int(round(x) - .5) + (x > 0)
  
  
@@ -650,9 +637,6 @@ def genATMapImage(fname,fnameZ):
     
     kernelOut = newKernel(xx,yy)
     
-    #print kernelOut.shape, shpAT, shpZ, ex, ey
-    
-    
     from evtk.hl import imageToVTK 
     # Dimensions 
     
@@ -663,42 +647,31 @@ def genATMapImage(fname,fnameZ):
     y = np.zeros(( nx + 1,ny + 1, nz + 1)) 
     z = np.zeros(( nx + 1,ny + 1, nz + 1)) 
     
-    # We add some random fluctuation to make the grid more interesting 
     for k in range(nz + 1): 
         for j in range(ny + 1):
             for i in range(nx + 1): 
                 x[i,j,k] = X[i]
                 y[i,j,k] = Y[j]
                 z[i,j,k] = kernelOut[i,j]
-    # Variables 
-    
     atime = np.zeros((nx , ny , nz )) 
-    
-    #print x.shape, y.shape, z.shape
-    
     atime[:,:,0] = np.transpose(at)
-    
     gridToVTK("./image", x, y, z, cellData = {"atime" : atime}, pointData = None)
-    
     
     exit(1)
 
 
-
-#for vari in range(1,257):
-#    os.system("cp /data/jonathan2014/5/ForeFire/OutputM3/output.%d.21600 /data/jonathan2014/5/ForeFire/OutputM3/output.%d.108000"%(vari,vari))
-#exit(0)
 
 inpattern = ""
 outPath = ""
 inFFpattern = inpattern
 
 if(len(sys.argv)==1):
-    print("Usage PARALLELMNH2SINGLEVTK.py infilePattern [in Domain File Pattern] [out path] +(one option \"-norecompute\" \"-clean\" \"-hdf\" \"-lidar lidarfilein lidarfileout\" \"-steps startgenstep endgenstep\" \"-gendomain swx;swy width;height\")\n example \"PARALLELMNH2SINGLEVTK.py  MODEL2/output ForeFire/output vtkOutputs/ ")
+    print("Usage pMNHFF2VTK.py infilePattern [in Domain File Pattern] [out path] +(one option \"-norecompute\" \"-clean\" \"-tocdf\" \"-lidar lidarfilein lidarfileout\" \"-steps startgenstep endgenstep\" \"-gendomain swx;swy width;height\")\n example \"PARALLELMNH2SINGLEVTK.py  MODEL2/output ForeFire/output vtkOutputs/ ")
     myPath = "/Users/filippi_j/soft/MNH-V5-5-1/MY_RUN/KTEST/016_PEDROGAO/002_mesonh/"
     inpattern = myPath+"MODEL1/output"
     inFFpattern = myPath+"ForeFire/Outputs/output"
     outPath = myPath+"vtkout/"
+    xcfdName = myPath+"cdfout/"
 
  
 
@@ -794,14 +767,12 @@ domFFFileName = domFFFileNames[0]
 
 for firstDOmEnc in domFFFileNames:
     fvars = firstDOmEnc.split(".")
-    #print("looking for fully composed initial domain file step",firstDOmEnc, fvars)
     if len(fvars) > 2:
     	if fvars[0]== fprefix and fvars[2] != "nc":
         	domFFFileName = firstDOmEnc  
        		break
   
 domFFBaseNumber = int(domFFFileName.split(".")[-1])
-#print "Reading ", inpattern, " data ", varsDataIn, " FF Domain Base step ", domFFBaseNumber
 
 for filename in os.listdir("%s"%(inpattern[0:len(inpattern)-len(fprefix)])):    
     fvars = filename.split(".")
@@ -877,69 +848,8 @@ if len(list(lidarList.keys()))>0:
 
 
 domainID = 1
-numOfDomains = 0;
-
-# looking to regenerate domains files
-if genDomainExtent != None:
-    print("generating domain files assuming square subdomains and square domain")
-    
-    while(domainID > 0):
-        zBinFileName = "%s.%d.%s.%s"%(inpattern,domainID,stepzgrid,gridKey)
-        if appendedSteps != None :
-            zBinFileName = "%s.%d.%s"%(inpattern,domainID,gridKey)
-        if os.path.isfile(zBinFileName) : 
-            domainID +=1
-            numOfDomains += 1
-        else:
-            domainID = 0
-    if(numOfDomains == 0):
-        print("bad path to generate domain files ","%s.%d.%s.%s"%(inpattern,domainID,stepzgrid,gridKey))
-        exit(1)
-    
-  #  readBinS(inpattern,domnum,stepV,vkey, appendedDict, bestshape=None):
-    localD = readBinS(inpattern,1,stepzgrid,gridKey,appendedSteps,zkey=gridKey)
-    shZ = np.shape(localD)    
-    #print shZ    
-    nx =  shZ[0]-1
-    ny = shZ[1]-1
-    nz =  shZ[2]-1        
-    nlines = ncols = np.sqrt(numOfDomains)
-    rG = float(genDomainExtent[0])/((ncols*nx)+2)
-    if len(genDomainExtent)>2:
-        rG = float(genDomainExtent[2])
-    #print "resolution ",rG, numOfDomains, "domains ", nx, ny,"in size" 
-    inipoint = (float(genDomainOrigin[0]),float(genDomainOrigin[1]))
-    dloc =[0,0]
-    
-    for did in range(1,numOfDomains+1):
-        localD = readBinS(inpattern,did,stepzgrid,gridKey,appendedSteps,zkey=gridKey)
-        shZ = np.shape(localD)
-        nx =  shZ[0]-1
-        ny = shZ[1]-1    
-        fDomFileName = "%s.%d.%d"%(inFFpattern, did,Allsteps[0])
-        domstring = "FireDomain[sw=(%.0f,%.0f,0);ne=(%.0f,%.0f,0);t=%d]\n"%(dloc[0]+inipoint[0],dloc[1]+inipoint[1],dloc[0]+inipoint[0]+rG*(nx+2),dloc[1]+inipoint[1]+rG*(ny+2),Allsteps[0])
-        dloc[0] = dloc[0] + rG*nx
-        if dloc[0] > (float(genDomainExtent[0])-rG*nx):
-            dloc[0] = 0
-            dloc[1] = dloc[1] + rG*ny
-        if not os.path.isfile(fDomFileName) :
-            fDomFile = open(fDomFileName, 'w')
-            fDomFile.write(domstring)
-            fDomFile.close;
-            print("writing  ", domstring, fDomFileName)
-        else :
-            fDomFile = open(fDomFileName, 'r')
-            domS = fDomFile.readline()
-            if not (domS==domstring) :
-                fDomFileName = "%sM.%d.%d"%(inFFpattern, did,Allsteps[0])    
-                fDomFile = open(fDomFileName, 'w')
-                fDomFile.write(domstring)
-                print("overwritten %s to %s"%(domstring ,fDomFileName), end=' ') 
-            else:
-                print(" %s identical domain exist"%fDomFileName)   
-    exit(0)
-     
 numOfDomains = 0
+
 while(domainID > 0):
     domFFFileName = "%s.%d.%d"%(inFFpattern, domainID, domFFBaseNumber)
  
@@ -952,9 +862,6 @@ if(numOfDomains == 0):
     print("Found no domains ","%s.%d.%d"%(inFFpattern, domainID,domFFBaseNumber)) 
     sys.exit(1)
 domains = np.zeros(shape=(4,numOfDomains),dtype=float)
-
-#print numOfDomains , " Domains"
-
 
 
 for domainID in range(1,numOfDomains+1):
@@ -975,23 +882,18 @@ if startStep > -1 and endStep > -1:
 print(len(selectedSteps), " time steps to be computed ", selectedSteps, " ")
 
 largCell = 0;
-#print(numOfDomains, domains)
+
 if numOfDomains > 1:
     largCell = (domains[2][0] - domains[0][1])/2
-    print(" \n\nHiii multiproc  CELL SIZE SET TO  ", largCell, " \n\n")
+    print(" \n\nMultiproc  CELL SIZE SET TO  ", largCell, " \n\n")
 if numOfDomains == 1:
     largCell = 200
-    print(" \n\nHOOOOOO WARNING  CELL SIZE SET TO  ", largCell, " \n\n")
-    
-# resolution is exual to half of overlap area
-dx = dy = largCell
+    print(" \n\nWARNING  CELL SIZE SET TO  ", largCell, " \n\n")
 
-#largSubDom = (domains[2][0]) - (domains[0][0]) - largCell*2
-#lonSubDom = (domains[3][0])  - (domains[1][0]) - largCell*2 
+dx = dy = largCell
         
 largDom = (max(domains[2]))  - (min(domains[0]))   - largCell*2
 lonDom = (max(domains[3]))  - (min(domains[1]))  - largCell*2
-
 
 tx = int(largDom/largCell)
 ty =  int(lonDom/largCell)
@@ -1003,15 +905,12 @@ paralPiecesVtkStr=""
 tz = 0
 curStep = 0
 
-        
-        
 gf = VtkGroup("%s/%sgroupsfields"%(outPath,fprefix))
 
 gs = 0
 if vtpShapes3Dout :
     gs = VtkGroup("%s/%sgroupshapes"%(outPath,fprefix))
 gp = VtkGroup("%s/%sgrouppoints"%(outPath,fprefix))
-
 
 xd = {}
 yd = {}
@@ -1022,30 +921,24 @@ endd_D = {}
 
 startd_F = {}
 endd_F = {}
+
 fd = {}
 xf = {}
 yf = {}
 zf = {}
 paralPiecesVtkStr=""
 
-
 nxf = 0
 nyf = 0
 
 probesLocation=[]
 
-
-
 zzd = None 
 domainshapesInPoint ={}
 dLocalShape = {}
 
-
-
  
 for inddom in range(0,numOfDomains):
-    #zBin = "%s.%d.%s.%s"%(inpattern,inddom+1,stepzgrid,gridKey)
-      #  readBinS(inpattern,domnum,stepV,vkey, appendedDict, bestshape=None):
     localZ = readBinS(inpattern,inddom+1,stepzgrid,gridKey,appendedSteps,zkey=gridKey)
     
     shZ = np.shape(localZ)
@@ -1059,7 +952,6 @@ for inddom in range(0,numOfDomains):
     
     if (zzd is None):
         zzd = np.zeros((tx+1, ty+1, tz+1), dtype=np.float32)
-   # print inddom, "res is ", nx,ny,nz,domains[0][inddom], (domains[0][inddom] - domains[2][inddom])/shZ[1], (domains[1][inddom] - domains[3][inddom])/shZ[0]
     datatop =int((domains[3][inddom] - domains[1][0])/dy -1)
     databottom = int((domains[1][inddom] - domains[1][0])/dy)
     dataleft =int((domains[0][inddom] - domains[0][0])/dx)
@@ -1072,22 +964,10 @@ for inddom in range(0,numOfDomains):
     
     dLocalShape[inddom] =((databottom if isdatabottom else databottom) ,(datatop if isdatatop else datatop-4), (dataleft if isdataleft else dataleft) ,(dataright if isdataright else dataright-4))
     thisdatashape = (dLocalShape[inddom][3]-dLocalShape[inddom][2], dLocalShape[inddom][1]-dLocalShape[inddom][0])
-   # print dLocalShape[inddom], thisdatashape,
-    
-    #dLocalShape[inddom] =(databottom,datatop,dataleft,dataright)
-  
-    
-   # if (isdatabottom == True) :
-   #     dLocalShape[inddom][1] = (dLocalShape[inddom][1]-1)
-    
-    
     thisdatashape = (dLocalShape[inddom][3]-dLocalShape[inddom][2], dLocalShape[inddom][1]-dLocalShape[inddom][0])
-    
-  #  strDoms = ("Top" if isdatatop else "") + ("Bottom" if isdatabottom else "") + ("Left" if isdataleft else "" )+("Right" if isdataright else "")
     globalshape = (0, ty+1, 0, tx+1 )
     
-  #  print  dLocalShape[inddom], thisdatashape, strDoms ,shZ, np.shape(localZ),  inddom, datatop, domains[3][inddom]
-   # print np.shape(zzd)
+
     for k in range(nz+1):
         for j in range(dLocalShape[inddom][0],dLocalShape[inddom][0]+shZ[1]):
     	    for i in range(dLocalShape[inddom][2],dLocalShape[inddom][2]+shZ[0]):
@@ -1106,8 +986,6 @@ for i in range(tx+1):
             yyd[i,j,k] = Y[j] 
 
 
-#print "geometry OK"
- 
 paralPiecesVtkStr = ""
 # selection of smoke points
 if len(list(MNHSteptoLidarStep.keys()))>0 :
@@ -1126,15 +1004,7 @@ for stepV in selectedSteps:
     
     for keycount, vkey in enumerate(varsDataIn):
         varmapAll[vkey] = np.zeros((tx+1, ty+1, tz+1), dtype=np.float32)
- #   for vkey in inputcdfvars :
- #       varmapAll[vkey] = np.zeros((tx+1, ty+1, tz+1), dtype=np.float32)
- #   
- #   for vkey in inputcdfvars:
- #       varData = readNcField(inputcdfFile, vkey)
- #       for k in range(tz):
- #           for j in range(ty):
- #               for i in range(tx):
- #                   varmapAll[vkey][i,j,k] = varData[k,j,i]
+
     
     for indom in range(0,numOfDomains):
         if (indom%100 == 0) : 
@@ -1174,27 +1044,9 @@ for stepV in selectedSteps:
         for keycount, vkey in enumerate(varsDataIn):
                 fname =  "%s.%d.%d.%s"%(inpattern,indom+1,stepV,vkey)
                 varmapAll[vkey][dLocalShape[indom][2]:dLocalShape[indom][2]+nx+1,dLocalShape[indom][0]:dLocalShape[indom][0]+ny+1,:nz+1] = readBinS(inpattern,indom+1,stepV,vkey,appendedSteps) 
-                ''''
-                varData = readBinS(inpattern,indom+1,stepV,vkey,appendedSteps) 	
-                if varData is not None:
-                    try:
-                        for k in range(nz+1):
-                            for j in range(dLocalShape[indom][0],dLocalShape[indom][0]+ny+1):
-                                for i in range(dLocalShape[indom][2],dLocalShape[indom][2]+nx+1):
-                                    if vkey == "T" :
-                                        varmapAll[vkey][i,j,k] = varData[i-dLocalShape[indom][2],j-dLocalShape[indom][0],k] 
-                                    elif varmapAll[vkey][i,j,k] == 0.00:
-                                        varmapAll[vkey][i,j,k] = varData[i-dLocalShape[indom][2],j-dLocalShape[indom][0],k] 
-                    except IndexError:
-                        print(np.sum(varData), np.shape(varData))
-                        print("index problem with " + fname)
-                else:
-                    print("problem with " + fname)    
-                '''''
-       
-             
-    
+  
     outname = "%s/%s.full.%d"%(outPath,fprefix,stepV) 
+    xcfdName
     ptsAll = {}
     for key in scals["points"]:
         ptsAll[key] = varmapAll[key]
@@ -1206,12 +1058,11 @@ for stepV in selectedSteps:
     for key in list(Vects.keys()):
         ptsAll[key] =(varmapAll[Vects[key][0]],varmapAll[Vects[key][1]],varmapAll[Vects[key][2]])
     
-#//    ICI diagnosticas probes &  lidarshot
+####    LIDAR DIAGNOSTICS ##
     if len(list(MNHSteptoLidarStep.keys()))>0 :
         myshotfname, myshot = lidarList[MNHSteptoLidarStep[stepV]]
         print("Start lidarsim with ", stepV, " here ",  myshot.time)
-        #numpointsinshot = 300
-        #myshot.setNumPointsWithSameOrigin(numpointsinshot)
+
         shotVals = np.zeros(myshot.getNumPoints())
         
         
@@ -1243,15 +1094,16 @@ for stepV in selectedSteps:
         myshot.saveAs("%s%s"%(lidarOut,myshotfname))
         print("end lidarsim") 
         
-     #   print " handling probes"
-     #   print getLocationAndCoeffsInGridPoints((7950,2173,1480),(xxd[0,0,0],yyd[0,0,0]),tx,ty,tz, largCell, zzd)
-     #   for sde in range(0,100,10):
-     #       print getProbeValue(varmapAll["BRatio"],getLocationAndCoeffsInGridPoints((7950,2173,1480+sde),(xxd[0,0,0],yyd[0,0,0]),tx,ty,tz, largCell, zzd))
-     #   print "finished probes"
     else:
         gridToVTK(outname, xxd, yyd, zzd,  cellData = None, pointData = ptsAll)  
-    
+        if(xcfdName is not None):
+            outCFDname = "%s/%s.full.%d"%(xcfdName,fprefix,stepV) 
+            
+            gridToCdf(outCFDname, xxd, yyd, zzd, pointData = ptsAll)  
+            
         gf.addFile(filepath = "%s.vts"%outname, sim_time = stepV)
+
+            
     
         paralVtkStr="<VTKFile type=\"PolyData\" version=\"0.1\" byte_order=\"LittleEndian\">"
         paralVtkStr+="<PolyData>\n"
@@ -1331,4 +1183,4 @@ else:
     probeFile.close()
 if vtpShapes3Dout :
     gs.save()
-#print "saved groups , to make image :  paraview, then ffmpeg -r 5 -i \"filemame.%04d.jpg\" -qscale 2 -s 'hd720'  m.mp4"
+    
