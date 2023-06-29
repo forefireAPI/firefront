@@ -217,22 +217,37 @@ def imageToVTK(path, origin = (0.0,0.0,0.0), spacing = (1.0,1.0,1.0), cellData =
 
 def gridToCdf(path, x, y, z, cellData = None, pointData = None, vectData = None,start = None, end = None):
     import xarray as xr
-    
+     
+    scaldim=["x", "y", "z"]
+    scalCoords=dict(
+        xat=(["x", "y", "z"], x),
+        yat=(["x", "y", "z"], y),
+        zat=(["x", "y", "z"], z),
+    ) 
+    for pkey in pointData.keys():
+        print(pkey)
 
     ds = xr.Dataset()
-    coords={'x': np.linspace(0, x.shape[0]+1, num=x.shape[0]),'y': np.linspace(0, x.shape[1]+1, num=x.shape[1]),'z': np.linspace(0, x.shape[2]+1, num=x.shape[2])}
-    dims=["x", "y", "z"]
-   # ds["altitude"] = xr.DataArray(z,dims,coords)
-    print(coords,x.shape,y.shape,z.shape)
-    for pkey in pointData.keys():
+ 
+    for pkey in ["T","P"]:
+        print(pkey,pointData[pkey].shape)
+        ds[pkey] = xr.DataArray(
+            data=pointData[pkey],
+            dims=["x", "y", "z"],
+            coords=dict(
+                xat=(["x", "y", "z"], x),
+                yat=(["x", "y", "z"], y),
+                zat=(["x", "y", "z"], z),
+            ),
+            attrs=dict(
+                description=pkey,
+                units="all",
+            ),
+        )
         
-        ds[pkey] = xr.DataArray(pointData[pkey],dims,coords)
-        
-
-#    for vkey in vectData.keys():
-#        ds[vkey] = xr.DataArray(vectData[vkey],coords,dims)
-
-    ds.to_netcdf(path)
+ 
+    print("writing", path)
+    ds.to_netcdf(path+".nc")
 
 def gridToVTK(path, x, y, z, cellData = None, pointData = None, vectData = None,start = None, end = None):
 
