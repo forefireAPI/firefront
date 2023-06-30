@@ -215,29 +215,36 @@ def imageToVTK(path, origin = (0.0,0.0,0.0), spacing = (1.0,1.0,1.0), cellData =
     w.save()
     return w.getFileName()
 
-def gridToCdf(path, x, y, z, cellData = None, pointData = None, vectData = None,start = None, end = None):
+def gridToCdf(path, x, y, z, dataDict = None):
     import xarray as xr
-     
-    scaldim=["x", "y", "z"]
+    encoding = {}
+    helperF = {}
+    for key in dataDict.keys():
+        encoding[key] = {'_FillValue': -9999.,
+              'zlib': True}
+        helperF[key] = {"description":key,
+                        "units":"all",
+            }
+    
+    
     scalCoords=dict(
         xat=(["x", "y", "z"], x),
         yat=(["x", "y", "z"], y),
         zat=(["x", "y", "z"], z),
     ) 
-    for pkey in pointData.keys():
-        print(pkey)
-
+    
+ 
+    
     ds = xr.Dataset()
  
-    for pkey in ["T","P"]:
-        print(pkey,pointData[pkey].shape)
+    for pkey in dataDict.keys(): 
         ds[pkey] = xr.DataArray(
-            data=pointData[pkey],
+            data=dataDict[pkey].astype(np.float32),
             dims=["x", "y", "z"],
             coords=dict(
-                xat=(["x", "y", "z"], x),
-                yat=(["x", "y", "z"], y),
-                zat=(["x", "y", "z"], z),
+                xat=(["x", "y", "z"], x.astype(np.float32)),
+                yat=(["x", "y", "z"], y.astype(np.float32)),
+                zat=(["x", "y", "z"], z.astype(np.float32)),
             ),
             attrs=dict(
                 description=pkey,
@@ -247,7 +254,7 @@ def gridToCdf(path, x, y, z, cellData = None, pointData = None, vectData = None,
         
  
     print("writing", path)
-    ds.to_netcdf(path+".nc")
+    ds.to_netcdf(path+".nc",encoding=encoding)
 
 def gridToVTK(path, x, y, z, cellData = None, pointData = None, vectData = None,start = None, end = None):
 
@@ -700,6 +707,7 @@ genDomainOrigin = None
 genDomainExtent = None
 norecompute=True
 quitAfterCompute=False
+xcfdName = None
 if(len(sys.argv)>1):
     inpattern = sys.argv[1]
     inFFpattern = sys.argv[1]
@@ -715,8 +723,9 @@ if(len(sys.argv)>4):
     if(sys.argv[4] == "-clean"):
         print("saving in hdf")
         cleanFile = False
-    if(sys.argv[4] == "-hdf"):
-        print("saving in hdf")
+    if(sys.argv[4] == "-cdf"):
+        xcfdName = sys.argv[5] 
+        print("saving also in cdf with prefix ", xcfdName)
     if(sys.argv[4] == "-lidar"):
         if(len(sys.argv)>5):
             lidarIn  =  sys.argv[5]
@@ -1061,7 +1070,7 @@ for stepV in selectedSteps:
                 varmapAll[vkey][dLocalShape[indom][2]:dLocalShape[indom][2]+nx+1,dLocalShape[indom][0]:dLocalShape[indom][0]+ny+1,:nz+1] = readBinS(inpattern,indom+1,stepV,vkey,appendedSteps) 
   
     outname = "%s/%s.full.%d"%(outPath,fprefix,stepV) 
-    xcfdName
+ 
     ptsAll = {}
     for key in scals["points"]:
         ptsAll[key] = varmapAll[key]
@@ -1112,9 +1121,7 @@ for stepV in selectedSteps:
     else:
         gridToVTK(outname, xxd, yyd, zzd,  cellData = None, pointData = ptsAll)  
         if(xcfdName is not None):
-            outCFDname = "%s/%s.full.%d"%(xcfdName,fprefix,stepV) 
-            
-            gridToCdf(outCFDname, xxd, yyd, zzd, pointData = ptsAll)  
+            gridToCdf("%s.%d"%(xcfdName,stepV) , xxd, yyd, zzd, varmapAll)  
             
         gf.addFile(filepath = "%s.vts"%outname, sim_time = stepV)
 
