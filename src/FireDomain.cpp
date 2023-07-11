@@ -2619,13 +2619,14 @@ void FireDomain::loadWindDataInBinary(double refTime){
 
 
 		if ( params->isValued("BMapFiles") ){
-
+			
 			/*size_t i = 0;
 			size_t j = 0;
 			size_t ii = 0;
 			size_t jj = 0;*/
 			ostringstream oss;
 			if ( params->getInt("parallelInit") != 0 ){
+				
 				oss<<params->getParameter("caseDirectory")<<'/'
 				<<params->getParameter("ForeFireDataDirectory")<<'/'
 				<<params->getParameter("BMapFiles")
@@ -2636,11 +2637,117 @@ void FireDomain::loadWindDataInBinary(double refTime){
 				<<params->getParameter("BMapFiles");
 			}
 
+
+cout << "Reading >"<<oss.str()<<"<"<<endl;	
 			#ifdef NETCDF_NOT_LEGACY
-			cout << "FireDomain:: reading BMap file " << " newCDF Not Implemented" << endl;
+
+				try
+						{
+								NcFile dataFile(oss.str().c_str(), NcFile::read);
+								
+								NcVar atime = dataFile.getVar("arrival_time_of_front");
+								NcVar cell_active =  dataFile.getVar("cell_active");
+
+								size_t   FSPACE_DIM1 		= atime.getDim(1).getSize();	// Nb De lignes au total
+								size_t   FSPACE_DIM2 		= atime.getDim(0).getSize();	// 	Nb De colonnes au total
+								size_t   CELLSPACE1_DIM1 	= FSPACE_DIM1/localBMapSizeX;  // Nb de lignes de cells
+								size_t   CELLSPACE1_DIM2 	= FSPACE_DIM2/localBMapSizeY;   // Nb de colonnes de cell
+								size_t   INCELLSPACE1_DIM1 = FSPACE_DIM1/CELLSPACE1_DIM1;  // Nb de lignes ds chaque a_t cell
+								size_t   INCELLSPACE1_DIM2 = FSPACE_DIM2/CELLSPACE1_DIM2;   // Nb de colonnes ds chaque a_t cell
+
+								size_t fromFileX = FSPACE_DIM1/cell_active.getDim(1).getSize();
+								size_t fromFileY = FSPACE_DIM2/cell_active.getDim(0).getSize();
+					 
+
+								if((localBMapSizeX!=fromFileX)||(localBMapSizeY!=fromFileY)){
+													cout<<"ERROR: number of cells of the burning matrices ("
+													<<localBMapSizeX<<"x"<<localBMapSizeY<<")"
+													<<" not compatible with previous computation ("
+													<<fromFileX<<"x"<<fromFileY<<") atmo "<<atmoNX<<","<<atmoNY<<" F "<<FSPACE_DIM1<<","<<FSPACE_DIM2<<" Trying to read from scratch"<<endl;
+											 
+								}
 
 
+								NcVar dom = dataFile.getVar("domain"); 
 
+				
+								double Xorigin = 0;
+								dom.getAtt("SWx").getValues(&Xorigin);
+								double Yorigin = 0;
+								dom.getAtt("SWy").getValues(&Yorigin);
+								double Xlen = 0;
+								dom.getAtt("Lx").getValues(&Xlen);
+								Xlen = Xlen+params->getDouble("SHIFT_ALL_DATA_ABSCISSA_BY");
+								double Ylen = 0;
+								dom.getAtt("Ly").getValues(&Ylen);
+								Ylen=Ylen+params->getDouble("SHIFT_ALL_DATA_ORDINATES_BY");
+								int pyear = 0;
+								dom.getAtt("refYear").getValues(&pyear);
+								int pday = 0;
+								dom.getAtt("refDay").getValues(&pday);
+
+									refYear = pyear;
+								params->setInt("refYear", pyear);
+								refDay = pday;
+								params->setInt("refDay", pday);
+
+								size_t startSlabInFilei = (int)(((SWCorner.getX()-Xorigin)/Xlen)*CELLSPACE1_DIM1);
+								size_t startSlabInFilej = (int)(((SWCorner.getY()-Yorigin)/Ylen)*CELLSPACE1_DIM2);
+
+
+								int  cellActiveF[CELLSPACE1_DIM2][CELLSPACE1_DIM1];	// vector buffer for dset from data
+								int  cellActive[CELLSPACE1_DIM1][CELLSPACE1_DIM2];	// vector buffer for dset Cprojeted
+
+
+								cell_active.getVar(cellActiveF);
+
+								for (size_t i = 0; i < CELLSPACE1_DIM1 ; i++){
+										for (size_t j = 0; j < CELLSPACE1_DIM2 ; j++){
+													cellActive[i][j] =cellActiveF[j][i];
+										}
+								}
+ 
+								double matrixBuffer[INCELLSPACE1_DIM1][INCELLSPACE1_DIM2];
+								double max_time = params->getDouble("InitTime");
+								double allDataAtime[FSPACE_DIM2][FSPACE_DIM1];
+
+								 cout << " j "<<max_time<<"  "<<Xorigin<<"        "<<startSlabInFilej<< " i "<<startSlabInFilei<<endl;
+								atime.getVar(allDataAtime);
+								double v = 0;
+								for (size_t i = 0; i < atmoNX ; i++){
+									for (size_t j = 0; j < atmoNY ; j++){
+										if(cellActive[startSlabInFilei+i][startSlabInFilej+j] > 0){
+											for (size_t ii = 0; ii < INCELLSPACE1_DIM1 ; ii++){
+												for (size_t jj = 0; jj < INCELLSPACE1_DIM2 ; jj++){
+														v = allDataAtime[j*INCELLSPACE1_DIM2+jj][i*INCELLSPACE1_DIM1+ii];
+														matrixBuffer[ii][jj] = v;
+														if ((v == -9999) or (v > max_time)){
+																matrixBuffer[ii][jj] = numeric_limits<double>::infinity();
+														}
+												}
+											}
+											cells[i][j].setArrivalTime(0, 0, 0);
+											cells[i][j].getBurningMap()->getMap()->setVal(&matrixBuffer[0][0]);
+										}
+									}
+								}
+								
+								dataFile.close();
+
+					
+					}
+					catch (std::exception const & e)
+					{
+						cout << "Exception: " << e.what() << endl;
+					}
+					catch (...)
+					{
+						cout << "Error: unknown error." << endl;
+					} 
+						
+			
+			 
+	
 			#else
 			NcFile dataFile(oss.str().c_str(), NcFile::ReadOnly);
 
@@ -4687,7 +4794,112 @@ void FireDomain::loadWindDataInBinary(double refTime){
 	}
 
 	#ifdef NETCDF_NOT_LEGACY
-	void FireDomain::saveSimulation(){cout << "FireDomain::saveSimulation " << " newCDF Not Implemented" << endl;}
+	void FireDomain::saveSimulation(){
+
+	if (getDomainID() > 0){
+		cout<<"not saving separated ATimes domain "<<getDomainID()<<endl;
+	}
+
+    try
+    {
+        // create the file and add a dimension and a variable
+ 		size_t i = 0;
+		size_t j = 0;
+		size_t ii = 0;
+		size_t jj = 0;
+		ostringstream oss;
+		oss<<params->getParameter("caseDirectory")<<'/'
+		<<params->getParameter("fireOutputDirectory")<<'/'
+		<<params->getParameter("experiment")<<"."<<getDomainID()<<".nc";
+
+        cout << "Creating netCDF file: " << oss.str().c_str() << endl;
+
+		size_t   FSPACE_DIM1 		= globalBMapSizeX;	// Nb De lignes au total
+		size_t   FSPACE_DIM2 		= globalBMapSizeY;	// 	Nb De colonnes au total
+		size_t   CELLSPACE1_DIM1 	= atmoNX;  // Nb de lignes de cells
+		size_t   CELLSPACE1_DIM2 	= atmoNY;   // Nb de colonnes de cell
+
+		size_t   INCELLSPACE1_DIM1 = FSPACE_DIM1/CELLSPACE1_DIM1;  // Nb de lignes ds chaque a_t cell
+		size_t   INCELLSPACE1_DIM2 = FSPACE_DIM2/CELLSPACE1_DIM2;   // Nb de colonnes ds chaque a_t cell
+
+        NcFile dataFile ( oss.str().c_str(), NcFile::replace );
+		NcDim xDim = dataFile.addDim("DIMY", FSPACE_DIM2);
+		NcDim yDim = dataFile.addDim("DIMX", FSPACE_DIM1);
+		      vector<NcDim> dims;
+        dims.push_back(xDim);
+        dims.push_back(yDim);
+		NcVar atime = dataFile.addVar("arrival_time_of_front", ncDouble, dims);
+ 
+		double allDataAtime[FSPACE_DIM2][FSPACE_DIM1];
+
+		for (i = 0; i < FSPACE_DIM2 ; i++){
+			for (j = 0; j < FSPACE_DIM1 ; j++){
+				allDataAtime[i][j] = -9999;
+			}
+		}
+		
+		int  cellActive[CELLSPACE1_DIM2][CELLSPACE1_DIM1];
+
+	
+		
+		for (i = 0; i < CELLSPACE1_DIM1 ; i++){
+			for (j = 0; j < CELLSPACE1_DIM2 ; j++){
+				cellActive[j][i] = 0;
+				if ( cells[i][j].getBurningMap() != 0 ){
+					double* adata = (cells[i][j].getBurningMap()->getMap()->getData());
+					for (ii = 0; ii < INCELLSPACE1_DIM1 ; ii++){
+						for (jj = 0; jj < INCELLSPACE1_DIM2 ; jj++){
+							allDataAtime[j*INCELLSPACE1_DIM2+jj][i*INCELLSPACE1_DIM1+ii] =  (adata[ii*INCELLSPACE1_DIM2+jj]==numeric_limits<double>::infinity()?-9999:adata[ii*INCELLSPACE1_DIM2+jj]);
+						}
+					}
+					//atime.putVar(&goodCell[0][0], INCELLSPACE1_DIM2, INCELLSPACE1_DIM1);
+					cellActive[j][i] = 1;
+				}else{
+					cellActive[j][i] = 0;
+				}
+
+			}
+		}
+		atime.putVar(allDataAtime);
+		NcDim cxDim = dataFile.addDim("C_DIMY", CELLSPACE1_DIM2);
+		NcDim cyDim = dataFile.addDim("C_DIMX", CELLSPACE1_DIM1);
+		vector<NcDim> dimsC;
+        dimsC.push_back(cxDim);
+        dimsC.push_back(cyDim);
+		NcVar cell_active = dataFile.addVar("cell_active", ncInt, dimsC);
+	    cell_active.putVar(cellActive);
+
+		NcDim domdim = dataFile.addDim("domdim", 1);
+
+		vector<NcDim> dimsD;
+        dimsD.push_back(domdim);
+		NcVar dom = dataFile.addVar("domain", ncChar, dimsD);
+	    dom.putAtt("SWx", NC_DOUBLE,SWCorner.getX()) ;
+	    dom.putAtt("SWy",NC_DOUBLE, SWCorner.getY());
+	    dom.putAtt("Lx",NC_DOUBLE, NECorner.getX()-SWCorner.getX());
+	    dom.putAtt("Ly",NC_DOUBLE, NWCorner.getY()-SWCorner.getY());
+	    dom.putAtt("Lz" ,NC_DOUBLE , 0.);
+
+
+	    dom.putAtt("refYear",NC_INT, int(refYear));
+	    dom.putAtt("refDay",NC_INT, int(refDay));
+
+
+	
+		dataFile.close();
+		
+
+    
+    }
+    catch (std::exception const & e)
+    {
+        cout << "Exception: " << e.what() << endl;
+    }
+    catch (...)
+    {
+        cout << "Error: unknown error." << endl;
+    } 
+	}
 	#else
 	void FireDomain::saveSimulation(){
 		size_t i = 0;
