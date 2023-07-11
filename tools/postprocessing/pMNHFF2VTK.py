@@ -689,12 +689,13 @@ inFFpattern = inpattern
 
 if(len(sys.argv)==1):
     print("Usage pMNHFF2VTK.py infilePattern [in Domain File Pattern] [out path] +(one option \"-norecompute\" \"-clean\" \"-tocdf\" \"-lidar lidarfilein lidarfileout\" \"-steps startgenstep endgenstep\" \"-gendomain swx;swy width;height\")\n example \"PARALLELMNH2SINGLEVTK.py  MODEL2/output ForeFire/output vtkOutputs/ ")
-    myPath = "/Users/filippi_j/soft/MNH-V5-5-1/MY_RUN/KTEST/016_PEDROGAO/002_mesonh/"
+    myPath = "/Users/filippi_j/soft/MNH-V5-6-0/MY_RUN/KTEST/TESTBMAP/002_mesonh/"
     inpattern = myPath+"MODEL1/output"
     inFFpattern = myPath+"ForeFire/Outputs/output"
     outPath = myPath+"vtkout/"
-    xcfdName = myPath+"cdfout/"
-
+    xcfdName = None#myPath+"cdfout/"
+    startStep =  7
+    endStep =  8 
  
 
 cleanFile = False
@@ -838,7 +839,8 @@ for stepV in Allsteps[:]:
             #os.system(delCmd)
         
     if ((norecompute or cleanFile) and os.path.isfile(outname)):
-        print("%d, "%stepV, end = '') 
+        
+        print(outname,"%d, "%stepV, end = '') 
         gf.addFile(filepath = "%s"%outname, sim_time = stepV)
         gp.addFile(filepath = "%s"%fpoutGname, sim_time = stepV)
         

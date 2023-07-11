@@ -130,20 +130,6 @@ image = im
 image = np.where(image == np.max(image),-9999, image)
 im=image.astype(int)
 
-# tweak tor Pedrogao 3 Fires
-#speedupT=67500
-#speedupL=65700
-#speedupL2=3600*21
-#image= np.where(image < speedupL, image, speedupL+((image-speedupL)/0.7))
-#image[:400,800:]=im[:400,800:]
-#image= np.where(image < speedupT, image, speedupT+((image-speedupT)/2.4))
-#image[:400,800:]=im[:400,800:]
-#image= np.where(image < speedupL2, image, speedupL2+((image-speedupL2)/0.5))
-#image[:400,800:]=im[:400,800:] 
-
-#image = np.where(image == np.max(image),-9999, image)
-#image = np.where(image > 0, 3000+image, image)
-
 
 print np.shape(image), np.max(image),np.min(image)
 
