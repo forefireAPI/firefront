@@ -18,6 +18,7 @@ import numpy as np
 import sys
 import xarray as xr
 import netCDF4 as nc4
+import datetime
 import matplotlib.pyplot as plt
 from PIL import Image
 
@@ -38,18 +39,36 @@ def forceDim(arrIn, newD=None, kind='edge'):
  
 exec(compile(open("genForeFireCase.py", "rb").read(), "genForeFireCase.py", 'exec'))
 
-if(len(sys.argv)==1):
-    print("Usage prealCF2Case inMNH_PGD_File.nc outFFDCaseFile.nc   opt:pngFuelFile")
-    sys.exit(0)
-   
- 
-imgPath = None#"/Users/filippi_j/codes/Prunelli/bg5c.png"
 
-if(len(sys.argv)>3):
-    imgPath=sys.argv[3]
-     
-fname = sys.argv[1]
-fout = sys.argv[2]
+fname = None
+fout = None 
+imgPath = None
+
+#### configuration Pigna
+fname = "/Users/filippi_j/Volumes/orsu/firecaster/2023/nest150Ref/001_pgd/PGD_D80mA.nested.nc"
+fout = "/Users/filippi_j/data/2023/corbara20230727/mnhCase/lpsimplef.nc"
+imgPath = "/Users/filippi_j/data/2023/corbara20230727/pignaFUEL.png"
+dateString = "202307252000"
+
+
+if  (len(sys.argv)<2):
+   print("Usage prealCF2Case inMNH_PGD_File.nc outFFDCaseFile.nc YYYYMMDDHHMM opt:pngFuelFile")
+   if(fname == None) :
+    sys.exit(0)
+else :
+    fname = sys.argv[1]
+    fout = sys.argv[2]
+    dateString = sys.argv[4]
+
+
+if(len(sys.argv)>4):
+    imgPath=sys.argv[4]
+
+ 
+ 
+dateStartDom = datetime.datetime.strptime(dateString, "%Y%m%d%H%M")
+
+ 
 print("reading %s generationg %s with %s as fuel"%(fname,fout,imgPath))
 #.png"
 
@@ -59,12 +78,10 @@ geomCDFBin = fname
  
 nc = nc4.Dataset(geomCDFBin, 'r') 
 
-
 # recuperer l'altitude
 # decider d'une résolution de combustible, faire carte de combustible
 # pas mettre de vent
 # faire les maps de flux et de modèles de propa en se basant sur 
-
 
 DeltaY = nc.variables['YHAT'][1]-nc.variables['YHAT'][0]
 DeltaX = nc.variables['XHAT'][1]-nc.variables['XHAT'][0]
@@ -79,17 +96,19 @@ domainProperties['Lz']   = 0
 domainProperties['t0']   = 0
 domainProperties['Lt']   = np.Inf
 
+secondsSinceMidnight = (dateStartDom - dateStartDom.replace(hour=0, minute=0, second=0, microsecond=0)).total_seconds()
 
 parametersProperties= {}
-parametersProperties['projectionproperties']  = "41.551998,8.828396,41.551998,8.828396" ;
-parametersProperties['date']  = "2021-07-15_14:00:00" ;
-parametersProperties['duration']  = 32400;
-parametersProperties['projection']  = "OPENMAP" ;
-parametersProperties['refYear']  = 2021 ;
-parametersProperties['refDay']  = 196 ;
+parametersProperties['date']  = dateStartDom.strftime("%Y-%m-%d_%H:%M:%S");
+parametersProperties['duration']  = 3600*24;
+parametersProperties['refYear']  = dateStartDom.year ;
+parametersProperties['refDay']  = dateStartDom.timetuple().tm_yday ;
+parametersProperties['year']  = dateStartDom.year ;
+parametersProperties['month']  = dateStartDom.month ;
+parametersProperties['day']  = dateStartDom.day ;
 
-dom= "FireDomain[sw=(%d,%f,0);ne=(%f,%f,0);t=0]"%(domainProperties['SWx'],domainProperties['SWy'],domainProperties['SWx']+domainProperties['Lx'],domainProperties['SWy']+domainProperties['Ly'])
-print( dom)
+dom= "FireDomain[sw=(%d,%f,0);ne=(%f,%f,0);t=%d]"%(domainProperties['SWx'],domainProperties['SWy'],domainProperties['SWx']+domainProperties['Lx'],domainProperties['SWy']+domainProperties['Ly'],secondsSinceMidnight)
+print( dom, parametersProperties['date']  )
 print ("   ori ", nc.variables['LAT0'].getValue(), nc.variables['LON0'].getValue())
   
 SVM = nc.variables['ZS'][:]
@@ -120,11 +139,12 @@ elevation =  nc.variables['ZS'][:,:]
 fuelMap   =None
 if imgPath is not None:
     fuelMap = np.flipud(np.asarray(Image.open(imgPath))+10)
-    fuelMap[fuelMap == 14] = 0
-    fuelMap[fuelMap == 13] = 2
-    fuelMap[fuelMap == 12] = 3
-    fuelMap[fuelMap == 11] = 4
-    fuelMap[fuelMap == 10] = 1
+    fuelMap[fuelMap == 14] = 4
+    fuelMap[fuelMap == 13] = 3
+    fuelMap[fuelMap == 12] = 0
+    fuelMap[fuelMap == 11] = 1
+    fuelMap[fuelMap == 10] = 2
+    print("Image size", np.shape(fuelMap))
     
 #    fuelMap   =  np.zeros(np.shape(np.flipud(np.asarray(Image.open(imgPath)))))   
 #    fuelMap[:1200,:] = 1

@@ -166,6 +166,7 @@ class ffData:
 
         
         def getLocationFromLine(line,pattern="loc=("):
+          
             llv = line.split(pattern)
             if len(llv) < 2: 
                 return None
@@ -173,6 +174,13 @@ class ffData:
             if len(llr) < 3: 
                 return None
             return (float(llr[0]),float(llr[1]))
+        
+        def getMarkPropFromLine(line):
+      
+            Mpos = getLocationFromLine(line,pattern="loc=(")
+           # Mvel = (1,1)#getLocationFromLine(line,pattern="vel=(")
+         #   print("here ", Mvel)
+            return Mpos#, Mvel #+ Mvel
     
         def printToPolygons(linePrinted, level=1):
             if level > 8:
@@ -185,8 +193,10 @@ class ffData:
                 nodes = fronts[0].split("FireNode")
                 if len(nodes) > 1:
                     for node in nodes[1:]:
-                        pointsMap.append(getLocationFromLine(node))
-                    pointsMap.append(getLocationFromLine(nodes[1]))
+                        #ptl, sptl = getMarkPropFromLine(node)
+                        pointsMap.append(getMarkPropFromLine(node))
+                    #ptl, sptl =  
+                    pointsMap.append(getMarkPropFromLine(nodes[1]))
 
                 for subline in fronts[1:]:
                     pointsMap.append(printToPolygons(subline,level+1))
@@ -234,113 +244,8 @@ class ffData:
         self.metadata["totalLength"]=  totalLength
         self.metadata["totalArea"]=  totalArea
 
-        
-        
-        
-        
-        
-        
-#mypath="/Users/filippi_j/data/2022/pedrogao/OutputsFullCoupled/"
-import glob
-import pandas as pd
-import xarray as xr
-
-import geojson
-from fastkml import kml, styles
-from shapely.geometry import shape
-from datetime import datetime
-
-def geojson_to_placemark(geojson_obj, timestamp):
-    # Convertir la géométrie GeoJSON en géométrie Shapely
-    geom = shape(geojson_obj['geometry'])
-
-    # Créer un Placemark KML
-    pm = kml.Placemark()
-    pm.geometry = geom
-    pm.timestamp = timestamp
-
-    # Créer et définir le style (contour orange de 2 points, pas de remplissage)
-    style = styles.Style()
-    style.linestyle.color = styles.Color.rgb(255, 165, 0)  # Orange
-    style.linestyle.width = 2  # 2 points de large
-    style.polystyle.fill = 0  # Pas de remplissage
-    pm.style = style
-
-    return pm
-
-def geojsons_to_kml(geojson_objs):
-    # Créer un KML
-    k = kml.KML()
-
-    # Créer un document pour contenir les Placemarks
-    doc = kml.Document()
-    k.append(doc)
-
-    # Convertir chaque objet GeoJSON en Placemark et l'ajouter au document
-    for gj in geojson_objs:
-        timestamp_str = gj['properties']['timestamp']  # Assumer une propriété 'timestamp'
-        timestamp = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))  # Convertir la chaîne en datetime
-        pm = geojson_to_placemark(gj, timestamp)
-        doc.append(pm)
-
-    return k.to_string(prettyprint=True)
-
-def otherJsonToKml():
-    # Utilisation :
-    geojson_objs = [
-        # Vos objets GeoJSON vont ici
-    ]
-    kml_str = geojsons_to_kml(geojson_objs)
-    with open('output.kml', 'w') as f:
-        f.write(kml_str)
-
-
-#pedrogao 
-BMAPFILE = "/Users/filippi_j/data/2022/pedrogao/REF_REPORT_BMAP.nc"
-PGDFILE = "/Users/filippi_j/data/2022/pedrogao/PGD_D80mA.nested.nc"
-FFINPUTPATTERN='/Users/filippi_j/data/2022/pedrogao/OutputsNoCoupled/output.0.*'
-
-#prunelli
-BMAPFILE = "//Users/filippi_j/Volumes/fcouto/KTEST_PEDROGAO/nested3FirePattern/006_runff/ForeFire/Outputs_coupled_brise_couvent/ForeFire.0.nc"
-PGDFILE = "/Users/filippi_j/Volumes/fcouto/KTEST_PEDROGAO/nested3FirePattern/006_runff/PGD_D80mA.nested.nc"
-FFINPUTPATTERN='/Users/filippi_j/Volumes/fcouto/KTEST_PEDROGAO/nested3FirePattern/006_runff/ForeFire/Outputs_coupled_brise_couvent/output.0.*'
+         
  
-    
-dBmap = xr.open_dataset(BMAPFILE)
-baseDate= datetime(int(dBmap.domain.refYear), 1, 1, 0, 0, 0, 0)
-baseDate= baseDate+timedelta(days=int(dBmap.domain.refDay))
-
-pgd = xr.open_dataset(PGDFILE)
- 
-wsen = [
-    float(pgd.longitude.min()),
-    float(pgd.latitude.min()),
-    float(pgd.longitude.max()),
-    float(pgd.latitude.max())
-             ]
-
-
-
- 
-
-contours1  = glob.glob(FFINPUTPATTERN)
-
-lCnt=[]
-
-for contour in sorted(contours1)[::2]:
-    f = ffData(contour,mode = "mnhPGD", baseDate=baseDate,wsen=wsen)
-    lCnt.append((f.toGeoJson(),f.frontDate))
-
-
-with open("/Users/filippi_j/data/2023/prunelli/OutputsCoupled.kml", "w") as text_file:
-    text_file.write(to_timed_kml(lCnt))
-
-
-
-
-
-
-
 def areaBurnt():    
     contours1  = glob.glob('/Users/filippi_j/data/2022/pedrogao/OutputsFullCoupled/output.0.*')
     contours2  = glob.glob('/Users/filippi_j/data/2022/pedrogao/OutputsNoCoupled/output.0.*')
@@ -397,6 +302,209 @@ def areaBurnt():
     doc.sort_values(by=['date'], inplace=True)
     
     dac = pd.concat([dfc,dnc,doc], join='inner', axis=1)
-    dac.plot()
+    dac.plot()       
+        
+    
+import glob
+import pandas as pd
+import xarray as xr
+
+import geojson
+from fastkml import kml, styles
+from shapely.geometry import shape
+from datetime import datetime
+
+def geojson_to_placemark(geojson_obj, timestamp):
+    # Convertir la géométrie GeoJSON en géométrie Shapely
+    geom = shape(geojson_obj['geometry'])
+
+    # Créer un Placemark KML
+    pm = kml.Placemark()
+    pm.geometry = geom
+    pm.timestamp = timestamp
+
+    # Créer et définir le style (contour orange de 2 points, pas de remplissage)
+    style = styles.Style()
+    style.linestyle.color = styles.Color.rgb(255, 165, 0)  # Orange
+    style.linestyle.width = 2  # 2 points de large
+    style.polystyle.fill = 0  # Pas de remplissage
+    pm.style = style
+
+    return pm
+
+def geojsons_to_kml(geojson_objs):
+    # Créer un KML
+    k = kml.KML()
+
+    # Créer un document pour contenir les Placemarks
+    doc = kml.Document()
+    k.append(doc)
+
+    # Convertir chaque objet GeoJSON en Placemark et l'ajouter au document
+    for gj in geojson_objs:
+        timestamp_str = gj['properties']['timestamp']  # Assumer une propriété 'timestamp'
+        timestamp = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))  # Convertir la chaîne en datetime
+        pm = geojson_to_placemark(gj, timestamp)
+        doc.append(pm)
+
+    return k.to_string(prettyprint=True)
+
+def otherJsonToKml():
+    # Utilisation :
+    geojson_objs = [
+        # Vos objets GeoJSON vont ici
+    ]
+    kml_str = geojsons_to_kml(geojson_objs)
+    with open('output.kml', 'w') as f:
+        f.write(kml_str)
+
+
+
+def bmap2kml(ds, wsen ,fnameKMLOUT='my_kml.kml',fnameKMLPNGOUT='imagePIL.png', method="pil",maxSpeed=0.1):
+  
+    import matplotlib.pyplot as plt
+    import matplotlib.colors as colors
+    import simplekml
+    print("computed BMap")
+    lon_min,  lat_min, lon_max, lat_max = wsen
+    # Créez une figure
+   
+    minRealVal = float(ds['arrival_time_of_front'].where(ds['arrival_time_of_front'] > 0).min())
+    max_val = float(ds['arrival_time_of_front'].max())
+    norm_data = (ds['arrival_time_of_front'] -minRealVal)/  (max_val - minRealVal)
+    norm_data = norm_data.values
+    norm_data[norm_data < 0] =  np.nan
+    gradient_y, gradient_x = np.gradient(norm_data, 10)
+    speed = np.sqrt(gradient_x**2 + gradient_y**2) 
+    
+    minOverallSpeed = np.nanmin(speed)
+    maxOverallSpeed = np.nanmax(speed) 
+    norm_speed = (speed -minOverallSpeed)/  (maxOverallSpeed - minOverallSpeed)
+    
+    print("max speed ",np.nanmax(speed))
+    # Créez une colormap
+    cmap = plt.get_cmap('jet') 
+    
+    # Créez une nouvelle colormap avec des valeurs transparentes en dessous du seuil
+    # 'viridis' a des valeurs entre 0 et 1, donc nous mettons le seuil relativement à ça
+    
+    cmaplist = [cmap(i) for i in range(cmap.N)]
+
+        
+    for i in range(200):
+        cmaplist[i] = (*cmaplist[i][:3], i/200.0)  # change l'opacité à 0   
+    cmap = colors.LinearSegmentedColormap.from_list('Custom cmap', cmaplist, cmap.N)
+ 
+    from PIL import Image, ImageOps
+    print("using PIL")
+    
+    # Mappez les données normalisées à la colormap pour obtenir une image RGB
+    rgba_image = cmap(1-norm_speed)
+    plt.imshow(rgba_image, cmap='jet',origin='lower'); plt.colorbar(); plt.show()
+    
+    # Convertir en une image PIL pour un contrôle plus précis
+    pil_image = Image.fromarray((rgba_image * 255).astype(np.uint8))
+    
+    # Pour assurer la transparence, nous devons convertir l'image en mode "RGBA"
+    pil_image = pil_image.convert("RGBA")
+    pil_image = ImageOps.flip(pil_image)
+    
+    # Sauvegardez l'image en PNG
+    pil_image.save(fnameKMLPNGOUT)
+
+        
+        
+       
+ 
+    # Supposons que 'lon_min', 'lat_min', 'lon_max', et 'lat_max' sont les coordonnées des coins de votre DataSet
+
+    
+ 
+    kml = simplekml.Kml()
+
+    ground = kml.newgroundoverlay(name='GroundOverlay') 
+    ground.icon.href = fnameKMLPNGOUT  # Utilisez le fichier PNG enregistré
+    ground.latlonbox.north = lat_max
+    ground.latlonbox.south = lat_min
+    ground.latlonbox.east = lon_max
+    ground.latlonbox.west = lon_min
+ 
+    
+    # Sauvegardez le kml
+    kml.save(fnameKMLOUT)
+
+
+
+
+
+#pedrogao 
+BMAPFILE = "/Users/filippi_j/data/2022/pedrogao/REF_REPORT_BMAP.nc"
+PGDFILE = "/Users/filippi_j/data/2022/pedrogao/PGD_D80mA.nested.nc"
+FFINPUTPATTERN='/Users/filippi_j/data/2022/pedrogao/OutputsNoCoupled/output.0.*'
+
+#prunelli
+BMAPFILE = "//Users/filippi_j/Volumes/fcouto/KTEST_PEDROGAO/nested3FirePattern/006_runff/ForeFire/Outputs_coupled_brise_couvent/ForeFire.0.nc"
+PGDFILE = "/Users/filippi_j/Volumes/fcouto/KTEST_PEDROGAO/nested3FirePattern/006_runff/PGD_D80mA.nested.nc"
+FFINPUTPATTERN='/Users/filippi_j/Volumes/fcouto/KTEST_PEDROGAO/nested3FirePattern/006_runff/ForeFire/Outputs_coupled_brise_couvent//output.0.*'
+
+#prunelli local
+BMAPFILE = "/Users/filippi_j/data/2023/prunelli/frontData/coupled.nc"
+PGDFILE = "/Users/filippi_j/data/2023/prunelli/PGD_D80mA.nc"
+FFINPUTPATTERN= "/Users/filippi_j/data/2023/prunelli/frontData/cpl/output.0.*"
+
+#Pigna
+BMAPFILE = "//Users/filippi_j/Volumes/orsu/firecaster/2023/nest150Ref/006_runff/ForeFire/Outputs/ForeFire.0.nc"
+PGDFILE = "/Users/filippi_j/Volumes/orsu/firecaster/2023/nest150Ref/001_pgd/PGD_D80mA.nested.nc"
+FFINPUTPATTERN='/Users/filippi_j/Volumes/orsu/firecaster/2023/nest150Ref/006_runff/ForeFire/Outputs/output.0.*'
+
+
+
+    
+dBmap = xr.open_dataset(BMAPFILE)
+baseDate= datetime(int(dBmap.domain.refYear), 1, 1, 0, 0, 0, 0)
+baseDate= baseDate+timedelta(days=int(dBmap.domain.refDay))
+
+pgd = xr.open_dataset(PGDFILE)
+
+lon0 = float(pgd["longitude"][0,0])
+lon1 = float(pgd["longitude"][0,1])
+lonM1 = float(pgd["longitude"][0,-1])
+lonM2 = float(pgd["longitude"][0,-2])
+
+
+wsen = [
+    float(lon0+(lon1-lon0)/2),
+    float(pgd.latitude.min()),
+    float(lonM1+(lonM2-lonM1)/2),
+    float(pgd.latitude.max())
+             ]
+
+
+
+ 
+
+contours1  = glob.glob(FFINPUTPATTERN)
+
+lCnt=[]
+import os
+selectionSorted =  sorted(contours1)#[::6]
+
+for contour in selectionSorted[::30]:#[50:261]:
+    
+#    strcp="cp %s %s"%(contour,"/Users/filippi_j/data/2023/prunelli/frontData/cpl")
+#    print(strcp)
+#    os.system(strcp)
+   # print(contour)
+    f = ffData(contour,mode = "mnhPGD", baseDate=baseDate,wsen=wsen)
+    lCnt.append((f.toGeoJson(),f.frontDate))
+
+
+with open("/Users/filippi_j/data/2023/corbara20230727/OutputsNonCoupled.kml", "w") as text_file:
+    text_file.write(to_timed_kml(lCnt))
+
+fnameKMLOUT="/Users/filippi_j/data/2023/corbara20230727/speedNC.kml"
+fnameKMLPNGOUT="/Users/filippi_j/data/2023/corbara20230727/speedNC.png"
+bmap2kml(dBmap,wsen,fnameKMLOUT=fnameKMLOUT,fnameKMLPNGOUT=fnameKMLPNGOUT)
+
 
 #print(json.dumps(ffGSon.parse()))
