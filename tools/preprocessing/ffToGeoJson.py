@@ -513,7 +513,7 @@ def arrayToPng(data, output_filename, output_cbar_png=None, cmap_str = "viridis"
     
     # Créer et sauvegarder l'image
     image = Image.fromarray(rgba_data, "RGBA")
-    image = image.resize(imsize, Image.ANTIALIAS)
+    image = image.resize(imsize)
     
     # Si les vecteurs vx et vy sont fournis, dessiner les flèches
     if vx is not None and vy is not None:
