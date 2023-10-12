@@ -1,0 +1,48 @@
+dateString=20230609
+INISTARTM2INRUN1TIME=2
+ABSOLUTESTARTHOUR=2
+
+if [ "$#" -ge 3 ]; then
+    INISTARTM2INRUN1TIME=$1
+    dateString=$2
+    ABSOLUTESTARTHOUR=$3
+
+fi
+INIS=$(printf "%03g" $INISTARTM2INRUN1TIME)
+ABSHS=$(printf "%02g" $ABSOLUTESTARTHOUR)
+
+echo "using MAKE_SPAWNREAL ${dateString} ${INISTARTM2INRUN1TIME} ${ABSOLUTESTARTHOUR}"
+
+cat > SPAWN1.nam <<EOF
+&NAM_CONFIO LCDF4=T LLFIREAD=T LLFIOUT=T
+/
+&NAM_LUNIT2_SPA CINIFILE = 'RUN12.1.PRUN1.${INIS}',
+                CINIFILEPGD = 'PGD_D2000mA.nested',
+                YDOMAIN = 'PGD_D400mA.nested',
+                YSPANBR = '01' /
+EOF
+
+cat > PRE_REAL1.nam <<EOF
+&NAM_FILE_NAMES HATMFILE='RUN12.1.PRUN1.${INIS}.spa01',
+                HATMFILETYPE='MESONH',
+                HPGDFILE='PGD_D400mA.nested',
+                CINIFILE='M2.${dateString}.00.${ABSHS}'
+/
+&NAM_AERO_CONF  
+/
+&NAM_REAL_CONF  NVERB=5,
+		CEQNSYS='DUR',
+		CPRESOPT='RICHA' 
+/
+&NAM_VER_GRID   LTHINSHELL=T,
+                NKMAX=50,
+                YZGRID_TYPE='FUNCTN',
+                ZDZGRD=30.,
+                ZDZTOP=900.,
+                ZZMAX_STRGRD=2000.,
+                ZSTRGRD=10.,
+                ZSTRTOP=6.7 
+/
+&NAM_CONFIO LCDF4=F LLFIREAD=T LLFIOUT=T 
+/
+EOF

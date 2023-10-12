@@ -20,9 +20,10 @@ import geopandas as gpd
 from fiona.crs import from_epsg
 from shapely.geometry import box
 from rasterio import Affine
-from pyproj import Transformer
+from pyproj import Proj, Transformer, transform
 import rasterio
  
+
 from rasterio.warp import reproject, Resampling
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -35,8 +36,56 @@ from rasterio.mask import mask
 import pycrs
 
 
-
-
+def gen_density_altitude_and_filter(in_points):
+    filtered_points['heightStat'] = np.array([]).reshape(0, 3)
+    
+    # Dictionnaire pour stocker les points par carré
+    squares = defaultdict(list)
+    
+    # Partitionnement des points dans les carrés
+    for i, (x, y, z) in enumerate(filtered_points['coords']):
+        square_x = int(x // square_size)
+        square_y = int(y // square_size)
+        squares[(square_x, square_y)].append(i)
+    
+    # Listes pour stocker les résultats et les indices des points centraux
+    height_stats = []
+    central_indices = []
+    
+    # Calculs pour chaque carré
+    for (square_x, square_y), indices in squares.items():
+        altitudes = [filtered_points['coords'][i, 2] for i in indices]
+        
+        # 1) Différence de hauteur entre le point le plus haut et le plus bas
+        max_z = max(altitudes)
+        min_z = min(altitudes)
+        height_diff = max_z - min_z
+        
+        # 2) Moyenne des 70% des points les plus hauts en retranchant l'altitude du point le plus bas
+        sorted_altitudes = sorted(altitudes, reverse=True)
+        n_top_70 = int(0.7 * len(sorted_altitudes))
+        top_70_mean = np.mean(sorted_altitudes[:n_top_70]) - min_z
+        
+        # 3) Altitude du point médian - l'altitude du point le plus bas
+        median_z = np.median(sorted_altitudes)
+        median_diff = median_z - min_z
+        
+        # Stockage des résultats
+        height_stats.append([height_diff, top_70_mean, median_diff])
+        
+        # Sélection du point central (point avec l'altitude médiane)
+        central_idx = indices[altitudes.index(median_z)]
+        central_indices.append(central_idx)
+    
+    # Mettre à jour 'heightStat' avec les statistiques de hauteur calculées
+    filtered_points['heightStat'] = np.array(height_stats)
+    
+    # Filtrer les autres champs pour ne garder que les points centraux
+    filtered_points['coords'] = filtered_points['coords'][central_indices]
+    filtered_points['intensity'] = np.array(filtered_points['intensity'])[central_indices]
+    filtered_points['color'] = filtered_points['color'][central_indices]
+    
+    return filtered_points
 
 
 
@@ -308,50 +357,143 @@ def webMapsToTif(west, south, east, north, outF, providerSRC=cx.providers.Geopor
     
     print("Extracted image from contextily bounds:",west, south, east, north," zoom ", zoomLevel, " out files ",outF," and temporary ",tempOUT)
 
+def findfileToDownload(west, south, east, north,laslist = [], lidarCRS=2154,step=1000,prefix="https://wxs.ign.fr/2s53j8r4gxyr0bfcounndiea/telechargement/prepackage/LIDARHD_PACK_IP_2021$LIDARHD_1-0_LAZ_IP-"):
+    points = []
+    transformer = Transformer.from_crs("EPSG:4326", "EPSG:%d"%lidarCRS)
+ 
+    
+    # Convertir NE et SW en Lambert 93
+    x_ne, y_ne = transformer.transform( north,east)
+    x_sw, y_sw = transformer.transform(south,west)
+    
+    for x in np.arange(x_sw-step, x_ne+step, step):
+        for y in np.arange(y_sw, y_ne, step):
+            points.append((int(x/1000), int(y/1000)))
+    filenames = []
+    for x, y in points:
+        x_str = str(int(x))
+        y_str = str(int(y))
+        filename = f"{prefix}{x_str}_{y_str}-2022/file/LIDARHD_1-0_LAZ_IP-{x_str}_{y_str}-2022.7z"
+        filenames.append(filename)
+        
+    print("\n".join(filenames))
+
+def list_laz_files(directory_path):
+
+    laz_files = []
+    
+    # Walk through the directory
+    for root, dirs, files in os.walk(directory_path):
+        for file in files:
+            if file.endswith('.laz'):
+                full_path = os.path.join(root, file)
+                laz_files.append(full_path)
+                
+    return laz_files
+
+import shapefile
+
+def rectangles_intersect(A, B):
+    A_x1, A_y1 = A['pbs']
+    A_x2, A_y2 = A['phd']
+    B_x1, B_y1 = B['pbs']
+    B_x2, B_y2 = B['phd']
+
+    return (A_x1 < B_x2 and B_x1 < A_x2 and
+            A_y1 < B_y2 and B_y1 < A_y2)
+
+    
+def filter_shapefile_by_coordinates(west, south, east, north, filename,lidarCRS=2154, buffer = 500):
+    points = []
+    transformer = Transformer.from_crs("EPSG:4326", "EPSG:%d"%lidarCRS)
+    bs = transformer.transform(south,west)
+    hd = transformer.transform( north,east)
+    rect_A = {'pbs': (bs[0]-buffer,bs[1]-buffer), 'phd': (hd[0]+buffer,hd[1]+buffer)}
+    print("goffu ",rect_A)
+    sf = shapefile.Reader(filename)
+    
+    filtered_records = []
+    for shape_record in sf.iterShapeRecords():
+        rect_B = {'pbs': shape_record.shape.points[0], 'phd': shape_record.shape.points[2]}
+        if "1220" in shape_record.record['nom_pkk']:
+            print("goffu ",rect_A, rect_B, shape_record.record['nom_pkk'])
+
+        #)
+        if rectangles_intersect(rect_A, rect_B):
+            print(rect_A, rect_B)
+            filtered_records.append({
+                'nom_pkk': shape_record.record['nom_pkk'],
+                'url_telech': shape_record.record['url_telech']
+            })
+
+    # Filter records
+    
+    # Print filtered records
+    for record in filtered_records:
+        print(f"Nom PKK: {record['nom_pkk']}, URL: {record['url_telech']}")
+
+
 las1 = "/Users/filippi_j/data/2023/prunelli/LIDARHD_1-0_LAZ_VT-1224_6123-2021/Semis_2021_1224_6122_LA93_IGN78.laz"
 las2 = "/Users/filippi_j/data/2023/prunelli/LIDARHD_1-0_LAZ_VT-1224_6123-2021/Semis_2021_1224_6123_LA93_IGN78.laz"
 las3 = "/Users/filippi_j/data/2023/prunelli/LIDARHD_1-0_LAZ_VT-1224_6123-2021/Semis_2021_1225_6122_LA93_IGN78.laz"
 las4 = "/Users/filippi_j/data/2023/prunelli/LIDARHD_1-0_LAZ_VT-1224_6123-2021/Semis_2021_1225_6123_LA93_IGN78.laz"
 las5 = "/Users/filippi_j/data/2023/prunelli/LIDARHD_1-0_LAZ_VT-1226_6123-2021/Semis_2021_1226_6122_LA93_IGN78.laz"
 las6 = "/Users/filippi_j/data/2023/prunelli/LIDARHD_1-0_LAZ_VT-1226_6123-2021/Semis_2021_1226_6123_LA93_IGN78.laz"
+lidarHDIndex = "/Users/filippi_j/data/2023/lidargrid/TA_diff_pkk_lidarhd.shp"
 
-subsetFDS = "/Users/filippi_j/data/2023/prunelli/6731213101-2/sub/subsetFDS.TIF"
-subsetFDSLamb = "/Users/filippi_j/data/2023/prunelli/6731213101-2/sub/subsetFDSLAMBERT.TIF"
-lidplot = "/Users/filippi_j/data/2023/prunelli/6731213101-2/sub/slidarColor.png"
-outLAS = "/Users/filippi_j/data/2023/prunelli/6731213101-2/sub/slidarArea.las"
-lidarVTKout = "/Users/filippi_j/data/2023/prunelli/6731213101-2/sub/slidarArea.vtk"
-orthoTIF = "/Users/filippi_j/data/2023/prunelli/6731213101-2/sub/ortho.tif"
-orthoTIFLamb = "/Users/filippi_j/data/2023/prunelli/6731213101-2/sub/orthoLambert.tif"
+
 
 #bbox de Yolanda
 lat_sw, lon_sw = 42.0063067 , 9.3263082
 lat_ne, lon_ne = 42.0104249 ,  9.3327945
-
 #bbox réduite
 #lat_sw, lon_sw = 42.007884 , 9.327366
 #lat_ne, lon_ne = 42.008428 ,  9.328064
 
+#bbox de corbara
+#lat_sw, lon_sw = 42.6016, 8.9103
+#lat_ne, lon_ne = 42.6049 ,8.9216
+
+#bbox de monze
+lat_sw, lon_sw = 43.1289 , 2.3986
+lat_ne, lon_ne = 43.187127, 2.5797
+
+dirout = "/Users/filippi_j/data/2023/prunelli/6731213101-2/sub/"
+lidarDir = "/Users/filippi_j/data/2023/corbara20230727/lidar/"
+dirout = "/Users/filippi_j/data/2023/corbara20230727/out/"
+
+subsetFDS = "%ssubsetFDS.TIF"%dirout
+subsetFDSLamb = "%ssubsetFDSLAMBERT.TIF"%dirout
+lidplot = "%sslidarColor.png"%dirout
+outLAS = "%sslidarArea.las"%dirout
+lidarVTKout = "%sslidarArea.vtk"%dirout
+orthoTIF = "%sortho.tif"%dirout
+orthoTIFLamb = "%sorthoLambert.tif"%dirout
+
 west, south, east, north = lon_sw,lat_sw, lon_ne,lat_ne
 
-webMapsToTif(west, south, east, north, orthoTIF, zoomLevel=18)
+#findfileToDownload(west, south, east, north)
+filter_shapefile_by_coordinates(west, south, east, north, lidarHDIndex)
+
+#webMapsToTif(west, south, east, north, orthoTIF, zoomLevel=18)
 
 lidarCRS=2154
 
-reprojectTif(subsetFDS,subsetFDSLamb,lidarCRS)
-reprojectTif(orthoTIF,orthoTIFLamb,lidarCRS)
+#reprojectTif(subsetFDS,subsetFDSLamb,lidarCRS)
+#reprojectTif(orthoTIF,orthoTIFLamb,lidarCRS)
 
-left,right,bottom,top = getLeftRightBottomTop(orthoTIFLamb)  
-all_filtered_points = filter_las_files_with_attributes(     (las1,las2,las3,las4), left, bottom, right, top )
+#left,right,bottom,top = getLeftRightBottomTop(orthoTIFLamb)  
+#all_filtered_points = filter_las_files_with_attributes(  list_laz_files(lidarDir), left, bottom, right, top )
 
-all_filtered_points_colored = assign_colors_from_tif(all_filtered_points, orthoTIFLamb)
+#all_filtered_points_colored = assign_colors_from_tif(all_filtered_points, orthoTIFLamb)
+#save_points_to_vtk(all_filtered_points_colored, filename=lidarVTKout)
 
-save_filtered_las(all_filtered_points_colored, outLAS)
+#save_filtered_las(all_filtered_points_colored, outLAS)
 
-save_points_to_vtk(all_filtered_points_colored, filename=lidarVTKout)
 
 #plot_colored_points_3d(all_filtered_points_colored, filename=lidplot)
 #print("plotted")
-all_filtered_points_latlon = convert_LASCRS_to_latlon(all_filtered_points_colored)
-save_filtered_las(all_filtered_points_latlon, outLAS+"latlon.las")
+#all_filtered_points_latlon = convert_LASCRS_to_latlon(all_filtered_points_colored)
+#save_filtered_las(all_filtered_points_latlon, outLAS+"latlon.las")
 
 

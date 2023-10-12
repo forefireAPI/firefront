@@ -1,0 +1,10 @@
+rm file_for_xtransfer
+rm *.nam
+rm PGD_D*
+rm OUTPUT_L*
+rm M1*
+rm M2*
+rm slurm*
+rm PRESSURE
+rm REMAP*
+rm RUN12*

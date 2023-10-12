@@ -1,0 +1,9 @@
+rm EXSEG1.nam
+rm file_for_xtransfer
+rm slurm*
+rm PGD_D*
+rm OUTPUT_L*
+rm RUN12*
+rm PRESSURE
+rm REMAP*
+rm M1*

@@ -1,0 +1,37 @@
+#!/bin/sh
+#SBATCH -J FCAST_REAL
+#SBATCH -N 1
+#SBATCH --exclusive
+#SBATCH -n 4 
+#SBATCH --partition=intel
+#SBATCH --time=15:00:00
+#SBATCH --mail-user=batti.filippi@@gmail.com
+#SBATCH --mail-type=all
+
+
+#Should we go to next step at the end 
+continue_cycle=${1}
+archPath=$2
+echo "Run prep real linking archive $archPath"
+
+# Echo des commandes
+ulimit -c 0
+ulimit -s unlimited
+# Arrete du job des la premiere erreur
+#set -e
+# Nom de la machine
+hostname 
+. ~/runMNH 
+ln -sf ../001_pgd/PGD_*.nested.* .
+export MPIRUN="mpirun -np 20"
+
+set -x
+set -e
+# faire un qsub qui ftp, test et link ou se resoumet.. si bon soummet le suivant
+for DATEname in `ls PRE_REAL1.nam.*`
+do
+cp $DATEname PRE_REAL1.nam
+time ${MPIRUN} PREP_REAL_CASE${XYZ}
+mv OUTPUT_LISTING0  OUTPUT_LISTING0_prep.${DATEname}
+done
+

@@ -34,7 +34,7 @@ def readBinShape(inpattern,domnum,vkey):
     sizeofOfI4 = struct.calcsize("i")
     sizeofOfF8 = struct.calcsize("d")
     c_file = open(fname,"rb")
-
+ 
     nxt = struct.unpack("i",c_file.read(sizeofOfI4))[0]
     c_file.read(sizeofOfI4)
     nyt= struct.unpack("i",c_file.read(sizeofOfI4))[0]
