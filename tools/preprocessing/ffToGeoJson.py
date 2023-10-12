@@ -1,23 +1,19 @@
-import os
-import sys
+ 
 from pyproj import Proj, transform
-import numpy as np
-import json
+import numpy as np 
 from shapely.geometry import Polygon 
 from datetime import timedelta,datetime
-#srcDS = gdal.OpenEx('input.kml')
-#ds = gdal.VectorTranslate('output.json', srcDS, format='GeoJSON')
-from geo2kml import to_timed_kml
+ 
+from . import to_timed_kml
 import re
-from PIL import Image, ImageDraw, ImageFont
-import matplotlib.pyplot as plt
+from PIL import Image, ImageDraw, ImageFont 
 import matplotlib.cm as cm
     
 import glob
 import pandas as pd
 import xarray as xr
 
-import geojson
+ 
 from fastkml import kml, styles
 from shapely.geometry import shape 
 import math

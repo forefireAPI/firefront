@@ -89,14 +89,15 @@ toulouse20190814 = {
     "initff_path": "/006_runff/ForeFire/Init.ff",
     "BMAPFILE": "/006_runff/ForeFire/Outputs/ForeFire.0.nc",
     "FFINPUTPATTERN": "/006_runff/ForeFire/Outputs/output.0.*",
-    "MODELOUTPATTERN": "/006_runff/MODEL3/output",
+    "MODELOUTPATTERN": ["/006_runff/MODEL1/output","/006_runff/MODEL2/output","/006_runff/MODEL3/output"],
+    
+    "FFOUTVTKPATH": ["/RESULTS/vtkout1/","/RESULTS/vtkout2/","/RESULTS/vtkout3/"],
     "OUTKMLDOMAINFILE": "/RESULTS/domains.kml",
     "frontsKMLOUT": "/RESULTS/fronts.kml",
     "BMAPKMLOUT": "/RESULTS/ros.kml",
     "fuel_TIF_path": "/RESULTS/fuel.tif",
     "fuel_png_path": "/RESULTS/fuel.png",
-    "fuel_kml_path": "/RESULTS/fuel.kml",
-    "FFOUTVTKPATH": "/RESULTS/vtkout3/"
+    "fuel_kml_path": "/RESULTS/fuel.kml"
  
 }
 
@@ -107,7 +108,7 @@ toulouse20190814 = {
 
 CAST = toulouse20190814
 
-gen_empty_FFMNH_case = False
+gen_empty_FFMNH_case = True
 gen_domain_kml = False
 gen_fuel_map  = False
 gen_FAF_case = False
@@ -222,8 +223,8 @@ if gen_2D_VTK_OUT:
 # now wa assume everythng has run we can do the post-processing the 3D VTKOUT
 if gen_3D_VTK_OUT:
     from postprocessing.pMNHFF2VTK import ffmnhFileToVtk, ffFrontsToVtk
-    ffFrontsToVtk(inFFpattern = FFINPUTPATTERN,outPath = FFOUTVTKPATH)
-    ffmnhFileToVtk(inpattern = MODELOUTPATTERN[-1],pgdFile = PGDFILES[-1],outPath = FFOUTVTKPATH[-1])
+    #ffFrontsToVtk(inFFpattern = FFINPUTPATTERN,outPath = FFOUTVTKPATH[-1])
+    ffmnhFileToVtk(inpattern = MODELOUTPATTERN[1],pgdFile = PGDFILES[1],outPath = FFOUTVTKPATH[1])
     
     #print_vtkout_slurm_command_3D()
 
