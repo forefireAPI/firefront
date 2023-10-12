@@ -23,8 +23,7 @@
 
 
 
-
-__all__ = ['to_kml', 'WrongFormatGeoJson', 'to_timed_kml']
+ 
 
 
 class WrongFormatGeoJson(Exception):

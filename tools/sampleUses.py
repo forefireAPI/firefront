@@ -108,7 +108,7 @@ toulouse20190814 = {
 
 CAST = toulouse20190814
 
-gen_empty_FFMNH_case = True
+gen_empty_FFMNH_case = False
 gen_domain_kml = False
 gen_fuel_map  = False
 gen_FAF_case = False

@@ -4,7 +4,7 @@ import numpy as np
 from shapely.geometry import Polygon 
 from datetime import timedelta,datetime
  
-from . import to_timed_kml
+
 import re
 from PIL import Image, ImageDraw, ImageFont 
 import matplotlib.cm as cm
@@ -18,6 +18,7 @@ from fastkml import kml, styles
 from shapely.geometry import shape 
 import math
 
+from .geo_to_kml import *
 
 class ffData:
     def isPoint(element):
