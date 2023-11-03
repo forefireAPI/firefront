@@ -1,0 +1,8 @@
+setParameters[ForeFireDataDirectory=.;fireOutputDirectory=Outputs;atmoOutputDirectories=MODEL1;outputsUpdate=360;bmapOutputUpdate=360]
+include[Params.ff]
+setParameters[atmoNX=152;atmoNY=152]
+setParameters[windU=0;windV=5]
+include[Init.ff]
+step[dt=720]
+print[]
+save[]

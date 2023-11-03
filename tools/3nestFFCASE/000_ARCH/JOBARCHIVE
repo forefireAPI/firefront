@@ -1,0 +1,36 @@
+#!/bin/bash
+#SBATCH -J CEP_DATA
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --exclusive
+#SBATCH --partition=intel
+#SBATCH --time=20:00:00
+#SBATCH --mail-user=batti.filippi@@gmail.com
+#SBATCH --mail-type=all
+
+echo "SCRIPT ARCHIVE CEP EN COURS"
+. ~/.bashrc
+. ~/.bash_profile
+conda activate FFMNH
+rm levels.*
+rm surface.*
+start=00
+end=48
+step=3
+today=$(date +%Y%m%d)
+ARCHDATE=$today
+if [ "$#" -ge 1 ]; then
+  ARCHDATE=$1
+fi
+
+for i in $(seq -f "%02g" $start $step $end); do
+  bash GETECMWFBC $ARCHDATE ${i} 00
+  mars req_sfc_${i}
+  mars req_level_${i}
+done
+rm *req*
+DATADATE=`grib_get -w shortName=sst -p dataDate  surface.00`
+mkdir $DATADATE
+for ech in $(seq -f "%02g" 0 3 48); do 
+    grib_copy /data/filippi_j/MARS/surface.$ech /data/filippi_j/MARS/levels.$ech $DATADATE/cep.FC00Z.$ech; 
+done

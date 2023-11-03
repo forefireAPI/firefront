@@ -1,0 +1,7 @@
+rm PRE_REAL1.nam*
+rm cep.*
+rm file_for_xtransfer
+rm slurm*
+rm PGD_D*
+rm OUTPUT_L*
+rm M1*

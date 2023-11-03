@@ -1,0 +1,36 @@
+#!/bin/sh
+#SBATCH -J VTK_M3 
+#SBATCH -N 1 
+#SBATCH --ntasks=10 
+#SBATCH -p intel
+#SBATCH --time=15:00:00
+#SBATCH --mail-user=batti.filippi@@gmail.com
+#SBATCH --mail-type=all
+
+# Echo des commandes
+#module load orsu
+#module load anaconda3/2020.11
+source /home/filippi_j/.bashrc
+conda activate FFMNH
+
+
+ulimit -c 0
+# Arrete du job des la premiere erreur
+ulimit -s unlimited
+#set -e
+# Nom de la machine
+# run with sbatch --array=0-40 script_vtk_array
+hostname 
+
+seqSTEP=$1
+stepLength=$2
+startSTEP=$(($stepLength * $SLURM_ARRAY_TASK_ID))
+endSTEP=$(($stepLength * ($SLURM_ARRAY_TASK_ID + 1) ))
+echo "ID $SLURM_ARRAY_TASK_ID computing $startSTEP to $endSTEP"
+
+for i in `seq ${startSTEP} ${seqSTEP} ${endSTEP}`; 
+do
+srun -n1 --exclusive python3.9 ~/soft/firefront/tools/postprocessing/pMNHFF2VTK.py  MODEL3/output ForeFire/Outputs/output vtkout3/ -steps $i $(($i + $seqSTEP)) & 
+done
+wait
+

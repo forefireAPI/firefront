@@ -71,16 +71,18 @@ def FiretoNC(filename, domainProperties, parametersProperties, fuelModelMap, ele
         domain.Lz  = float(domainProperties['Lz']  )
         domain.t0  = float(domainProperties['t0']  )
         domain.Lt  = float(domainProperties['Lt'] )
+
         parameters = ncfile.createVariable('parameters', 'S1', ())
         parameters.type = "parameters"       
 
         if (parametersProperties is not None):
-            parameters.projectionproperties = parametersProperties['projectionproperties'] 
             parameters.date = parametersProperties['date'] 
             parameters.duration = parametersProperties['duration'] 
-            parameters.projection = parametersProperties['projection']
             parameters.refYear = parametersProperties['refYear'] 
             parameters.refDay = parametersProperties['refDay']
+            parameters.year = parametersProperties['year']  
+            parameters.month = parametersProperties['month']  
+            parameters.day = parametersProperties['day'] 
         
     
         

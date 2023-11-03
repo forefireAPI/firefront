@@ -1,0 +1,42 @@
+start=6
+end=18
+step=3
+dateString=20230609
+
+if [ "$#" -lt 3 ]; then
+    echo "use MAKE_PREAL startStep endStep datestring, unset, so using default" $start $end $dateString  
+fi
+if [ "$#" -ge 2 ]; then
+    start=$1
+    end=$2
+    dateString=$3
+    echo "MAKE_PREAL using " $start $end $dateString  
+fi
+ln -s /data/filippi_j/MARS/${dateString}/* .
+for i in $(seq -f "%02g" $start $step $end); do
+echo "making PRE_REAL1.nam.${i} with date ${dateString}"
+cat > PRE_REAL1.nam.${i} <<EOF
+    &NAM_FILE_NAMES HATMFILE='cep.FC00Z.${i}',
+                    HATMFILETYPE='GRIBEX',
+                    HPGDFILE='PGD_D2000mA.nested',
+                    CINIFILE='M1.${dateString}.00.${i}'
+    /
+    &NAM_AERO_CONF  
+    /
+    &NAM_REAL_CONF  NVERB=5,
+    		CEQNSYS='DUR',
+    		CPRESOPT='RICHA' 
+    /
+    &NAM_VER_GRID   LTHINSHELL=T,
+                    NKMAX=50,
+                    YZGRID_TYPE='FUNCTN',
+                    ZDZGRD=30.,
+                    ZDZTOP=900.,
+                    ZZMAX_STRGRD=2000.,
+                    ZSTRGRD=10.,
+                    ZSTRTOP=6.7 
+    /
+    &NAM_CONFIO LCDF4=T LLFIREAD=T LLFIOUT=T 
+    /
+EOF
+done
