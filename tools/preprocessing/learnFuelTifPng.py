@@ -163,10 +163,8 @@ def train_and_save_model(tiff_data, y_train_onehot, out_file_path,subTrain = 500
     model = tf.keras.Sequential([
         tf.keras.layers.Dense(32, activation='relu', input_shape=(tiff_data.shape[1],)),
         tf.keras.layers.Dense(32, activation='relu'),
-        tf.keras.layers.Dense(y_train_onehot.shape[1], activation='softmax')
+        tf.keras.layers.Dense(inimagedata.shape[1], activation='softmax')
     ])
-    
-    # Compiler le modèle
     model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
     
     # Entraîner le modèle
@@ -228,6 +226,9 @@ def makeFuelMapFromPgd(pgd_path,tifout_path,pngout_path,kmlout_path, resolution=
     
     create_kml(west, south, east, north,"Fuel", pngout_path,  kmlout_path )
     
+
+
+
 
 
 # #OUTIMGS = "/Users/filippi_j/data/2023/baseFeux/pedrogao/80mDOMCUT.png", "/Users/filippi_j/data/2023/baseFeux/DomDB46.png"#,  "/Users/filippi_j/data/2023/baseFeux/DomDB59.png"
