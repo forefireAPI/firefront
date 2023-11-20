@@ -198,12 +198,12 @@ void FireNode::timeAdvance(){
 			// obtaining the speed from the propagation model
 			double localSpeed = domain->getPropagationSpeed(this);
 			double newSpeed = localSpeed;
-			if(newSpeed > minSpeed){
+			/*if(newSpeed > minSpeed){
 				double prevSpeed, nextSpeed;
 				getPrev()->getState() == moving ? prevSpeed = getPrev()->getSpeed() : prevSpeed = 0;
 				getNext()->getState() == moving ? nextSpeed = getNext()->getSpeed() : nextSpeed = 0;
 				newSpeed = ( prevSpeed + smoothing*localSpeed + nextSpeed )/(smoothing+2.);
-				}
+				}*/
 			if ( speed > EPSILONV ) {
 				speed = (1.-relax)*speed + relax*newSpeed;
 			} else {

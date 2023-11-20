@@ -15,11 +15,7 @@
 # more details.
 
 import numpy as np
-import sys
-import xarray as xr
 import netCDF4 as nc4
-import datetime
-import matplotlib.pyplot as plt
 from PIL import Image
 
 
@@ -28,15 +24,35 @@ from . import get_WSEN_LBRT_ZS_From_Pgd
 def addFieldToNcFile(ncfile, field, fieldname, typeName, dvartype):
         print("adding ", fieldname)
         sp = np.shape(field)
-        ncfile.createDimension('%sNX'%fieldname, sp[1])
-        ncfile.createDimension('%sNY'%fieldname, sp[0])
-        if (len(sp) > 2):
-            ncfile.createDimension('%sNZ'%fieldname, sp[2])
-        else:
+        
+        
+        if (len(sp) == 2):
+            ncfile.createDimension('%sNX'%fieldname, sp[1])
+            ncfile.createDimension('%sNY'%fieldname, sp[0])
             ncfile.createDimension('%sNZ'%fieldname, 1)
             ncfile.createDimension('%sNT'%fieldname, 1)
-        if (len(sp) > 3):
-            ncfile.createDimension('%sNT'%fieldname, sp[3])
+        if (len(sp) == 3):
+            ncfile.createDimension('%sNX'%fieldname, sp[2])
+            ncfile.createDimension('%sNY'%fieldname, sp[1])
+            ncfile.createDimension('%sNZ'%fieldname, sp[0])
+            ncfile.createDimension('%sNT'%fieldname, 1)
+        if (len(sp) == 4):
+            ncfile.createDimension('%sNX'%fieldname, sp[3])
+            ncfile.createDimension('%sNY'%fieldname, sp[2])
+            ncfile.createDimension('%sNZ'%fieldname, sp[1])
+            ncfile.createDimension('%sNT'%fieldname, sp[0])
+        
+        
+        
+        # ncfile.createDimension('%sNX'%fieldname, sp[1])
+        # ncfile.createDimension('%sNY'%fieldname, sp[0])
+        # if (len(sp) > 2):
+        #     ncfile.createDimension('%sNZ'%fieldname, sp[2])
+        # else:
+        #     ncfile.createDimension('%sNZ'%fieldname, 1)
+        #     ncfile.createDimension('%sNT'%fieldname, 1)
+        # if (len(sp) > 3):
+        #     ncfile.createDimension('%sNT'%fieldname, sp[3])
         
         variable = ncfile.createVariable(fieldname, dvartype, ('%sNT'%fieldname, '%sNZ'%fieldname,'%sNY'%fieldname, '%sNX'%fieldname))
         if (len(sp) == 4):
@@ -69,14 +85,19 @@ def FiretoNC(filename, domainProperties, parametersProperties, fuelModelMap, ele
 
  
         if (fuelModelMap is not None):
-            addFieldToNcFile(ncfile, fuelModelMap, 'fuel', 'fuel', 'i4')
+            addFieldToNcFile(ncfile, fuelModelMap, 'fuel', 'fuel', 'i2')
             
         if (elevation is not None):
-            addFieldToNcFile(ncfile, elevation, 'altitude', 'data', 'f8')
+            addFieldToNcFile(ncfile, elevation, 'altitude', 'data', 'f4')
         
         if (wind is not None):
-            addFieldToNcFile(ncfile, wind["zonal"], 'windU', 'data', 'f8')
-            addFieldToNcFile(ncfile, wind["meridian"], 'windV', 'data', 'f8')
+            addFieldToNcFile(ncfile, wind, 'wind', 'data', 'f4')
+            # 2 types de vents, 
+            # soit windU/windV statique (2 arrays, windU et WindV de forme:  1,1,NI,NJ)
+            # soit variable dans le temps, dynamique 2 arrays, windU et WindV de forme NT, 1, NI,NJ)
+            # soit champ potentiel nom wind de forme NAXES,NDIRCOEFFS,NI,NJ 
+#            addFieldToNcFile(ncfile, wind["zonal"], 'windU', 'data', 'f4')
+ #           addFieldToNcFile(ncfile, wind["meridian"], 'windV', 'data', 'f4')
                 
       #      windU = ncfile.createVariable('windU', 'f8', ('DIMT', 'DIMZ', 'DIMY', 'DIMX'))
        #     windU.type = "data" 
@@ -91,12 +112,12 @@ def FiretoNC(filename, domainProperties, parametersProperties, fuelModelMap, ele
                 numOfModels += len(fMap["table"])
             
             for fMap in fluxModelMap:  
-                fVar = addFieldToNcFile(ncfile, fMap["data"], fMap["name"], 'flux', 'i4')
+                fVar = addFieldToNcFile(ncfile, fMap["data"], fMap["name"], 'flux', 'i1')
                 #ncfile.createVariable(fMap["name"], 'i4', ('DIMT', 'DIMZ', 'DIMY', 'DIMX'))
                 #fVar.type = "flux" ;
                 for entry in fMap["table"].keys():
                     setattr(fVar, "model%dname"%fMap["table"][entry], entry)
-                fVar.indices = np.array(list(fMap["table"].values()),dtype=('i4'))
+                fVar.indices = np.array(list(fMap["table"].values()),dtype=('i1'))
                 #fVar[0,0,:,:] = fMap["data"]
 
         
@@ -104,26 +125,22 @@ def FiretoNC(filename, domainProperties, parametersProperties, fuelModelMap, ele
         ncfile.sync()
         ncfile.close()
 
-
-def PGD2Case(pgd_path, png_path, out_path, dateStartDom, FuelTest=-1):
-    fname = pgd_path
+def PGD2Case(pgd_path, png_path, out_path, dateStartDom, fuel_test=None, gen_wind=None):
+    WSEN, LBRT, ZS = get_WSEN_LBRT_ZS_From_Pgd(pgd_path)
+    image2Case(WSEN, LBRT, ZS, png_path, out_path, dateStartDom, fuel_test=fuel_test, gen_wind=gen_wind)
+    
+    
+def image2Case(WSEN, LBRT, ZS, png_path, out_path, dateStartDom, fuel_test=None, gen_wind=None):
+    
+ 
     fout = out_path 
     imgPath = png_path
-    WSEN, LBRT, ZS = get_WSEN_LBRT_ZS_From_Pgd(pgd_path)
     W,S,E,N=WSEN
     L, B, R, T = LBRT
     out_size = (int((LBRT[2]-LBRT[0])),int((LBRT[3]-LBRT[1])))
-  
+    wind=None
      
-     
- #   dateStartDom = datetime.datetime.strptime(dateString, "%Y%m%d%H%M")
-    
-     
-    
-    
-    geomCDFBin = fname 
-     
-    nc = nc4.Dataset(geomCDFBin, 'r') 
+ 
     
     domainProperties= {}
     domainProperties['SWx']  = np.float32(L)
@@ -151,41 +168,84 @@ def PGD2Case(pgd_path, png_path, out_path, dateStartDom, FuelTest=-1):
    # dom= "FireDomain[sw=(%d,%f,0);ne=(%f,%f,0);t=%d]"%(domainProperties['SWx'],domainProperties['SWy'],domainProperties['SWx']+domainProperties['Lx'],domainProperties['SWy']+domainProperties['Ly'],secondsSinceMidnight)
    # print( dom )
     
-    elevation =  nc.variables['ZS'][:,:]
+    elevation =  ZS
    
     fuelMap   =None
     if imgPath is not None:
-        fuelData = np.flipud(np.asarray(Image.open(imgPath)))
-        fuelMap = np.zeros(np.shape(fuelData),dtype=('i4'))
-        fuelMap[fuelData == 0] = 1
-        fuelMap[fuelData == 1] = 0
-        fuelMap[fuelData == 2] = 1
-        fuelMap[fuelData == 3] = 0
+        img = Image.open(imgPath)
+        if img.mode != "P":
+            raise ValueError("L'image n'est pas en mode palette (P).")
+            
+        fuelMap = np.flipud(np.asarray(img).astype('i2'))
+        #fuelMap = np.zeros(np.shape(fuelData),dtype=('i4'))
+        #fuelMap[fuelData == 0] = 1
+        #fuelMap[fuelData == 1] = 0
+        #fuelMap[fuelData == 2] = 1
+        #fuelMap[fuelData == 3] = 0
     else:
-        fuelMap   = 1*np.ones(np.shape(elevation),dtype=('i4'))
+        fuelMap   = 1*np.ones(np.shape(elevation),dtype=('u1'))
     
-    if FuelTest > 0 :
+    if fuel_test is not None :
         fuelData = np.flipud(np.asarray(Image.open(imgPath)))
-        fuelMap = np.zeros(np.shape(fuelData),dtype=('i4'))
-        n_bandes = FuelTest
+        fuelMap = np.zeros(np.shape(fuelData),dtype=('i1'))
+        n_bandes = len(fuel_test)
         limites = np.linspace(0, fuelMap.shape[1], n_bandes + 1).astype(int)
         elevation = elevation*0
         # Remplissage de fuelMap
         for i in range(n_bandes):
-            fuelMap[:, limites[i]:limites[i + 1]] = i
+            fuelMap[:, limites[i]:limites[i + 1]] = fuel_test[i]
             
+    if gen_wind is not None:
+        #elevation = elevation*0
+        ni=3
+        nj=3
+        wind=np.full((2, 4, ni, nj), 0)
+        #wind params examples : 
+        #Southerly 10m.s-1  trigger[wind;loc=(0.,0.,0.);vel=(0.0,10.0,0.);t=0.]
+        #Westerly 10m.s-1  trigger[wind;loc=(0.,0.,0.);vel=(10.0,0.0,0.);t=0.]
+        #Northerly 10m.s-1  trigger[wind;loc=(0.,0.,0.);vel=(0.0,-10.0,0.);t=0.]
+        #Easterly 10m.s-1  trigger[wind;loc=(0.,0.,0.);vel=(-10.0,0.0,0.);t=0.]
+        N = 8  # Nombre de directions
+        angle_step = 2 * np.pi / N
+        
+        wind = np.zeros((2, N, ni, nj))
+        
+        for i in range(N):
+            angle = i * angle_step
+            u = 10 * np.cos(angle)  # Composante U
+            v = 10 * np.sin(angle)  # Composante V
+            wind[0][i] = np.full((ni, nj), u)
+            wind[1][i] = np.full((ni, nj), v)
+        # #for U
+        # #stherly
+        # wind[0][0] = np.full((ni, nj), 0)
+        # #westerly
+        # wind[0][1] = np.full((ni, nj), 10)
+        # #northrly
+        # wind[0][2] = np.full((ni, nj), 0)
+        # #eastrly
+        # wind[0][3] = np.full((ni, nj), -10)
+        
+        # #for V
+        # wind[1][0] = np.full((ni, nj), 10)
+        # #westerly
+        # wind[1][1] = np.full((ni, nj), 0)
+        # #northrly
+        # wind[1][2] = np.full((ni, nj), -10)
+        # #eastrly
+        # wind[1][3] = np.full((ni, nj), 0)   
         
     
     heatFluxModelMap = {}
     heatFluxModelMap["name"] =  "heatFlux"
-    heatFluxModelMap["data"] =  np.zeros(np.shape(elevation),dtype=('i4'))
+    heatFluxModelMap["data"] =  np.zeros(np.shape(elevation),dtype=('u1'))
     heatFluxModelMap["table"] =  {"heatFluxBasic":0,}
     
     vaporFluxModelMap = {}
     vaporFluxModelMap["name"] =  "vaporFlux"
-    vaporFluxModelMap["data"] =  np.ones(np.shape(elevation),dtype=('i4'))
+    vaporFluxModelMap["data"] =  np.ones(np.shape(elevation),dtype=('u1'))
     vaporFluxModelMap["table"] =  {"vaporFluxBasic":1,}
     
-    nc.close()
+     
     
-    FiretoNC(fout, domainProperties,parametersProperties,fuelMap,elevation=elevation, wind=None, fluxModelMap = (heatFluxModelMap,vaporFluxModelMap))
+    FiretoNC(fout, domainProperties,parametersProperties,fuelMap,elevation=elevation, wind=wind, fluxModelMap = (heatFluxModelMap,vaporFluxModelMap))

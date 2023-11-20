@@ -100,7 +100,7 @@ class ffData:
     def getATimeMatrix(self):
         return self.atime     
 
-    def getROSMatrix(self):
+    def getROSMatrix(self, max_speed_filter=1.0):
         if self.atime is  None:
             return None
         
@@ -110,13 +110,15 @@ class ffData:
         #norm_data = np.where(self.atime < -9990, np.nan, self.atime)
         norm_data[norm_data < 0] =  np.nan
         
+        BMapresolution = float( (r-l) / norm_data.shape[0] )
         gradient_y, gradient_x = np.gradient(norm_data, 1)
         dspeed = np.sqrt(gradient_x**2 + gradient_y**2)
+        print("computing ROS at resolution :",BMapresolution, dspeed.shape, norm_data.shape, " fitering averything over (in m/s):",max_speed_filter)
+        #dspeed[dspeed < 4] = np.nan
+        #dspeed[dspeed > 1] = 1
         
-        BMapresolution = float( (r-l) / norm_data.shape[0] )
-        print(BMapresolution, dspeed.shape, norm_data.shape)
         speed = BMapresolution / dspeed
-        
+        speed[speed > max_speed_filter] = max_speed_filter
 
         return speed
     
@@ -572,82 +574,102 @@ def arrayToPng(data, output_filename, output_cbar_png=None, cmap_str = "viridis"
         # Sauvegarder l'image modifiée
         colorbar_image.save(output_cbar_png)
 
- 
-# def bmap2kml(ds, wsen ,fnameKMLOUT,method="pil",maxSpeed=0.1):
-  
-#     import matplotlib.pyplot as plt
-#     import matplotlib.colors as colors
-#     import simplekml
-#     import matplotlib.cm as cm
-#     from PIL import Image, ImageOps
-#     lon_min,  lat_min, lon_max, lat_max = wsen
-#     # Créez une figure
-#     fnameKMLPNGOUT="%s.png"%fnameKMLOUT
-   
-#     #minRealVal = float(ds['arrival_time_of_front'].where(ds['arrival_time_of_front'] > 0).min())
-#     #max_val = float(ds['arrival_time_of_front'].max())
-#     #norm_data = (ds['arrival_time_of_front'] -minRealVal)/  (max_val - minRealVal)
-#     norm_data = ds.arrival_time_of_front.values
-#     norm_data[norm_data < 0] =  np.nan
-#     gradient_y, gradient_x = np.gradient(norm_data, 1)
-#     BMapresolution = float(ds.domain.Lx / len(ds.DIMX))
-#     speed = 100000 * (BMapresolution / np.sqrt(gradient_x**2 + gradient_y**2) )
-#     speed[speed > 30000] = 30000
- 
-#     speed[np.isnan(speed)] = -1
+    
+def normalize_rgb(rgb_tuple):
+    """
+    Normalize the RGB values to [0, 1] range for matplotlib.
+    """
+    return tuple(np.array(rgb_tuple) / 255.0)
 
-
-#     array_with_nan = np.where(np.isnan(speed), -1, speed)
-    
-#     # Normaliser la matrice pour que les valeurs soient entre 0 et 1, à l'exception de -1 qui reste pour les NaN
-#     min_val = np.nanmin(speed)
-#     max_val = np.nanmax(speed)
-#     normalized_array = np.where(array_with_nan == -1, -1, (array_with_nan - min_val) / (max_val - min_val))
-    
-#     # Appliquer la palette de couleurs "jet"
-#     colored_array = (cm.jet(normalized_array) * 255).astype(np.uint8)
-    
-#     # Remettre les pixels correspondant aux valeurs NaN à transparent
-#     colored_array[normalized_array == -1] = [0, 0, 0, 0]
-    
-#     # Créer une image PIL à partir de la matrice RGBA
-#     pil_image = Image.fromarray(colored_array, 'RGBA')
-     
+def generate_indexed_png_and_legend(legend_file_path, tif_file_path, output_indexed_png_path, output_legend_png_path):
  
-#     pil_image = ImageOps.flip(pil_image)
-    
-#     # Sauvegardez l'image en PNG
-#     pil_image.save(fnameKMLPNGOUT)
+    import matplotlib.pyplot as plt
+    import rasterio
+    """
+    Generate an indexed PNG and a legend PNG based on a legend text file and a TIFF file.
+    """
+    # Read the legend file
+    color_palette = {}
+    class_names = {}
+    with open(legend_file_path, 'r') as f:
+        lines = f.readlines()
+        lines = [line.strip() for line in lines if line.strip() and line.strip()[0].isdigit()]
+        for line in lines:
+            parts = line.split(',')
+            index = int(parts[0])
+            color = tuple(map(int, parts[1:4]))  # R, G, B values
+            class_name = parts[-1]  # Class name
+            color_palette[index] = color
+            class_names[index] = class_name
+            
+        normalized_colors = [normalize_rgb(color_palette[val]) for val in sorted(color_palette.keys())]
+        all_labels = [class_names[val] for val in sorted(class_names.keys())]
+         
+        # Create the colorbar figure
+        fig, ax = plt.subplots(figsize=(2, 10))
+         
+        # Hide axis and set transparent background
+        ax.axis('off')
+        fig.patch.set_visible(False)
+        ax.axis('off')
+         
+        # Draw rectangles and text labels
+        for i, (idx, color, label) in enumerate(zip(sorted(color_palette.keys()), normalized_colors, all_labels)):
+            rect = plt.Rectangle((0, i), 1, 1, facecolor=color)
+            ax.add_patch(rect)
+            ax.text(1.2, i + 0.5, label, va='center', backgroundcolor=(1, 1, 1, 0))  # Last tuple element sets alpha to 0
+         
+        # Set limits and aspect ratio
+        ax.set_xlim(0, 2)
+        ax.set_ylim(0, len(all_labels))
+        ax.set_aspect('auto')
+         
+        # Save the figure as PNG
+        plt.savefig(output_legend_png_path, transparent=True)
 
+    # Read the TIFF file
+    with rasterio.open(tif_file_path) as src:
+        tif_data = src.read(1)  # Reading the first band
+
+    # Generate the indexed PNG
+        img_shape = (tif_data.shape[1], tif_data.shape[0])
+        img = Image.new('P', img_shape)
         
+        # Prepare the palette
+        palette = [0] * 768  # 256 colors * 3 (R, G, B)
+        for idx, (r, g, b) in color_palette.items():
+            palette[idx*3 : idx*3+3] = [r, g, b]
         
-       
- 
-    # Supposons que 'lon_min', 'lat_min', 'lon_max', et 'lat_max' sont les coordonnées des coins de votre DataSet
-
+        img.putpalette(palette)
+        
+        # Convert the 2D NumPy array to a 1D array with values in the same order as the image's pixels
+        img_data_1d = tif_data.flatten().tolist()
+        
+        # Populate the image with the 1D array
+        img.putdata(img_data_1d)
+        
+        # Save the image
+        img.save(output_indexed_png_path, compress_level=9) 
     
- 
-    # kml = simplekml.Kml()
-
-    # ground = kml.newgroundoverlay(name='GroundOverlay') 
-    # ground.icon.href = fnameKMLPNGOUT  # Utilisez le fichier PNG enregistré
-    # ground.latlonbox.north = lat_max
-    # ground.latlonbox.south = lat_min
-    # ground.latlonbox.east = lon_max
-    # ground.latlonbox.west = lon_min
- 
-    
-    # # Sauvegardez le kml
-    # kml.save(fnameKMLOUT)
 
 
+def plotRos(PGDFILE, BMAPFILE,max_speed_filter=1.0):
+    import matplotlib.pyplot as plt
+    wsen, lbrt, ZS = get_WSEN_LBRT_ZS_From_Pgd(PGDFILE)
+    dBmap = xr.open_dataset(BMAPFILE)
+    fdat = ffData(mode = "mnhPGD", wsen=wsen, lbrt = lbrt)   
+    fdat.setATimeMatrix(dBmap.arrival_time_of_front.values)
+    ros = fdat.getROSMatrix(max_speed_filter=max_speed_filter)
+    vmin,vmax = np.nanmin(ros),np.nanmax(ros)
+    print(vmin,vmax)
+    #ros[ros == np.nan] = vmax
+    plt.imshow(ros[:,:],vmin=vmin,vmax=vmax)
 
 def genKMLFiles(PGDFILE, BMAPFILE, FFINPUTPATTERN, BMAPKMLOUT,frontsKMLOUT, everyNFronts=1,change_color_every=6):
 
     dBmap = xr.open_dataset(BMAPFILE)
     baseDate= datetime(int(dBmap.domain.refYear), 1, 1, 0, 0, 0, 0)
     baseDate= baseDate+timedelta(days=int(dBmap.domain.refDay))
-    
     wsen, lbrt, ZS = get_WSEN_LBRT_ZS_From_Pgd(PGDFILE)
     west, south, east, north = wsen
      
@@ -669,13 +691,13 @@ def genKMLFiles(PGDFILE, BMAPFILE, FFINPUTPATTERN, BMAPKMLOUT,frontsKMLOUT, ever
     fdat.setATimeMatrix(dBmap.arrival_time_of_front.values)
     ros = fdat.getROSMatrix()
 
-    arrayToPng(ros, BMAPKMLOUT+"ROS.png",cmap_str="hsv", output_cbar_png=BMAPKMLOUT+"ROSCBAR.png")
+    arrayToPng(ros, BMAPKMLOUT+"ROS.png", output_cbar_png=BMAPKMLOUT+"ROSCBAR.png")
     
     create_kml(west, south, east, north,"ROS", BMAPKMLOUT+"ROS.png",  BMAPKMLOUT, pngcbarfile=BMAPKMLOUT+"ROSCBAR.png")
     
     #bmap2kml(dBmap,wsen,BMAPKMLOUT+"2.kml")
 
-def ffFromPgd(PGDFILE,domainDate=None,ignitions = None, FuelTest = -1):
+def ffFromPgd(PGDFILE,domainDate=None,ignitions = None, fuel_test = None):
     wsen, lbrt, ZS = get_WSEN_LBRT_ZS_From_Pgd(PGDFILE)
     fdat = ffData(mode = "mnhPGD", wsen=wsen, lbrt = lbrt)
     secsDomain = 0
@@ -692,9 +714,9 @@ def ffFromPgd(PGDFILE,domainDate=None,ignitions = None, FuelTest = -1):
             ix,iy,iz = fdat.lalo2xy((ig["latitude"],ig["longitude"],0))
             dom+=f"\nstartFire[loc=({ix},{iy},0.);t={igSecs}]"
             
-    if FuelTest > 0:
+    if fuel_test is not None :
         l,b,r,t = lbrt
-        ix = np.linspace(l, r, FuelTest+2)
+        ix = np.linspace(l, r, len(fuel_test)+2)
  
         iy = np.ones(ix.shape) * (b + (t - b) / 4)
         
