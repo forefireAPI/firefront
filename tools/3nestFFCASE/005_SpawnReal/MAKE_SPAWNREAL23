@@ -1,0 +1,46 @@
+dateString=20230609
+ABSOLUTESTARTHOUR=2
+
+if [ "$#" -ge 2 ]; then
+     dateString=$1
+     ABSOLUTESTARTHOUR=$2
+fi
+ 
+echo "using MAKE_SPAWNREAL23 ${dateString} "
+
+ABSHS=$(printf "%02g" $ABSOLUTESTARTHOUR)
+
+cat > SPAWN1.nam <<EOF
+&NAM_CONFIO LCDF4=T LLFIREAD=T LLFIOUT=T
+/
+&NAM_LUNIT2_SPA CINIFILE = 'M2.${dateString}.00.${ABSHS}',
+                CINIFILEPGD = 'PGD_D400mA.nested',
+                YDOMAIN = 'PGD_D80mA.nested',
+                YSPANBR = '02' /
+EOF
+
+cat > PRE_REAL1.nam <<EOF
+&NAM_FILE_NAMES HATMFILE='M2.${dateString}.00.${ABSHS}.spa02',
+                HATMFILETYPE='MESONH',
+                HPGDFILE='PGD_D80mA.nested',
+                CINIFILE='M3.${dateString}.00.${ABSHS}'
+/
+&NAM_AERO_CONF  
+/
+&NAM_REAL_CONF  NVERB=5,
+		CEQNSYS='DUR',
+		CPRESOPT='RICHA' 
+/
+&NAM_VER_GRID   LTHINSHELL=T,
+                NKMAX=50,
+                YZGRID_TYPE='FUNCTN',
+                ZDZGRD=30.,
+                ZDZTOP=900.,
+                ZZMAX_STRGRD=2000.,
+                ZSTRGRD=10.,
+                ZSTRTOP=6.7 
+/
+&NAM_CONFIO LCDF4=F LLFIREAD=T LLFIOUT=T 
+/
+
+EOF

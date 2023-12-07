@@ -29,7 +29,7 @@ namespace libforefire {
 
 class StringRepresentation: public Visitor {
 
-	static FireDomain* domain;
+	FireDomain* domain;
 	static size_t currentLevel;
 
 	double updateStep;
@@ -56,6 +56,9 @@ public:
 	void visit(FireFront*);
 	void visit(FireNode*);
 
+
+	void setOutPattern(string);
+
 	void increaseLevel();
 	void decreaseLevel();
 
@@ -63,6 +66,7 @@ public:
 
 	string toString();
     
+	string outPattern;
     int dumpMode;
     int lastLevel;
 };

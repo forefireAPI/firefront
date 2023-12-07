@@ -1,0 +1,68 @@
+dateString=20230609
+start=6
+end=20
+step=3
+
+if [ "$#" -lt 3 ]; then
+    echo "use MAKE_RUN1 startStep endStep datestring, unset, so using default" $start $end $dateString  
+fi
+if [ "$#" -ge 2 ]; then
+    start=$1
+    end=$2
+    dateString=$3
+fi
+
+echo "MAKE_RUN1 using " $start $end $dateString  
+MODEL1DURATIONINSECONDS=$(( (end - start) * 3600 ))
+formatted_start=$(printf "%02d" $start)
+
+cat > EXSEG1.nam <<EOF
+&NAM_CONFIO LCDF4=T LLFIOUT=T LLFIREAD=T 
+/
+&NAM_LUNITn CINIFILE="M1.${dateString}.00.${formatted_start}",
+            CINIFILEPGD="PGD_D2000mA.nested",
+EOF
+indice=1
+for i in $(seq -f "%02g" $(( start + step )) $step $(( end - step ))); do
+
+echo  " $indice= M1.$dateString.00.$i"
+echo "            CCPLFILE($indice)=\"M1.${dateString}.00.${i}\","   >> EXSEG1.nam
+indice=$((indice + 1))
+done
+
+cat >> EXSEG1.nam <<EOF
+            CCPLFILE($indice)="M1.${dateString}.00.${end}"
+/
+&NAM_DYNn  XTSTEP= 2., CPRESOPT="ZRESI", NITR= 4, XRELAX= 1.,
+           LITRADJ=T, LHORELAX_UVWTH=T, LHORELAX_RV=T, LVE_RELAX=T,
+           NRIMX= 1, NRIMY= 1, XRIMKMAX= 0.0005, XT4DIFU= 6000. 
+/
+&NAM_ADVn  CUVW_ADV_SCHEME= "CEN4TH",
+           CTEMP_SCHEME= "RKC4",
+           CMET_ADV_SCHEME= "PPM_01",
+           CSV_ADV_SCHEME= "PPM_01"
+/
+&NAM_LBCn  CLBCX= 2*"OPEN", CLBCY= 2*"OPEN", XCPHASE= 5. /
+&NAM_TURBn CTURBDIM="1DIM",
+           CTURBLEN="BL89",
+           LSUBG_COND= T, LTURB_DIAG= F,
+           LTURB_FLX= F,  LSIGMAS= T,
+           LSIG_CONV= F,  CSUBG_AUCV="CLFR"
+/
+&NAM_PARAMn  CTURB  = "TKEL",
+             CRAD   = "ECMW",
+             CCLOUD = "ICE3",
+             CDCONV = "NONE",
+             CSCONV = "NONE"
+/
+&NAM_PARAM_RADn  XDTRAD= 900., XDTRAD_CLONLY= 300. /
+&NAM_CONF CCONF= "START", LFLAT= F, CEQNSYS= "DUR", NHALO= 1,
+          NMODEL= 1, NVERB= 5, CEXP= "RUN12", CSEG= "PRUN1" /
+&NAM_DYN XSEGLEN= ${MODEL1DURATIONINSECONDS}, XASSELIN= 0.2, LCORIO= T,
+         LNUMDIFU= T, LNUMDIFTH= F, XALKTOP= 0.01,
+         XALZBOT= 10000., LZDIFFU= T /
+&NAM_NESTING /
+&NAM_BACKUP XBAK_TIME_FREQ= 3600. /
+&NAM_CONFZ MPI_BUFFER_SIZE= 200 /
+&NAM_CH_ISBAn  /
+EOF

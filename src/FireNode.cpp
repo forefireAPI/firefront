@@ -59,10 +59,13 @@ void FireNode::initialize(FFPoint& loc,  FFVector& vel, double& t
 		, double& fDepth, double kappa, FireDomain* fd, FireFront* ff
 		, FireNode* prevNode){
 	domain = fd;
+	
 	getNewID(fd->getDomainID());
 	setTime(t);
 	setUpdateTime(t);
+	
 	setLoc(loc);
+	
 	domain->addFireNodeInCell(this);
 	velocity = vel;
 	speed = velocity.norm();
@@ -70,6 +73,7 @@ void FireNode::initialize(FFPoint& loc,  FFVector& vel, double& t
 	setState(init);
 	nextloc = location;
 	setFront(ff);
+	
 	if ( ff != 0 ) ff->addFireNode(this, prevNode);
 	setFrontDepth(fDepth);
 	setCurvature(kappa);
@@ -121,6 +125,7 @@ void FireNode::update(){
 		double oldTime = getTime();
 		// updating the position of the firenode in the cells
 		domain->updateFireNodeInCells(this);
+
 		// updating the position of the firenode
 		setTime(getUpdateTime());
 		setLoc(nextloc);
@@ -193,12 +198,12 @@ void FireNode::timeAdvance(){
 			// obtaining the speed from the propagation model
 			double localSpeed = domain->getPropagationSpeed(this);
 			double newSpeed = localSpeed;
-			if(newSpeed > minSpeed){
+			/*if(newSpeed > minSpeed){
 				double prevSpeed, nextSpeed;
 				getPrev()->getState() == moving ? prevSpeed = getPrev()->getSpeed() : prevSpeed = 0;
 				getNext()->getState() == moving ? nextSpeed = getNext()->getSpeed() : nextSpeed = 0;
 				newSpeed = ( prevSpeed + smoothing*localSpeed + nextSpeed )/(smoothing+2.);
-				}
+				}*/
 			if ( speed > EPSILONV ) {
 				speed = (1.-relax)*speed + relax*newSpeed;
 			} else {
@@ -225,14 +230,14 @@ void FireNode::timeAdvance(){
 			setState(final);
 		}
 
-		if ( domain->isInOuterHalo(nextloc)
+	/*	if ( domain->isInOuterHalo(nextloc)
 				and !domain->isInActiveOuterHalo(nextloc) ){
 			setNextLoc(location);
 			if (outputs) cout<<domain->getDomainID()
 					<<": stopping "<<toShort()
 					<<" at limit of a non-active outer halo"<<endl;
 			setState(final);
-		}
+		}*/
 
 	}
 
@@ -390,6 +395,7 @@ void FireNode::setPrev(FireNode* node){
 void FireNode::setLoc(FFPoint& p){
 	location.setX(p.getX());
 	location.setY(p.getY());
+	
 	location.setZ(domain->getDataLayer(altitude)->getValueAt(p, getTime()));
 	if ( location.getZ() == 0. ) location.setZ(p.getZ());
 
@@ -703,6 +709,7 @@ bool FireNode::splitAllowed(){
 
 void FireNode::setMerging(FireNode* fn){
 	setState(merging);
+	
 	setMergingNode(fn);
 }
 
@@ -716,7 +723,7 @@ bool FireNode::isMerging(){
 }
 
 bool FireNode::mergeAllowed(){
-	if ( getDomainID() != domain->getDomainID() ) return false;
+	//if ( getDomainID() != domain->getDomainID() ) return false;
 	if ( currentState == moving ) return true;
 	if ( currentState == final ) return true;
 	return false;

@@ -220,10 +220,10 @@ void DataBroker::registerFluxModel(FluxModel* model) {
 					<< (model->wantedProperties)[prop] << endl;
 		}
 	}
-
+	 
 	/* registering the flux model in the fire domain */
 	domain->registerFluxModel(model->index, model);
-
+ 
 	/* constructing the table of fuel parameters values */
 	if (model->numFuelProperties > 0)
 		extractFuelProperties(fuelPropertiesTable, model);
@@ -271,6 +271,7 @@ void DataBroker::registerLayer(string name, DataLayer<double>* layer) {
 
 	/* inserting the layer into the map of layers */
 
+	 
 	ilayer = layersMap.find(name);
 	if (ilayer != layersMap.end()) {
 
@@ -288,7 +289,7 @@ void DataBroker::registerLayer(string name, DataLayer<double>* layer) {
 
 	/* looking for possible match with predefined layers */
 	if (name.find("altitude") != string::npos) {
-		altitudeLayer = layer;
+		altitudeLayer = layer; 
 		// along with the topography comes the slope
 		slopeLayer = new GradientDataLayer<double>("slope", altitudeLayer,
 				params->getDouble("spatialIncrement"));
@@ -301,7 +302,8 @@ void DataBroker::registerLayer(string name, DataLayer<double>* layer) {
 		temperatureLayer = layer;
 	}
 	if (name.find("windU") != string::npos){
-		windULayer = layer;
+
+			windULayer = layer;
 	}
 	if (name.find("windV") != string::npos){
 		windVLayer = layer;
@@ -342,7 +344,7 @@ void DataBroker::setAtmosphericDomain(const FFPoint& SWCorner,
 
 void DataBroker::initializeAtmosphericLayers(const double& time,
 		const size_t& bnx, const size_t& bny) {
-
+			cout<<"SIZE IN "<<domain->getDomainID()<<" and "<<atmosphericNx<<":"<<atmosphericNy<<endl;
 	atmosphericData->setSize(atmosphericNx, atmosphericNy);
 
 	double dx = (atmoNECorner.getX() - atmoSWCorner.getX()) / atmosphericNx;
@@ -365,12 +367,31 @@ void DataBroker::initializeAtmosphericLayers(const double& time,
 	registerLayer("outerWindV", wvl);
 
 	// Loading the topography
-	Array2DdataLayer<double>* alt = new Array2DdataLayer<double>("altitude",
-			atmosphericData->topography, atmoSWCorner, atmoNECorner);
+	Array2DdataLayer<double>* alt = new Array2DdataLayer<double>("altitude",		atmosphericData->topography, atmoSWCorner, atmoNECorner);
 
 	registerLayer("altitude", alt);
 }
 
+void DataBroker::loadMultiWindBin(double refTime,size_t numberOfDomains, size_t* startI, size_t* startJ){
+	string windFileName(params->getParameter("caseDirectory")+'/'+params->getParameter("PPath")+'/'+to_string(FireDomain::atmoIterNumber%2)+"/");
+
+					if (windULayer != 0){	
+						((TwoTimeArrayLayer<double>* )windULayer)->loadMultiWindBin(windFileName,refTime,numberOfDomains,startI,startJ);
+					}
+					if (windVLayer != 0){
+						((TwoTimeArrayLayer<double>* )windVLayer)->loadMultiWindBin(windFileName,refTime,numberOfDomains,startI,startJ);
+					}
+}
+void DataBroker::dumpWindDataInBinary(){
+	//string windFileName(params->getParameter("caseDirectory")+'/'+params->getParameter("PPath")+'/'+to_string((FireDomain::atmoIterNumber+1)%2)+"/"+to_string(domain->getDomainID()));
+	
+				//	if (windULayer != 0)	((TwoTimeArrayLayer<double>* )windULayer)->setAtmoNumber(FireDomain::atmoIterNumber);
+						//((TwoTimeArrayLayer<double>* )windULayer)->dumpMultiWindBin(windFileName);
+					
+				//	if (windVLayer != 0)	((TwoTimeArrayLayer<double>* )windULayer)->setAtmoNumber(FireDomain::atmoIterNumber);
+						//((TwoTimeArayLayer<double>* )windVLayer)->dumpMultiWindBin(windFileName);
+					
+}
 void DataBroker::initializeParallelProperties(const size_t& nx,
 		const size_t& ny, const size_t& nz, const double& initval) {
 
@@ -411,12 +432,18 @@ void DataBroker::dropProperty(string name) {
 }
 
 void DataBroker::insureLayersExistence() {
-	/* checking the layers needed for the propagation and flux models */
+	/* checking the layers needed for the propagation and flux models */ 
 	while (!neededProperties.empty()) {
+
 		if (getLayer(neededProperties.back()) == 0) {
 			if (neededProperties.back().find("normalWind") != string::npos) {
+				if (domain->getDomainID()==0) {
+					cout<<"looking for  "<<neededProperties.back()<<endl;
+					if (windULayer != 0)
+						cout<<"windULayer is  "<<windULayer->getKey()<<endl;
+					}
 				if (windULayer == 0 or windVLayer == 0)
-					cout << "layer for normal wind doesn't rely on existing"
+					cout<<windULayer << "layer for normal wind doesn't rely on existing"
 							<< " windU and windV layers, creating them if needed"
 							<< endl;
 				/* special treatment for normal wind */
@@ -440,9 +467,8 @@ void DataBroker::insureLayersExistence() {
 				if (params->isValued("fuel"))
 					fuelIndex = params->getDouble("fuel");
 				fuelLayer = new FuelDataLayer<double>("fuel", fuelIndex);
-			} else if (neededProperties.back().find("slope") != string::npos
-					and altitudeLayer == 0) {
-				cout
+			} else if (neededProperties.back().find("slope") != string::npos) {
+				cout << "DOMAIN "<< domain->getDomainID()
 						<< "layer for slope doesn't rely on existing altitude layer, creating it"
 						<< endl;
 				double val = 0.;
@@ -473,7 +499,7 @@ void DataBroker::insureLayersExistence() {
 				addConstantLayer(neededProperties.back(), val);
 			}
 		}
-		/* erasing the property from the list of properties to be treated */
+		/* erasing the property from the list of properties to be treated */ 
 		dropProperty(neededProperties.back());
 	}
 
@@ -623,7 +649,7 @@ DataLayer<double>* DataBroker::getLayer(const string& property) {
 
 	ilayer = layersMap.find(property);
 	if (ilayer != layersMap.end())
-		return ilayer->second;
+		return ilayer->second; 
 	return 0;
 }
 
@@ -798,6 +824,8 @@ void DataBroker::loadFromNCFile(string filename) {
 	NcFile dataFile(filename.c_str(), NcFile::read);
 	propGetterMap::const_iterator pg;
 	if (!dataFile.isNull()) {
+
+		
 		std::multimap<std::string, NcVar> allVariables = dataFile.getVars();
 		NcVarAtt layerTypeNC;
 		string layerType;
@@ -819,20 +847,22 @@ void DataBroker::loadFromNCFile(string filename) {
 					PwindULayer = wul;
 					PwindVLayer = wvl;
 				}
+ 
 			pg = propPropertiesGetters.find(varName);
 			if (pg != propPropertiesGetters.end()) {
 
 				if (varName == "altitude") {
+					if (domain->getDomainID() == 0) {
 					// altitude is given by the NetCDF file
-					XYZTDataLayer<double> * alt = constructXYZTLayerFromFile(
-							&dataFile, varName.c_str(),-1);
-
-					registerLayer(varName, alt);
+    				   XYZTDataLayer<double> * altus = constructXYZTLayerFromFile(	&dataFile, varName.c_str(),-1);
+					   registerLayer(varName, altus);
+					}
 
 				} else if (varName == "windU") {
 					// wind is given by the NetCDF file
 					XYZTDataLayer<double> * wul = constructXYZTLayerFromFile(
 							&dataFile, varName.c_str(),-1);
+							windULayer = wul;
 					registerLayer(varName, wul);
 				} else if (varName == "windV") {
 					// wind is given by the NetCDF file
@@ -901,7 +931,7 @@ void DataBroker::loadFromNCFile(string filename) {
 	 
 		fuelLayer = constructFuelLayerFromFile(&dataFile);
 		registerLayer("fuel", fuelLayer);
-		cout<<"sucessfully read landscape file"<<endl;
+	 
 	}
 	}catch(NcException& e)
 		{
@@ -978,7 +1008,6 @@ XYZTDataLayer<double>* DataBroker::constructXYZTLayerFromFile(	NcFile* NcdataFil
 	double Lt = getNetCDFTimeSpan(&domvar); 
 	double version = getNetCDFFileVersion(&domvar); 
 	NcVar values = NcdataFile->getVar(property);
-
 	if (values.getDimCount() > 4) {
 		cout << "Variable " << property << " doesn't have the right dimension ("
 				<< values.getDimCount() << " instead of 4 maximum) version" <<version<< endl;
@@ -1014,9 +1043,11 @@ XYZTDataLayer<double>* DataBroker::constructXYZTLayerFromFile(	NcFile* NcdataFil
 	double* data = readAndTransposeFortranProjectedField(&values, nt, nz, ny, nx,true,dimTSelected);
  
 	if (isRelevantData(SWCorner, spatialExtent)) {
+//
+		//cout << "Variable " << property <<" " <<data[0]<< " have "<<timeOrigin<<" "<< values.getDimCount()<< " " << Lt<< " " << nx<< " " << ny<< " " << nz<< " " << nt<< " " << " SW" <<SWCorner.print()<< " ext:"<<spatialExtent.print()<< endl;
 
-		XYZTDataLayer<double>* newlayer = new XYZTDataLayer<double>(property,
-				SWCorner, timeOrigin, spatialExtent, Lt, nx, ny, nz, nt, data);
+		XYZTDataLayer<double>* newlayer = new XYZTDataLayer<double>(property,	SWCorner, timeOrigin, spatialExtent, Lt, nx, ny, nz, nt, data);
+		
 		delete[] data;
 		return newlayer;
 
@@ -1237,9 +1268,125 @@ double* DataBroker::readAndTransposeFortranProjectedField(NcVar* val,const size_
 		}
 PropagativeLayer<double>* DataBroker::constructPropagativeLayerFromFile(NcFile* NcdataFile, string property) {
 			cout << "DataBroker::constructPropagativeLayerFromFile " << " newCDF Not Implemented" << endl;
+			return NULL;
 		}
 FluxLayer<double>* DataBroker::constructFluxLayerFromFile(NcFile* NcdataFile,	string property) {
-			cout << "DataBroker::constructFluxLayerFromFile " << " newCDF Not Implemented" << endl;		
+					
+			/* Getting the information on the mesh */
+			/*-------------------------------------*/
+			// Getting information on the extension of the domain
+
+			NcVar domvar = NcdataFile->getVar("domain");
+			FFPoint SWCorner = getNetCDFSWCorner(&domvar); 
+			FFPoint spatialExtent = getNetCDFSpatialSpan(&domvar); 
+			double timeOrigin = getNetCDFTimeOrigin(&domvar); 
+			double Lt = getNetCDFTimeSpan(&domvar); 
+			double version = getNetCDFFileVersion(&domvar);  
+			
+			/* Getting the desired flux layer */
+			/*--------------------------------*/
+
+			NcVar values = NcdataFile->getVar(property);
+			if (values.getDimCount() > 4) {
+				cout << "Variable fuel doesn't have the right dimension ("
+						<< values.getDimCount() << " instead of 4 maximum)" << endl;
+			}
+
+ 
+
+			/* Sending the information on the models to the domain */
+			/*-----------------------------------------------------*/
+ 
+
+			NcVarAtt indices = values.getAtt("indices");
+			int indModel = 0; 
+			if(!indices.isNull()) indices.getValues(&indModel);
+			else cout << "DataBroker::constructFluxLayerFromFile cant get number of indices of model property " << endl;
+ 			
+			stringstream mname;
+			string modelName;
+ 
+			//for (size_t i = 0; i < numModels; i++) {
+ 
+ 
+			mname << "model" << indModel << "name";
+			NcVarAtt tmpName = values.getAtt(mname.str());//mname.str());
+			if(!tmpName.isNull()) tmpName.getValues(modelName);
+			 
+			 
+			//modelName = tmpName->as_string(0);
+			//delete tmpName;
+ 
+			domain->fluxModelInstanciation(indModel, modelName);
+ 
+			//}
+	 
+			
+
+			size_t nx = 0;
+			size_t ny = 0;
+			size_t nz = 0;
+			size_t nt = 0;
+
+			if (values.getDimCount() == 2) {
+				ny = (size_t) values.getDim(0).getSize();
+				nx = (size_t) values.getDim(1).getSize();
+			}
+			if (values.getDimCount() == 3) {
+				nz = (size_t) values.getDim(0).getSize();
+				ny = (size_t) values.getDim(1).getSize();
+				nx = (size_t) values.getDim(2).getSize();
+
+			}
+			if (values.getDimCount() == 4) {
+				nt = (size_t) values.getDim(0).getSize();
+				nz = (size_t) values.getDim(1).getSize();
+				ny = (size_t) values.getDim(2).getSize();
+				nx = (size_t) values.getDim(3).getSize();
+			}
+				
+
+			/* Getting the data */
+			/*------------------*/
+			int* data = readAndTransposeIntFortranProjectedField(&values, nt, nz, ny,	nx, version>0,-1);
+
+			if (isRelevantData(SWCorner, spatialExtent)) {
+
+				/* Instanciating the data layer */
+				/*------------------------------*/
+				
+				FluxLayer<double>* newlayer = new FluxLayer<double>(property,
+						atmoSWCorner, atmoNECorner, atmosphericNx, atmosphericNy,
+						domain->getCells(), data, SWCorner, timeOrigin, spatialExtent,
+						Lt, nx, ny, nz, nt);
+				delete[] data;
+				return newlayer;
+
+			} else {
+
+				cout << "WARNING, spatial domain of validity for variable " << property
+						<< ": " << SWCorner.print() << " -> ("
+						<< SWCorner.getX() + spatialExtent.getX() << ","
+						<< SWCorner.getY() + spatialExtent.getY() << ","
+						<< SWCorner.getZ() + spatialExtent.getZ()
+						<< ") has no intersection with the fire domain: ("
+						<< domain->SWCornerX() << "," << domain->SWCornerY() << ") -> ("
+						<< domain->NECornerX() << "," << domain->NECornerY() << ")"
+						<< endl << "...resizing to the fire domain..." << endl;
+
+				FFPoint SWC = FFPoint(domain->SWCornerX(), domain->SWCornerY(), 0.);
+				FFPoint ext = FFPoint(domain->NECornerX() - domain->SWCornerX(),
+						domain->NECornerY() - domain->SWCornerY(), 10000.);
+				double t0 = 0;
+				double Dt = 10000000.;
+				FluxLayer<double>* newlayer = new FluxLayer<double>(property,
+						atmoSWCorner, atmoNECorner, atmosphericNx, atmosphericNy,
+						domain->getCells(), data, SWC, t0, ext, Dt, nx, ny, nz, nt);
+				delete[] data;
+				return newlayer;
+
+			}	
+
 		}
 void DataBroker::initializePropagativeLayer(string filename) {
 	 try
@@ -1294,8 +1441,7 @@ void DataBroker::initializeFluxLayers(string filename) {
 					} else{
 						layerTypeNC.getValues(layerType);
 					}
-			 
-					if (layerType.find("flux") != string::npos) {
+					if (layerType.find("flux") != string::npos) { 
 						FluxLayer<double>* newlayer = constructFluxLayerFromFile(&dataFile, it->first);
 						registerFluxLayer(it->first, newlayer);
 					}
@@ -1419,11 +1565,13 @@ void DataBroker::loadFromNCFile(string filename) {
 					XYZTDataLayer<double> * wul = constructXYZTLayerFromFile(
 							NcdataFile, varName.c_str(),-1);
 					registerLayer(varName, wul);
+					windULayer = wul;
 				} else if (varName == "windV") {
 					// wind is given by the NetCDF file
 					XYZTDataLayer<double> * wvl = constructXYZTLayerFromFile(
 							NcdataFile, varName.c_str(),-1);
 					registerLayer(varName, wvl);
+					windVLayer = wvl;
 				}else if (varName == "temperature") {
 					// wind is given by the NetCDF file
 					XYZTDataLayer<double> * temp = constructXYZTLayerFromFile(

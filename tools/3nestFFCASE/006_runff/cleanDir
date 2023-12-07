@@ -1,0 +1,23 @@
+
+rm -rf MODEL1/*
+rm -rf MODEL2/*
+rm -rf MODEL3/*
+rm -rf vtkout1/*
+rm -rf vtkout2/*
+rm -rf vtkout3/*
+rm -rf EXSEG*
+rm -rf ForeFire/Outputs/*
+rm -rf parallel/*.domain*
+rm -rf parallel/1/*
+rm -rf parallel/0/*
+rm file_for_xtransfer
+rm FCAST*
+rm slurm*
+rm PGD_D*
+rm OUTPUT_L*
+rm M1*
+rm PRESSURE
+rm REMAP*
+rm RUN12*
+rm M2*
+rm M3*

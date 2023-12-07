@@ -214,9 +214,9 @@ size_t FireFront::getNumFN(FireNode* startfn){
 			numFirenodes = numFN;
 			return numFN;
 		} catch ( const logic_error & e ) {
-			cout<<"error getting numFN from "<<startfn<<","<<startfn->toString()<<endl;
+			cout<<"Domain :"<<getDomainID()<<"error getting numFN from "<<startfn<<","<<startfn->toString()<<endl;
 			if(startfn->getLoc().distance(FFPoint(0,0,0))<0.000001) {
-				cout<<" last node from nowhere, returning no node in front "<<endl;
+				cout<<" last node from nowhere, returning no node in front - likely out of physical domain "<<endl;
 				domain->addToTrashFronts(this);
 				return 1;
 			}
@@ -588,7 +588,7 @@ void FireFront::split(FireNode* fna, const double& t){
 				<<": "<<'\t'<<"split is not physical"
 				<<" (location is "<<splitLoc.print()<<")"<<endl;
 		/* the split node shouldn't be created */
-		if (fna->getState() == FireNode::splitting ) fna->setState(FireNode::moving);
+		//if (fna->getState() == FireNode::splitting ) fna->setState(FireNode::moving);
 		return;
 	}
 	FireNode* newNode = domain->addFireNode(splitLoc, meanVel, t
@@ -610,9 +610,7 @@ void FireFront::merge(FireNode* fna, FireNode* fnb){
 		FFPoint nec = FFPoint(maxX, maxY);
 		double t = fna->getTime();
 
-		if (outputs) cout<<getDomainID()
-				<<": merging "<<fna->toShort()<<" and "
-				<<fnb->toShort()<<" from "<<toString()<<endl;
+		
 
 		/* test to see if merging successive nodes */
 		if ( fna == fnb->getNext() or fnb == fna->getNext() ){
@@ -753,8 +751,9 @@ void FireFront::merge(FireNode* fna, FireNode* fnb){
 		}
 
 		/* If I have not enough nodes left I need to trash them */
+		
 		if ( getNumFN() < 5 ){
-			if (outputs) cout<<getDomainID()
+			cout<<getDomainID()
 					<<": trashing "<<toString()<<" because of lack of nodes ("
 					<<getNumFN()<<" nodes in the front)"<<endl;
 			FireNode* curfn = headNode;
@@ -787,7 +786,7 @@ void FireFront::merge(FireNode* fna, FireNode* fnb){
 			fnC = fnC->getNext();
 		}
 		/* If I have not enough nodes in the inner front I need to trash it */
-		if ( tmpFront->getNumFN() < 5 ){
+		if ( tmpFront->getNumFN() < 500 ){
 			if (outputs) cout<<getDomainID()
 					<<": trashing inner front "<<tmpFront->toString()<<" because of lack of nodes ("
 					<<tmpFront->getNumFN()<<" nodes in the front)"<<endl;

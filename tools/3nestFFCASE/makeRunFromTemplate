@@ -1,0 +1,40 @@
+#!/bin/sh
+#SBATCH -J Reanalysis
+#SBATCH --ntasks=20
+#SBATCH --exclusive
+#SBATCH --partition=intel
+#SBATCH --time=20:00:00
+#SBATCH --mail-user=batti.filippi@@gmail.com
+#SBATCH --mail-type=all
+echo "SCRIPT RUN_PGD EN COURS"
+
+# use makeRunFromtemplate $template $mydate
+template=$1
+mydate=$2
+#  Reste à faire : les SED pour les namelists etc sed -i "s/20210715/20230725/" EXSEG1.nam
+
+
+cp -r $template $template$mydate
+cd $template$mydate
+cd 001_pgd
+bash RUN_PGD PRE_PGD1.nam_2000m
+bash RUN_PGD PRE_PGD1.nam_400m
+bash RUN_PGD PRE_PGD1.nam_80m
+bash RUN_PGDNEST
+# recommencer en  generant les KML /tools/preprocessing/kmlDomains.py et trouver la bonne emprise du domaine en changeant IXOR et IYOR dans le PDG_400m
+
+cd ../002_real
+cp /data/filippi_j/saphir/data/ecmwfFC/$mydate/*grib* .
+$PATCHER les gribs en ajoutant la neige et tout
+#  On choisis quel fichier generer en PREAL, tout est ici en UTC,  on change l'heure de deput su PREAL du domaine 1 en changeant 003_run/exseg1.nam .. la CCPLFILE(1) est celle de l'heure de début 
+#  changer les dates-heures de departs ppur domaine 2 et 3 ca se passe en changeant &NAM_LUNITn CINIFILE="JUIL2.1.PRUN1.009" c'est 9 heures apres le debut du , ca se change dans 004/PRE_REAL et ensuite il faut faire suivre dans les autres repertoires, toujours choisir l'heure au moins 20 minutes avant le départ de feu.. plus c'est mieux
+# sed -i "s/PRUN1\.009/PRUN1\.008/" */*.nam   et sed -i "s/PRUN1\.009/PRUN1\.008/" */RUN*  .. adapter par rapport au fichiers qu'il y a déjà, et des fichier à changer
+# il faut ensuite lancer les simus totales, ça fait la simu de référence pour regarder si ça marche 
+
+bash RUN_REAL
+cd ../003_run/
+sbatch RUN_MESONH_120p
+
+# l'étape d'après c'est de generer le fichier de paysage pour ForeFire, data.nc ou autre, /tools/preprocessing/prealCF2case.py avec une image de fond optionelle /tools/preprocessing/getBGFromCFCase.py va donner un tif qu'il faut ensuite transformer en PNG 5 couleurs en utilisant un code de sermentation ou bien tif2PngFuel.py qui fait une classification assez basique à partir d'une image et d'une image d'exemple que l'on peut li donner. 
+
+# il faut ensuite trouver les points d'allumages, ainsi que les temps précis de démarrage, et tester le fichier sans couplage avec MesoNH, il y a pour cela le fichier run.ff dans 006_runff/ForeFire/run.ff regarder les sorties avec des kml générés par  ffToGeoJson.py qui va faire les kml - attention de changer les parametre year month day dans le params.ff et d'ajuster le vent - pour l'instant pas de procédure pour faire automatiquement un init.ff.. mais ca devrait changer 

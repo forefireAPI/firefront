@@ -73,7 +73,8 @@ public:
 	/*!  \brief getters of the resolution of the matrix of arrival times */
 	double getDx();
 	double getDy();
-
+	double maxTime();
+	void loadBin(std::ifstream&  );
 	/*!  \brief getters of the location of the center of a given cell */
 	FFPoint getCenter(const size_t&, const size_t&);
 
