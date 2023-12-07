@@ -16,3 +16,5 @@ __pycache__
 
 # editors
 .vscode
+
+**/.DS_Store
