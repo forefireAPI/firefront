@@ -665,7 +665,7 @@ def plotRos(PGDFILE, BMAPFILE,max_speed_filter=1.0):
     #ros[ros == np.nan] = vmax
     plt.imshow(ros[:,:],vmin=vmin,vmax=vmax)
 
-def genKMLFiles(PGDFILE, BMAPFILE, FFINPUTPATTERN, BMAPKMLOUT,frontsKMLOUT, everyNFronts=1,change_color_every=6):
+def genKMLFiles(PGDFILE, BMAPFILE, FFINPUTPATTERN, BMAPKMLOUT,frontsKMLOUT, everyNFronts=1,change_color_every=6,btslice=None):
 
     dBmap = xr.open_dataset(BMAPFILE)
     baseDate= datetime(int(dBmap.domain.refYear), 1, 1, 0, 0, 0, 0)
@@ -678,8 +678,10 @@ def genKMLFiles(PGDFILE, BMAPFILE, FFINPUTPATTERN, BMAPKMLOUT,frontsKMLOUT, ever
         
     lCnt=[]
     import os
-    selectionSorted =  sorted(contours1)#[::6]    
-    for contour in selectionSorted[::everyNFronts]:#[50:261]:
+    selectionSorted =  sorted(contours1)   
+    if btslice is not None:
+        selectionSorted = selectionSorted[btslice[0]:btslice[1]]
+    for contour in selectionSorted[::everyNFronts]:
         f = ffData(contour,mode = "mnhPGD", baseDate=baseDate,wsen=wsen)
         lCnt.append((f.toGeoJson(),f.frontDate))
     with open(frontsKMLOUT, "w") as text_file:
@@ -731,92 +733,4 @@ def ffFromPgd(PGDFILE,domainDate=None,ignitions = None, fuel_test = None):
    
 
     
-
-
-# #pedrogao 
-# BMAPFILE = "/Users/filippi_j/data/2022/pedrogao/REF_REPORT_BMAP.nc"
-# PGDFILE = "/Users/filippi_j/data/2022/pedrogao/PGD_D80mA.nested.nc"
-# FFINPUTPATTERN='/Users/filippi_j/data/2022/pedrogao/OutputsNoCoupled/output.0.*'
-
-# #prunelli
-# BMAPFILE = "//Users/filippi_j/Volumes/fcouto/KTEST_PEDROGAO/nested3FirePattern/006_runff/ForeFire/Outputs/ForeFire.0.nc"
-# PGDFILE = "/Users/filippi_j/Volumes/fcouto/KTEST_PEDROGAO/nested3FirePattern/006_runff/PGD_D80mA.nested.nc"
-# FFINPUTPATTERN='/Users/filippi_j/Volumes/fcouto/KTEST_PEDROGAO/nested3FirePattern/006_runff/ForeFire/Outputs/output.0.*'
-# outDir="/Users/filippi_j/data/2023/prunelli/4n/"
-# BMAPKMLOUT = "%s/speedNC.kml"%outDir
-# #BMAPKMLOUT = "%s/speedNC.kml"%outDir
-# frontsKMLOUT = "%s/fronts.kml"%outDir
-# #genKMLFiles(PGDFILE, BMAPFILE, FFINPUTPATTERN, BMAPKMLOUT,frontsKMLOUT, everyNFronts=30, change_color_every=30)
-# #x=(182000,88496,0)
-# #y = ffFromPgd(PGDFILE).xy2lalo(x)
-# #y=(42.0037,9.3418,0)
-# #z = ffFromPgd(PGDFILE).lalo2xy(y)
-
-# #print(y,z,x)
-
-
-
-# #prunelli local
-# BMAPFILE = "/Users/filippi_j/data/2023/prunelli/frontData/coupled.nc"
-# PGDFILE = "/Users/filippi_j/data/2023/prunelli/PGD_D80mA.nc"
-# FFINPUTPATTERN= "/Users/filippi_j/data/2023/prunelli/frontData/cpl/output.0.*"
-
-
-
-# #Villa1nest 
-# BMAPFILE = "/Users/filippi_j/Volumes/fcouto/KDATABASE/KTEST/KTEST_1nest/003_runff/ForeFire/Outputs/ForeFire.0.nc"
-# PGDFILE = "/Users/filippi_j/Volumes/fcouto/KDATABASE/KTEST/KTEST_1nest/001_pgd/PGD_D120mA.nc"
-# FFINPUTPATTERN='/Users/filippi_j/Volumes/fcouto/KDATABASE/KTEST/KTEST_1nest/003_runff/ForeFire/Outputs/output.0.*'
-# outDir="/Users/filippi_j/data/2023/baseFeux/villa1n/"
-
- 
-
-# #Villa2nest 
-# BMAPFILE = "/Users/filippi_j/Volumes/fcouto/KDATABASE/KTEST/KTEST_2nest/005_runff/ForeFire/Outputs/ForeFire.0.nc"
-# PGDFILE = "/Users/filippi_j/Volumes/fcouto/KDATABASE/KTEST/KTEST_2nest/001_pgd/PGD_D160mA.nc"
-# FFINPUTPATTERN='/Users/filippi_j/Volumes/fcouto/KDATABASE/KTEST/KTEST_2nest/005_runff/ForeFire/Outputs/output.0.*'
-# outDir="/Users/filippi_j/data/2023/baseFeux/villa2n/"
-
-# #Villa3nest 
-# BMAPFILE = "/Users/filippi_j/Volumes/fcouto/KDATABASE/KTEST/KTEST_3nest/006_runff/ForeFire/Outputs/ForeFire.0.nc"
-# PGDFILE = "/Users/filippi_j/Volumes/fcouto/KDATABASE/KTEST/KTEST_3nest/001_pgd/PGD_D80mA.nc"
-# FFINPUTPATTERN='/Users/filippi_j/Volumes/fcouto/KDATABASE/KTEST/KTEST_3nest/006_runff/ForeFire/Outputs/output.0.*'
-# outDir="/Users/filippi_j/data/2023/baseFeux/villa3n/"
-
-# #Oliveira2nest 
-# BMAPFILE = "/Users/filippi_j/Volumes/fcouto/KDATABASE/KTEST_Oliveira/KTEST_2nest/005_runff/ForeFire/Outputs/ForeFire.0.nc"
-# PGDFILE = "/Users/filippi_j/Volumes/fcouto/KDATABASE/KTEST_Oliveira/KTEST_2nest/001_pgd/PGD_D160mA.nc"
-# FFINPUTPATTERN='/Users/filippi_j/Volumes/fcouto/KDATABASE/KTEST_Oliveira/KTEST_2nest/005_runff/ForeFire/Outputs/output.0.*'
-# outDir="/Users/filippi_j/data/2023/baseFeux/KTEST_Oliveira/"
-
-# #Oliveira3nest 
-# BMAPFILE = "/Users/filippi_j/Volumes/fcouto/KDATABASE/KTEST_Oliveira/KTEST_3nest/006_runff/ForeFire/Outputs/ForeFire.0.nc"
-# PGDFILE = "/Users/filippi_j/Volumes/fcouto/KDATABASE/KTEST_Oliveira/KTEST_3nest/001_pgd/PGD_D80mA.nc"
-# FFINPUTPATTERN='/Users/filippi_j/Volumes/fcouto/KDATABASE/KTEST_Oliveira/KTEST_3nest/006_runff/ForeFire/Outputs/output.0.*'
-# outDir="/Users/filippi_j/data/2023/baseFeux/KTEST_Oliveira3n/"
-
-
-
-    
-# #Pigna
-# BMAPFILE = "//Users/filippi_j/Volumes/orsu/firecaster/2023/nest150Ref/006_runff/ForeFire/Outputs/ForeFire.0.nc"
-# PGDFILE = "/Users/filippi_j/Volumes/orsu/firecaster/2023/nest150Ref/001_pgd/PGD_D80mA.nested.nc"
-# FFINPUTPATTERN='/Users/filippi_j/Volumes/orsu/firecaster/2023/nest150Ref/006_runff/ForeFire/Outputs/output.0.*'
-# outDir="/Users/filippi_j/data/2023/corbara20230727/"
-# BMAPKMLOUT = "%s/speedNC.kml"%outDir
-
-# frontsKMLOUT = "%s/OutputsNonCoupled.kml"%outDir
-
-
-# #genKMLFiles(PGDFILE, BMAPFILE, FFINPUTPATTERN, BMAPKMLOUT,frontsKMLOUT,everyNFronts=10)
-
-# PGDFILE = "/Users/filippi_j/data/2023/corbara20230727/mnhCase/001_pgd/PGD_D80mA.nested.nc"
-# PGDFILE = "/Users/filippi_j/Volumes/fcouto/KDATABASE/KTEST_Oliveira/KTEST_2nest/001_pgd/PGD_D160mA.nested.nc"
-
-# #x = ffFromPgd(PGDFILE).lalo2xy((42.0037,9.3418))
-#x = ffFromPgd(PGDFILE).lalo2xy((40.5993,-8.1801))
-
-#y = ffFromPgd(PGDFILE).xy2lalo(x)
-
-#print(x,y)
  
