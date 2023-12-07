@@ -18,8 +18,6 @@ import numpy as np
 import netCDF4 as nc4
 from PIL import Image
 
-
-from . import get_WSEN_LBRT_ZS_From_Pgd 
  
 def addFieldToNcFile(ncfile, field, fieldname, typeName, dvartype):
         print("adding ", fieldname)
