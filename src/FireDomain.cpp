@@ -4836,7 +4836,7 @@ cout << "Reading >"<<oss.str()<<"<"<<endl;
 		NcVar atime = dataFile.addVar("arrival_time_of_front", ncDouble, dims);
 		std::vector<size_t> chunkDims = {CELLSPACE1_DIM2, CELLSPACE1_DIM1};
 		atime.setChunking(NcVar::nc_CHUNKED, chunkDims);
-		int compressionLevel = 5;
+		int compressionLevel = 6;
 		atime.setCompression(true, true, compressionLevel);
 
 
