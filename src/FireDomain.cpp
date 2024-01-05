@@ -4798,6 +4798,7 @@ cout << "Reading >"<<oss.str()<<"<"<<endl;
 
 	if (getDomainID() > 0){
 		cout<<"not saving separated ATimes domain "<<getDomainID()<<endl;
+		return;
 	}
 
     try
@@ -4819,19 +4820,15 @@ cout << "Reading >"<<oss.str()<<"<"<<endl;
 
 		size_t   INCELLSPACE1_DIM1 = FSPACE_DIM1/CELLSPACE1_DIM1;  // Nb de lignes ds chaque a_t cell
 		size_t   INCELLSPACE1_DIM2 = FSPACE_DIM2/CELLSPACE1_DIM2;   // Nb de colonnes ds chaque a_t cell
-		if( (FSPACE_DIM2 > 4000) || (FSPACE_DIM1 > 4000) ){
-			cout << "Dimensions: " << FSPACE_DIM2 << " x " << FSPACE_DIM1 << " too wide for standard HDF, sorry" << endl;
-			throw std::runtime_error("Dimensions exceed standard HDF limits");
-		}
+
         cout << "Creating netCDF bmap file, size "<<FSPACE_DIM1<<"x"<<FSPACE_DIM2<<": " << oss.str().c_str() << endl;
 
         NcFile dataFile ( oss.str().c_str(), NcFile::replace );
 		NcDim xDim = dataFile.addDim("DIMY", FSPACE_DIM2);
 		NcDim yDim = dataFile.addDim("DIMX", FSPACE_DIM1);
-		      vector<NcDim> dims;
+		vector<NcDim> dims;
         dims.push_back(xDim);
         dims.push_back(yDim);
-
 
 		NcVar atime = dataFile.addVar("arrival_time_of_front", ncDouble, dims);
 		std::vector<size_t> chunkDims = {CELLSPACE1_DIM2, CELLSPACE1_DIM1};
@@ -4839,40 +4836,50 @@ cout << "Reading >"<<oss.str()<<"<"<<endl;
 		int compressionLevel = 6;
 		atime.setCompression(true, true, compressionLevel);
 
+		double emptyCell[INCELLSPACE1_DIM2][INCELLSPACE1_DIM1];
+		double goodCell[INCELLSPACE1_DIM2][INCELLSPACE1_DIM1]; 
+		std::vector<size_t> cstart(2), ccount(2);
 
-		double* allDataBlock = new double[FSPACE_DIM2 * FSPACE_DIM1];
-		double** allDataAtime = new double*[FSPACE_DIM2];
-		for (int i = 0; i < FSPACE_DIM2; ++i) {
-			allDataAtime[i] = &allDataBlock[i * FSPACE_DIM1];
-		}
 
-		for (i = 0; i < FSPACE_DIM2 ; i++){
-			for (j = 0; j < FSPACE_DIM1 ; j++){
-				allDataAtime[i][j] = -9999;
+
+		ccount[0] = INCELLSPACE1_DIM1;  // Number of elements to write in the first dimension
+		ccount[1] = INCELLSPACE1_DIM2;  // Number of elements to write in the second dimension
+
+		for (i = 0; i < INCELLSPACE1_DIM2 ; i++){
+			for (j = 0; j < INCELLSPACE1_DIM1 ; j++){
+				emptyCell[i][j] = -9999;
 			}
 		}
+
 		int  cellActive[CELLSPACE1_DIM2][CELLSPACE1_DIM1];
 
-		
 		for (i = 0; i < CELLSPACE1_DIM1 ; i++){
 			for (j = 0; j < CELLSPACE1_DIM2 ; j++){
+				cstart[0] = j * INCELLSPACE1_DIM2;  // Starting index in the second dimension
+				cstart[1] = i * INCELLSPACE1_DIM1;  // Starting index in the first dimension
+				
 				cellActive[j][i] = 0;
 				if ( cells[i][j].getBurningMap() != 0 ){
+					 // cout << "Active at "<<i<<"x"<<j<<": " << endl;
+
+      
 					double* adata = (cells[i][j].getBurningMap()->getMap()->getData());
 					for (ii = 0; ii < INCELLSPACE1_DIM1 ; ii++){
 						for (jj = 0; jj < INCELLSPACE1_DIM2 ; jj++){
-							allDataAtime[j*INCELLSPACE1_DIM2+jj][i*INCELLSPACE1_DIM1+ii] =  (adata[ii*INCELLSPACE1_DIM2+jj]==numeric_limits<double>::infinity()?-9999:adata[ii*INCELLSPACE1_DIM2+jj]);
+							goodCell[jj][ii] =  (adata[ii*INCELLSPACE1_DIM2+jj]==numeric_limits<double>::infinity()?-9999:adata[ii*INCELLSPACE1_DIM2+jj]);
 						}
 					}
-					//atime.putVar(&goodCell[0][0], INCELLSPACE1_DIM2, INCELLSPACE1_DIM1);
+					atime.putVar(cstart, ccount, goodCell);
+				 
 					cellActive[j][i] = 1;
 				}else{
-					cellActive[j][i] = 0;
+					atime.putVar(cstart, ccount, emptyCell);
+					//atime->put(&emptyCell[0][0], INCELLSPACE1_DIM2, INCELLSPACE1_DIM1);
 				}
 
 			}
 		}
-		atime.putVar(allDataAtime); 
+	
 		NcDim cxDim = dataFile.addDim("C_DIMY", CELLSPACE1_DIM2);
 		NcDim cyDim = dataFile.addDim("C_DIMX", CELLSPACE1_DIM1);
 		vector<NcDim> dimsC;
@@ -4898,8 +4905,6 @@ cout << "Reading >"<<oss.str()<<"<"<<endl;
 
 	
 		dataFile.close();
-		delete[] allDataBlock;
-		delete[] allDataAtime;
 		
 
     
