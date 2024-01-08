@@ -46,9 +46,7 @@ void MNHInit(const double t){
 	ifstream inputParams(paramsfile.str().c_str());
 	if ( inputParams ) {
 		string line;
-		size_t numLine = 0;
 		while ( getline( inputParams, line ) ) {
-			numLine++;
 			// checking for comments or newline
 			if((line[0] == '#')||(line[0] == '*')||(line[0] == '\n'))
 				continue;
@@ -129,11 +127,11 @@ void MNHCreateDomain(const int id
 	ifstream inputInit(initfile.str().c_str());
 	if ( inputInit ) {
 		string line;
-		size_t numLine = 0;
+		//size_t numLine = 0;
 		// skip the firest "firedomain" line for // init with multiple files
 		if ( SimulationParameters::GetInstance()->getInt("parallelInit") == 1 ) getline( inputInit, line );
 		while ( getline( inputInit, line ) ) {
-			numLine++;
+			//numLine++;
 			// checking for comments or newline
 			if((line[0] == '#')||(line[0] == '*')||(line[0] == '\n'))
 				continue;
@@ -303,14 +301,7 @@ void FFDumpDoubleArray(size_t nmodel, size_t nip, const char* mname, double t
 
 }
 
-#ifdef NETCDF_NOT_LEGACY
-void saveNcRecord(int rec){cout << "CLibforefire:: saveNcRecord " << " newCDF Not Implemented" << endl;}
-void createNcFile(string filename
-		, const int& consted_ni, const int& consted_nj, const int& consted_nk
-		, const double* meshx, const double* meshy, const double* zgrid){
-			cout << "CLibforefire:: createNcFile " << " newCDF Not Implemented" << endl;
-		}
-#else
+#ifdef NETCDF_LEGACY
 
 void saveNcRecord(int rec){
 		size_t i = 0;
@@ -425,7 +416,14 @@ void createNcFile(string filename
 
 	dataFile.close();
 }
- 
+#else
+void saveNcRecord(int rec){cout << "CLibforefire:: saveNcRecord " << " newCDF Not Implemented" << endl;}
+void createNcFile(string filename
+		, const int& consted_ni, const int& consted_nj, const int& consted_nk
+		, const double* meshx, const double* meshy, const double* zgrid){
+			cout << "CLibforefire:: createNcFile " << " newCDF Not Implemented" << endl;
+		}
+
 #endif
 
 

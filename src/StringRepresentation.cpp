@@ -93,7 +93,6 @@ void StringRepresentation::visit(FireDomain* fd) {
     }
     if (dumpMode == GEOJSON_MODE)
     {
-        SimulationParameters *simParam = SimulationParameters::GetInstance();
         
         outputstr << '{' << "\"type\": \"FeatureCollection\"," << endl;
         outputstr << "\t" << "\"projection\":\"";

@@ -892,10 +892,10 @@ int Command::include(const string& arg, size_t& numTabs){
 	if ( instream ) {
 		// reading all the commands (one command per line) of the input file
 		string line;
-		size_t numLine = 0;
+		//size_t numLine = 0;
 		while ( getline( instream, line ) ) {
 			//    while ( getline( cin, line ) ) {
-			numLine++;
+			//numLine++;
 			// checking for comments or newline
 			if((line[0] == '#')||(line[0] == '*')||(line[0] == '\n'))
 				continue;
@@ -953,7 +953,40 @@ int Command::loadData(const string& arg, size_t& numTabs){
 		cout << "File "<< path<<" doesn't exist or no longer available" << endl;
 		return error;
 	}
-#ifdef NETCDF_NOT_LEGACY 
+#ifdef NETCDF_LEGACY 
+	NcFile* ncFile = new NcFile(path.c_str(), NcFile::ReadOnly);
+
+	if (!ncFile->is_valid())
+	{
+		cout << "File is not a valid NetCDF file" << endl;
+		return error;
+	}
+    
+    simParam->setParameter("NetCDFfile", args[0]);
+
+	for (int layer = 0; layer < ncFile->num_vars(); layer++)
+	{
+		string varName(ncFile->get_var(layer)->name());
+
+		if (varName == "domain")
+		{
+
+			NcVar* ncparams = ncFile->get_var(varName.c_str());
+			int numParams = (size_t) ncparams->num_atts();
+			NcAtt* ncparam;
+
+			for (int i = 0; i < numParams; i++)
+			{
+				ncparam = ncparams->get_att(i);
+				simParam->setParameter(ncparam->name(), ncparam->as_string(0));
+			}
+
+			if (ncparam != 0)
+				delete ncparam;
+		}
+	}
+
+#else
   simParam->setParameter("NetCDFfile", args[0]);
   try
    {
@@ -999,40 +1032,6 @@ int Command::loadData(const string& arg, size_t& numTabs){
 		e.what();
 		cout<<"cannot read landscape file"<<endl;
 	
-	}
-#else
- 
-
-	NcFile* ncFile = new NcFile(path.c_str(), NcFile::ReadOnly);
-
-	if (!ncFile->is_valid())
-	{
-		cout << "File is not a valid NetCDF file" << endl;
-		return error;
-	}
-    
-    simParam->setParameter("NetCDFfile", args[0]);
-
-	for (int layer = 0; layer < ncFile->num_vars(); layer++)
-	{
-		string varName(ncFile->get_var(layer)->name());
-
-		if (varName == "domain")
-		{
-
-			NcVar* ncparams = ncFile->get_var(varName.c_str());
-			int numParams = (size_t) ncparams->num_atts();
-			NcAtt* ncparam;
-
-			for (int i = 0; i < numParams; i++)
-			{
-				ncparam = ncparams->get_att(i);
-				simParam->setParameter(ncparam->name(), ncparam->as_string(0));
-			}
-
-			if (ncparam != 0)
-				delete ncparam;
-		}
 	}
 #endif
     if (args.size() > 1){

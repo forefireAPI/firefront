@@ -2638,8 +2638,112 @@ void FireDomain::loadWindDataInBinary(double refTime){
 			}
 
 
-cout << "Reading >"<<oss.str()<<"<"<<endl;	
-			#ifdef NETCDF_NOT_LEGACY
+			cout << "Reading Bmap File : >"<<oss.str()<<"<"<<endl;	
+			#ifdef NETCDF_LEGACY
+
+			NcFile dataFile(oss.str().c_str(), NcFile::ReadOnly);
+
+			cout << "Reading >"<<oss.str()<<"<"<<endl;
+
+			NcVar *atime = dataFile.get_var("arrival_time_of_front");
+
+
+			NcVar *cell_active = NULL;
+
+			 if(dataFile.num_vars() > 2)
+				cell_active =  dataFile.get_var("cell_active");
+
+
+				size_t   FSPACE_DIM1 		= atime->get_dim(1)->size();	// Nb De lignes au total
+				size_t   FSPACE_DIM2 		= atime->get_dim(0)->size();	// 	Nb De colonnes au total
+				size_t   CELLSPACE1_DIM1 	= FSPACE_DIM1/localBMapSizeX;  // Nb de lignes de cells
+				size_t   CELLSPACE1_DIM2 	= FSPACE_DIM2/localBMapSizeY;   // Nb de colonnes de cell
+				size_t   INCELLSPACE1_DIM1 = FSPACE_DIM1/CELLSPACE1_DIM1;  // Nb de lignes ds chaque a_t cell
+				size_t   INCELLSPACE1_DIM2 = FSPACE_DIM2/CELLSPACE1_DIM2;   // Nb de colonnes ds chaque a_t cell
+
+				size_t fromFileX = FSPACE_DIM1/cell_active->get_dim(1)->size();
+				size_t fromFileY = FSPACE_DIM2/cell_active->get_dim(0)->size();
+				bool initObs = false;
+
+				if((localBMapSizeX!=fromFileX)||(localBMapSizeY!=fromFileY)){
+									cout<<"ERROR: number of cells of the burning matrices ("
+									<<localBMapSizeX<<"x"<<localBMapSizeY<<")"
+									<<" not compatible with previous computation ("
+									<<fromFileX<<"x"<<fromFileY<<") atmo "<<atmoNX<<","<<atmoNY<<" F "<<FSPACE_DIM1<<","<<FSPACE_DIM2<<" Trying to read from scratch"<<endl;
+									initObs = true;
+				}
+
+
+			NcVar* dom = dataFile.get_var("domain");
+
+			NcAtt* xsw = dom->get_att("SWx");
+			double Xorigin = xsw->as_double(0);
+			NcAtt* ysw = dom->get_att("SWy");
+			double Yorigin = ysw->as_double(0);
+
+			NcAtt* xl = dom->get_att("Lx");
+			double Xlen = xl->as_double(0)+params->getDouble("SHIFT_ALL_DATA_ABSCISSA_BY");
+			NcAtt* yl = dom->get_att("Ly");
+			double Ylen = yl->as_double(0)+params->getDouble("SHIFT_ALL_DATA_ORDINATES_BY");
+
+			NcAtt* ryear = dom->get_att("refYear");
+			int pyear = ryear->as_int(0);
+			NcAtt* rday = dom->get_att("refDay");
+			int pday = rday->as_int(0);
+
+
+
+			refYear = pyear;
+			params->setInt("refYear", pyear);
+			refDay = pday;
+			params->setInt("refDay", pday);
+
+			size_t startSlabInFilei = (int)(((SWCorner.getX()-Xorigin)/Xlen)*CELLSPACE1_DIM1);
+			size_t startSlabInFilej = (int)(((SWCorner.getY()-Yorigin)/Ylen)*CELLSPACE1_DIM2);
+
+
+			int  cellActiveF[CELLSPACE1_DIM2][CELLSPACE1_DIM1];	// vector buffer for dset from data
+			int  cellActive[CELLSPACE1_DIM1][CELLSPACE1_DIM2];	// vector buffer for dset Cprojeted
+
+
+			cell_active->get(&cellActiveF[0][0],CELLSPACE1_DIM2,CELLSPACE1_DIM1);
+
+			for (size_t i = 0; i < CELLSPACE1_DIM1 ; i++){
+					for (size_t j = 0; j < CELLSPACE1_DIM2 ; j++){
+								cellActive[i][j] =cellActiveF[j][i];
+					}
+			}
+
+			double matrixBufferF[INCELLSPACE1_DIM2][INCELLSPACE1_DIM1];
+			double matrixBuffer[INCELLSPACE1_DIM1][INCELLSPACE1_DIM2];
+			double max_time = params->getDouble("InitTime");
+			// cout << " j "<<SWCorner.getX()<<"  "<<Xorigin<<"        "<<startSlabInFilej<< " i "<<startSlabInFilei<<endl;
+
+			for (size_t i = 0; i < atmoNX ; i++){
+				for (size_t j = 0; j < atmoNY ; j++){
+					if(cellActive[startSlabInFilei+i][startSlabInFilej+j] > 0){
+						atime->set_cur((startSlabInFilej+j)*INCELLSPACE1_DIM2,(startSlabInFilei+i)*INCELLSPACE1_DIM1);
+						atime->get( &matrixBufferF[0][0],INCELLSPACE1_DIM2,INCELLSPACE1_DIM1);
+
+						for (size_t ii = 0; ii < INCELLSPACE1_DIM1 ; ii++){
+							for (size_t jj = 0; jj < INCELLSPACE1_DIM2 ; jj++){
+								if ((matrixBufferF[jj][ii] == -9999)  or (matrixBufferF[jj][ii] > max_time)){
+									matrixBuffer[ii][jj] = numeric_limits<double>::infinity();
+								}else{
+									matrixBuffer[ii][jj] = matrixBufferF[jj][ii];
+								}
+							}
+						}
+
+						cells[i][j].setArrivalTime(0, 0, 0);
+						cells[i][j].getBurningMap()->getMap()->setVal(&matrixBuffer[0][0]);
+					}
+				}
+			}
+
+			dataFile.close();
+			
+			#else
 
 				try
 						{
@@ -2748,108 +2852,6 @@ cout << "Reading >"<<oss.str()<<"<"<<endl;
 			
 			 
 	
-			#else
-			NcFile dataFile(oss.str().c_str(), NcFile::ReadOnly);
-
-			cout << "Reading >"<<oss.str()<<"<"<<endl;
-
-			NcVar *atime = dataFile.get_var("arrival_time_of_front");
-
-
-			NcVar *cell_active = NULL;
-
-			 if(dataFile.num_vars() > 2)
-				cell_active =  dataFile.get_var("cell_active");
-
-
-				size_t   FSPACE_DIM1 		= atime->get_dim(1)->size();	// Nb De lignes au total
-				size_t   FSPACE_DIM2 		= atime->get_dim(0)->size();	// 	Nb De colonnes au total
-				size_t   CELLSPACE1_DIM1 	= FSPACE_DIM1/localBMapSizeX;  // Nb de lignes de cells
-				size_t   CELLSPACE1_DIM2 	= FSPACE_DIM2/localBMapSizeY;   // Nb de colonnes de cell
-				size_t   INCELLSPACE1_DIM1 = FSPACE_DIM1/CELLSPACE1_DIM1;  // Nb de lignes ds chaque a_t cell
-				size_t   INCELLSPACE1_DIM2 = FSPACE_DIM2/CELLSPACE1_DIM2;   // Nb de colonnes ds chaque a_t cell
-
-				size_t fromFileX = FSPACE_DIM1/cell_active->get_dim(1)->size();
-				size_t fromFileY = FSPACE_DIM2/cell_active->get_dim(0)->size();
-				bool initObs = false;
-
-				if((localBMapSizeX!=fromFileX)||(localBMapSizeY!=fromFileY)){
-									cout<<"ERROR: number of cells of the burning matrices ("
-									<<localBMapSizeX<<"x"<<localBMapSizeY<<")"
-									<<" not compatible with previous computation ("
-									<<fromFileX<<"x"<<fromFileY<<") atmo "<<atmoNX<<","<<atmoNY<<" F "<<FSPACE_DIM1<<","<<FSPACE_DIM2<<" Trying to read from scratch"<<endl;
-									initObs = true;
-				}
-
-
-			NcVar* dom = dataFile.get_var("domain");
-
-			NcAtt* xsw = dom->get_att("SWx");
-			double Xorigin = xsw->as_double(0);
-			NcAtt* ysw = dom->get_att("SWy");
-			double Yorigin = ysw->as_double(0);
-
-			NcAtt* xl = dom->get_att("Lx");
-			double Xlen = xl->as_double(0)+params->getDouble("SHIFT_ALL_DATA_ABSCISSA_BY");
-			NcAtt* yl = dom->get_att("Ly");
-			double Ylen = yl->as_double(0)+params->getDouble("SHIFT_ALL_DATA_ORDINATES_BY");
-
-			NcAtt* ryear = dom->get_att("refYear");
-			int pyear = ryear->as_int(0);
-			NcAtt* rday = dom->get_att("refDay");
-			int pday = rday->as_int(0);
-
-
-
-			refYear = pyear;
-			params->setInt("refYear", pyear);
-			refDay = pday;
-			params->setInt("refDay", pday);
-
-			size_t startSlabInFilei = (int)(((SWCorner.getX()-Xorigin)/Xlen)*CELLSPACE1_DIM1);
-			size_t startSlabInFilej = (int)(((SWCorner.getY()-Yorigin)/Ylen)*CELLSPACE1_DIM2);
-
-
-			int  cellActiveF[CELLSPACE1_DIM2][CELLSPACE1_DIM1];	// vector buffer for dset from data
-			int  cellActive[CELLSPACE1_DIM1][CELLSPACE1_DIM2];	// vector buffer for dset Cprojeted
-
-
-			cell_active->get(&cellActiveF[0][0],CELLSPACE1_DIM2,CELLSPACE1_DIM1);
-
-			for (size_t i = 0; i < CELLSPACE1_DIM1 ; i++){
-					for (size_t j = 0; j < CELLSPACE1_DIM2 ; j++){
-								cellActive[i][j] =cellActiveF[j][i];
-					}
-			}
-
-			double matrixBufferF[INCELLSPACE1_DIM2][INCELLSPACE1_DIM1];
-			double matrixBuffer[INCELLSPACE1_DIM1][INCELLSPACE1_DIM2];
-			double max_time = params->getDouble("InitTime");
-			// cout << " j "<<SWCorner.getX()<<"  "<<Xorigin<<"        "<<startSlabInFilej<< " i "<<startSlabInFilei<<endl;
-
-			for (size_t i = 0; i < atmoNX ; i++){
-				for (size_t j = 0; j < atmoNY ; j++){
-					if(cellActive[startSlabInFilei+i][startSlabInFilej+j] > 0){
-						atime->set_cur((startSlabInFilej+j)*INCELLSPACE1_DIM2,(startSlabInFilei+i)*INCELLSPACE1_DIM1);
-						atime->get( &matrixBufferF[0][0],INCELLSPACE1_DIM2,INCELLSPACE1_DIM1);
-
-						for (size_t ii = 0; ii < INCELLSPACE1_DIM1 ; ii++){
-							for (size_t jj = 0; jj < INCELLSPACE1_DIM2 ; jj++){
-								if ((matrixBufferF[jj][ii] == -9999)  or (matrixBufferF[jj][ii] > max_time)){
-									matrixBuffer[ii][jj] = numeric_limits<double>::infinity();
-								}else{
-									matrixBuffer[ii][jj] = matrixBufferF[jj][ii];
-								}
-							}
-						}
-
-						cells[i][j].setArrivalTime(0, 0, 0);
-						cells[i][j].getBurningMap()->getMap()->setVal(&matrixBuffer[0][0]);
-					}
-				}
-			}
-
-			dataFile.close();
 			#endif
 		}
 
@@ -4793,7 +4795,94 @@ cout << "Reading >"<<oss.str()<<"<"<<endl;
 		binary_file.close();
 	}
 
-	#ifdef NETCDF_NOT_LEGACY
+	#ifdef NETCDF_LEGACY
+	
+	void FireDomain::saveSimulation(){
+		size_t i = 0;
+		size_t j = 0;
+		size_t ii = 0;
+		size_t jj = 0;
+		ostringstream oss;
+		oss<<params->getParameter("caseDirectory")<<'/'
+		<<params->getParameter("fireOutputDirectory")<<'/'
+		<<params->getParameter("experiment")<<"."<<getDomainID()<<".nc";
+
+
+		size_t   FSPACE_DIM1 		= globalBMapSizeX;	// Nb De lignes au total
+		size_t   FSPACE_DIM2 		= globalBMapSizeY;	// 	Nb De colonnes au total
+
+		size_t   CELLSPACE1_DIM1 	= atmoNX;  // Nb de lignes de cells
+		size_t   CELLSPACE1_DIM2 	= atmoNY;   // Nb de colonnes de cell
+
+		size_t   INCELLSPACE1_DIM1 = FSPACE_DIM1/CELLSPACE1_DIM1;  // Nb de lignes ds chaque a_t cell
+		size_t   INCELLSPACE1_DIM2 = FSPACE_DIM2/CELLSPACE1_DIM2;   // Nb de colonnes ds chaque a_t cell
+		cout << "writing ncfile "<< oss.str()<<endl;
+		NcFile dataFile(oss.str().c_str(), NcFile::Replace, NULL, 0, NcFile::Classic);
+
+		if (!dataFile.is_valid())
+		{
+			cout << "Couldn't open file!\n";
+		}
+
+		NcDim* xDim = dataFile.add_dim("DIMY", FSPACE_DIM2);
+		NcDim* yDim = dataFile.add_dim("DIMX", FSPACE_DIM1);
+		NcVar *atime = dataFile.add_var("arrival_time_of_front", ncDouble, xDim, yDim);
+
+		double emptyCell[INCELLSPACE1_DIM2][INCELLSPACE1_DIM1];
+		double goodCell[INCELLSPACE1_DIM2][INCELLSPACE1_DIM1];
+
+		for (i = 0; i < INCELLSPACE1_DIM2 ; i++){
+			for (j = 0; j < INCELLSPACE1_DIM1 ; j++){
+				emptyCell[i][j] = -9999;
+			}
+		}
+
+		int  cellActive[CELLSPACE1_DIM2][CELLSPACE1_DIM1];
+
+		for (i = 0; i < CELLSPACE1_DIM1 ; i++){
+			for (j = 0; j < CELLSPACE1_DIM2 ; j++){
+				atime->set_cur(j*INCELLSPACE1_DIM2,i*INCELLSPACE1_DIM1);
+				cellActive[j][i] = 0;
+				if ( cells[i][j].getBurningMap() != 0 ){
+					double* adata = (cells[i][j].getBurningMap()->getMap()->getData());
+					for (ii = 0; ii < INCELLSPACE1_DIM1 ; ii++){
+						for (jj = 0; jj < INCELLSPACE1_DIM2 ; jj++){
+							goodCell[jj][ii] =  (adata[ii*INCELLSPACE1_DIM2+jj]==numeric_limits<double>::infinity()?-9999:adata[ii*INCELLSPACE1_DIM2+jj]);
+						}
+					}
+					atime->put(&goodCell[0][0], INCELLSPACE1_DIM2, INCELLSPACE1_DIM1);
+					cellActive[j][i] = 01;
+				}else{
+					atime->put(&emptyCell[0][0], INCELLSPACE1_DIM2, INCELLSPACE1_DIM1);
+				}
+
+			}
+		}
+
+		NcDim* cxDim = dataFile.add_dim("C_DIMY", CELLSPACE1_DIM2);
+		NcDim* cyDim = dataFile.add_dim("C_DIMX", CELLSPACE1_DIM1);
+		NcVar *cell_active = dataFile.add_var("cell_active", ncInt, cxDim, cyDim);
+	    cell_active->put(&cellActive[0][0], CELLSPACE1_DIM2, CELLSPACE1_DIM1);
+
+		NcDim* domdim = dataFile.add_dim("domdim", 1);
+	    NcVar *dom = dataFile.add_var("domain", ncChar, domdim);
+	    dom->add_att("SWx", SWCorner.getX());
+	    dom->add_att("SWy", SWCorner.getY());
+	    dom->add_att("Lx", NECorner.getX()-SWCorner.getX());
+	    dom->add_att("Ly", NWCorner.getY()-SWCorner.getY());
+	    dom->add_att("Lz", 0);
+
+
+	    dom->add_att("refYear", refYear);
+	    dom->add_att("refDay", refDay);
+
+
+		cout << "*** SUCCESS writing " <<oss.str()<< endl;
+		dataFile.close();
+		
+	}
+	
+	#else
 	void FireDomain::saveSimulation(){
 
 	if (getDomainID() > 0){
@@ -4917,91 +5006,6 @@ cout << "Reading >"<<oss.str()<<"<"<<endl;
     {
         cout << "Error: unknown error." << endl;
     } 
-	}
-	#else
-	void FireDomain::saveSimulation(){
-		size_t i = 0;
-		size_t j = 0;
-		size_t ii = 0;
-		size_t jj = 0;
-		ostringstream oss;
-		oss<<params->getParameter("caseDirectory")<<'/'
-		<<params->getParameter("fireOutputDirectory")<<'/'
-		<<params->getParameter("experiment")<<"."<<getDomainID()<<".nc";
-
-
-		size_t   FSPACE_DIM1 		= globalBMapSizeX;	// Nb De lignes au total
-		size_t   FSPACE_DIM2 		= globalBMapSizeY;	// 	Nb De colonnes au total
-
-		size_t   CELLSPACE1_DIM1 	= atmoNX;  // Nb de lignes de cells
-		size_t   CELLSPACE1_DIM2 	= atmoNY;   // Nb de colonnes de cell
-
-		size_t   INCELLSPACE1_DIM1 = FSPACE_DIM1/CELLSPACE1_DIM1;  // Nb de lignes ds chaque a_t cell
-		size_t   INCELLSPACE1_DIM2 = FSPACE_DIM2/CELLSPACE1_DIM2;   // Nb de colonnes ds chaque a_t cell
-		cout << "writing ncfile "<< oss.str()<<endl;
-		NcFile dataFile(oss.str().c_str(), NcFile::Replace, NULL, 0, NcFile::Classic);
-
-		if (!dataFile.is_valid())
-		{
-			cout << "Couldn't open file!\n";
-		}
-
-		NcDim* xDim = dataFile.add_dim("DIMY", FSPACE_DIM2);
-		NcDim* yDim = dataFile.add_dim("DIMX", FSPACE_DIM1);
-		NcVar *atime = dataFile.add_var("arrival_time_of_front", ncDouble, xDim, yDim);
-
-		double emptyCell[INCELLSPACE1_DIM2][INCELLSPACE1_DIM1];
-		double goodCell[INCELLSPACE1_DIM2][INCELLSPACE1_DIM1];
-
-		for (i = 0; i < INCELLSPACE1_DIM2 ; i++){
-			for (j = 0; j < INCELLSPACE1_DIM1 ; j++){
-				emptyCell[i][j] = -9999;
-			}
-		}
-
-		int  cellActive[CELLSPACE1_DIM2][CELLSPACE1_DIM1];
-
-		for (i = 0; i < CELLSPACE1_DIM1 ; i++){
-			for (j = 0; j < CELLSPACE1_DIM2 ; j++){
-				atime->set_cur(j*INCELLSPACE1_DIM2,i*INCELLSPACE1_DIM1);
-				cellActive[j][i] = 0;
-				if ( cells[i][j].getBurningMap() != 0 ){
-					double* adata = (cells[i][j].getBurningMap()->getMap()->getData());
-					for (ii = 0; ii < INCELLSPACE1_DIM1 ; ii++){
-						for (jj = 0; jj < INCELLSPACE1_DIM2 ; jj++){
-							goodCell[jj][ii] =  (adata[ii*INCELLSPACE1_DIM2+jj]==numeric_limits<double>::infinity()?-9999:adata[ii*INCELLSPACE1_DIM2+jj]);
-						}
-					}
-					atime->put(&goodCell[0][0], INCELLSPACE1_DIM2, INCELLSPACE1_DIM1);
-					cellActive[j][i] = 01;
-				}else{
-					atime->put(&emptyCell[0][0], INCELLSPACE1_DIM2, INCELLSPACE1_DIM1);
-				}
-
-			}
-		}
-
-		NcDim* cxDim = dataFile.add_dim("C_DIMY", CELLSPACE1_DIM2);
-		NcDim* cyDim = dataFile.add_dim("C_DIMX", CELLSPACE1_DIM1);
-		NcVar *cell_active = dataFile.add_var("cell_active", ncInt, cxDim, cyDim);
-	    cell_active->put(&cellActive[0][0], CELLSPACE1_DIM2, CELLSPACE1_DIM1);
-
-		NcDim* domdim = dataFile.add_dim("domdim", 1);
-	    NcVar *dom = dataFile.add_var("domain", ncChar, domdim);
-	    dom->add_att("SWx", SWCorner.getX());
-	    dom->add_att("SWy", SWCorner.getY());
-	    dom->add_att("Lx", NECorner.getX()-SWCorner.getX());
-	    dom->add_att("Ly", NWCorner.getY()-SWCorner.getY());
-	    dom->add_att("Lz", 0);
-
-
-	    dom->add_att("refYear", refYear);
-	    dom->add_att("refDay", refDay);
-
-
-		cout << "*** SUCCESS writing " <<oss.str()<< endl;
-		dataFile.close();
-		
 	}
 	#endif
 	void FireDomain::visualizeBurningMatrixAroundNode(FireNode* fn){
