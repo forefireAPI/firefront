@@ -1,10 +1,10 @@
  
-from pyproj import Proj, transform
+from pyproj import Proj, transform, Transformer
 import numpy as np 
 from shapely.geometry import Polygon 
 from datetime import timedelta,datetime
  
-
+import os
 import re
 from PIL import Image, ImageDraw, ImageFont 
 import matplotlib.cm as cm
@@ -56,11 +56,11 @@ class ffData:
             self.wsen = wsen
             self.lbrt = lbrt
             self.area=0
-            localDate = baseDate 
+            self.localDate = baseDate 
             if filenamein is not None :
-                localDate = baseDate + timedelta(seconds=int(filenamein.split(".")[-1]))
+                self.localDate = baseDate + timedelta(seconds=int(filenamein.split(".")[-1]))
             self.mode="mnhPGD"
-            self.frontDate = localDate.isoformat()
+            self.frontDate = self.localDate.isoformat()
             
 
             
@@ -124,10 +124,34 @@ class ffData:
     
 
     
+    def getLLPolygon(self):
+        def process_front(front, is_main_front=True):
+            processed_front = []
+            for element in front:
+                if ffData.isPoint(element):
+                    processed_front.append(self.xy2lalo(element))
+                else:
+                    # Process nested fronts (holes) and keep them separate
+                    sub_front = process_front(element, is_main_front=False)
+                    if sub_front:
+                        if is_main_front:
+                            # Add sub-fronts as holes in the main front
+                            processed_front.append(sub_front)
+                        else:
+                            # Add sub-fronts to the polygon list directly
+                            self.inLLpolygon.append(sub_front)
+            return processed_front
     
+        if len(self.inXYpolygon) > len(self.inLLpolygon):
+            for front in self.inXYpolygon:
+                main_front = process_front(front)
+                if main_front:
+                    self.inLLpolygon.append(main_front)
+    
+        return self.inLLpolygon
     
            
-    def getLLPolygon(self, ):
+    def getLLPolygonOrigin(self, ):
         if len(self.inXYpolygon) > len(self.inLLpolygon):
             for front in self.inXYpolygon:
                 fa = []
@@ -156,6 +180,83 @@ class ffData:
     
     def toVTK(self, ):
         return 0
+
+
+    
+    
+    def getFlattenPathArrays(self,projString = 'epsg:32632'): # default UTM32
+        import matplotlib.path as mpath
+     
+        wgs84 = Proj('epsg:4326')
+        lambert4_carto = Proj(projString)
+        transformer = Transformer.from_proj(wgs84, lambert4_carto)
+        
+        def latlon_to_lambert4(lat, lon):
+            # Convertir de WGS84 Lat/Lon à Lambert 4 Carto
+            x, y = transformer.transform( lat,lon)
+            return x, y
+        
+        def polygon_area(path):
+            # Calculer l'aire d'un polygone défini par un Path
+            vertices = path.vertices
+            n = len(vertices)
+            area = 0.5 * np.sum(vertices[i][0]*vertices[(i+1)%n][1] - vertices[(i+1)%n][0]*vertices[i][1] for i in range(n))
+            return area
+        
+        def create_pathes_from_polygon(polygons):
+            mainfronts = []
+            otherfronts = []
+        
+            # Séparer les points principaux et les autres fronts
+            for polygon in polygons:
+          
+                newFront = []
+                for elem in polygon:
+                    if (len(elem) == 3):
+                        newFront.append(elem)  # Inverser lat, lon si nécessaire
+                    else:
+                        
+                        otherfronts.append(elem)
+                mainfronts.append(newFront[::-1])
+                
+            for polygon in otherfronts:
+             
+                newFront = []
+                for elem in polygon:
+                    if (len(elem) == 3):
+                        newFront.append(elem)  # Inverser lat, lon si nécessaire
+                    else:
+                        print("------should not be here ",len(elem))
+                       
+                mainfronts.append(newFront[::-1])
+                
+        
+   
+        
+            
+            # Créer un Path pour chaque front
+            paths = []
+            for front in mainfronts:
+                lambert_points = [latlon_to_lambert4(lat, lon) for lat, lon, _ in front]
+                paths.append(mpath.Path(np.array(lambert_points, dtype=np.float64)))
+        
+            return sorted(paths, key=polygon_area)[::-1]
+         
+        
+
+
+        ll = self.getLLPolygon()
+        
+        boollArrays = []
+        areaArrays = []
+        lambertArrays = create_pathes_from_polygon(ll)
+        for path in lambertArrays:
+            area = polygon_area(path)
+            is_ccw = area > 0
+            boollArrays.append(is_ccw)
+            areaArrays.append(area)
+    
+        return lambertArrays, boollArrays, areaArrays 
     
     def toGeoJson(self, ):
         llPoly = self.getLLPolygon()
@@ -253,6 +354,32 @@ class ffData:
                     pointsMap.append(printToPolygons(subline,level+1))
 
             return pointsMap
+        def process_fronts(fronts):
+            main_front = []
+            other_fronts = []
+        
+            def process_subfronts(front, level=0):
+                subfront = []
+                for element in front:
+                    if ffData.isPoint(element):
+                        if level == 0:
+                            main_front.append(element)
+                        else:
+                            subfront.append(element)
+                    else:
+                        other_fronts.append(process_subfronts(element, level+1))
+                return subfront if subfront else None
+        
+            for front in fronts:
+                subfront = process_subfronts(front)
+                if subfront:
+                    other_fronts.append(subfront)
+        
+            # Clean other_fronts to remove empty or None entries
+            other_fronts = [front for front in other_fronts if front]
+        
+            return main_front, other_fronts
+        # Usage
         
         self.inXYpolygon = []
         f = open(self.fname, 'r')
@@ -268,18 +395,29 @@ class ffData:
         f.close()
         
         metaHelper = []
-        for front in self.inXYpolygon :
-            mainfront = []
-            otherfronts = []
-            for element in front:
-                if ffData.isPoint(element): 
-                    mainfront.append(element)
-                else:
-                    otherfronts.append(element)
+        mainfront, otherfronts = process_fronts(self.inXYpolygon)
+        # for front in self.inXYpolygon :
+        #     mainfront = []
+        #     otherfronts = []
+        #     for element in front:
+        #         if ffData.isPoint(element): 
+        #             mainfront.append(element)
+        #         else:
+        #             newFront= []
+        #             for subelement in element:
+        #                 if ffData.isPoint(subelement): 
+        #                     newFront.append(subelement)
+        #                 else:
+        #                     for subsubelement in subelement:
+        #                         if ffData.isPoint(subelement): 
+        #                             .......
+        #                         else:
+        #                             print("OmitingSubfront")
+        #             otherfronts.append(newFront)
  
-            metaHelper.append(mainfront[::-1])
-            for element in otherfronts:
-                metaHelper.append(element[::-1])
+        metaHelper.append(mainfront[::-1])
+        for element in otherfronts:
+            metaHelper.append(element[::-1])
                             
         self.metadata = {}   
         self.metadata["numberOfPolygons"]=  len(metaHelper)
@@ -287,15 +425,16 @@ class ffData:
         totalLength = 0
         
         for na,a in enumerate(metaHelper):
-             pgon = Polygon(a)
-             self.metadata["P%d"%na]={"area":pgon.area,"perimeter":pgon.length, "directWinding":pgon.exterior.is_ccw}
-             totalLength = totalLength+pgon.length
-             totalArea = totalArea+pgon.area
+            pgon = Polygon(a)
+            self.metadata["P%d"%na]={"area":pgon.area,"perimeter":pgon.length, "directWinding":pgon.exterior.is_ccw}
+       
+            totalLength = totalLength+pgon.length
+            totalArea += pgon.area if pgon.exterior.is_ccw else -pgon.area
+
         
         self.metadata["totalLength"]=  totalLength
         self.metadata["totalArea"]=  totalArea
-
-
+       
 
 def get_WSEN_LBRT_ZS_From_Pgd(pgd_path):
     pgd = xr.load_dataset(pgd_path)
@@ -439,7 +578,7 @@ def create_kml(west, south, east, north, Name, pngfile, outkml_path, pngcbarfile
             <overlayXY x="0" y="0" xunits="fraction" yunits="fraction"/>
             <screenXY x="0.05" y="0.05" xunits="fraction" yunits="fraction"/>
             <rotationXY x="0.5" y="0.5" xunits="fraction" yunits="fraction"/>
-            <size x="50" y="200" xunits="pixels" yunits="pixels"/>
+            <size x="60" y="300" xunits="pixels" yunits="pixels"/>
         </ScreenOverlay>'''
     
     kml_template += '''
@@ -493,7 +632,7 @@ def draw_arrows_on_image(image, vx, vy, scale=10):
 
 
 
-def arrayToPng(data, output_filename, output_cbar_png=None, cmap_str = "viridis",vx=None, vy=None, scale=10):
+def arrayToPng(data, output_filename, output_cbar_png=None, cmap_str = "viridis",vx=None, vy=None, scale=10, tickRatio=100000):
 
 
     # Normaliser les données entre 0 et 255
@@ -501,7 +640,7 @@ def arrayToPng(data, output_filename, output_cbar_png=None, cmap_str = "viridis"
     vmin = np.nanmin(data)
     vmax = np.nanmax(data)
      
-    
+    print(vmin, vmax)
     imsize=(data.shape[0]*scale, data.shape[1]*scale)
     revdata = np.flipud(data)
     
@@ -544,12 +683,13 @@ def arrayToPng(data, output_filename, output_cbar_png=None, cmap_str = "viridis"
         default_font = ImageFont.load_default()
         
         tick_positions = [0, height // 4, height // 2, 3 * height // 4, height - 1]
+         
         tick_labels = [
-            str(vmax), 
-            str(vmin + 0.75 * (vmax - vmin)), 
-            str((vmax + vmin) / 2), 
-            str(vmin + 0.25 * (vmax - vmin)), 
-            str(vmin)
+            str(tickRatio*(vmax)), 
+            str(tickRatio*(vmin + 0.75 * (vmax - vmin))), 
+            str(tickRatio*((vmax + vmin) / 2)), 
+            str(tickRatio*(vmin + 0.25 * (vmax - vmin))), 
+            str(tickRatio*(vmin))
         ]
         
         # Draw the ticks and labels
@@ -603,7 +743,7 @@ def generate_indexed_png_and_legend(legend_file_path, tif_file_path, output_inde
             class_names[index] = class_name
             
         normalized_colors = [normalize_rgb(color_palette[val]) for val in sorted(color_palette.keys())]
-        all_labels = [class_names[val] for val in sorted(class_names.keys())]
+        all_labels = [f"{val}:{class_names[val]}" for val in sorted(class_names.keys())]
          
         # Create the colorbar figure
         fig, ax = plt.subplots(figsize=(2, 10))
@@ -620,7 +760,7 @@ def generate_indexed_png_and_legend(legend_file_path, tif_file_path, output_inde
             ax.text(1.2, i + 0.5, label, va='center', backgroundcolor=(1, 1, 1, 0))  # Last tuple element sets alpha to 0
          
         # Set limits and aspect ratio
-        ax.set_xlim(0, 2)
+        ax.set_xlim(0, 3)
         ax.set_ylim(0, len(all_labels))
         ax.set_aspect('auto')
          
@@ -665,7 +805,85 @@ def plotRos(PGDFILE, BMAPFILE,max_speed_filter=1.0):
     #ros[ros == np.nan] = vmax
     plt.imshow(ros[:,:],vmin=vmin,vmax=vmax)
 
-def genKMLFiles(PGDFILE, BMAPFILE, FFINPUTPATTERN, BMAPKMLOUT,frontsKMLOUT, everyNFronts=1,change_color_every=6,btslice=None):
+
+
+def extract_last_number(filepath):
+    import re
+
+    # Extraire le nom de base du fichier (sans le chemin)
+    base = os.path.basename(filepath)
+    
+    # Utiliser une expression régulière pour trouver tous les nombres dans le nom de fichier
+    numbers = re.findall(r'\d+', base)
+    
+    # Renvoyer le dernier nombre trouvé, converti en entier
+    return int(numbers[-1]) if numbers else 0
+
+def genCostDict(PGDFILE, BMAPFILE, FFINPUTPATTERN,everyNFronts=1,btslice=None):
+    dBmap = xr.open_dataset(BMAPFILE)
+    baseDate= datetime(int(dBmap.domain.refYear), 1, 1, 0, 0, 0, 0)
+    baseDate= baseDate+timedelta(days=int(dBmap.domain.refDay))
+    wsen, lbrt, ZS = get_WSEN_LBRT_ZS_From_Pgd(PGDFILE)
+    west, south, east, north = wsen
+
+    
+    contours1  = glob.glob(FFINPUTPATTERN)
+        
+    lCnt=[]
+    larea=[]
+ 
+    selectionSorted =  sorted(contours1 ,key=extract_last_number)  
+    if btslice is not None:
+         selectionSorted = selectionSorted[btslice[0]:btslice[1]]
+         
+    selectionCutSorted =  sorted(selectionSorted[::everyNFronts],key=extract_last_number) 
+ 
+    nSample = len(selectionCutSorted)
+    
+    costTimeFormat = '%Y%m%d-%H%M%S'
+    oD = {}
+    oD['start_datetime'] = baseDate.strftime(costTimeFormat)
+    oD['indices'] = ['43']
+    oD['scalar_input_data'] = []    
+    oD['scalar_label'] = []
+    oD['temporal_label'] = ['u', 'v', 'Ta', 'Md', 'Wind speed norm [m/s]']
+    oD['temporal_input_data'] =  list(np.zeros((5,nSample)))
+
+    contour_datetime = [None] * nSample 
+    area = [None] * nSample 
+    positive = [None] * nSample 
+    contour = [None] * nSample 
+
+    print(nSample, " contours to process")
+    
+    for i,contourFile  in enumerate(selectionCutSorted):
+        f = ffData(contourFile,mode = "mnhPGD", baseDate=baseDate,wsen=wsen)
+        pathes,booleans,surfaces = f.getFlattenPathArrays()
+        contour_datetime[i] = f.localDate.strftime(costTimeFormat)
+        area[i] = surfaces
+        positive[i] = booleans
+        contour[i] = pathes
+   
+    
+    oD['contour_datetime'] = contour_datetime
+    oD['area'] = [area]
+    oD['positive'] = [positive]
+    oD['contour'] = [contour]
+
+    return oD
+    
+    
+    # if btslice is not None:
+    #     selectionSorted = selectionSorted[btslice[0]:btslice[1]]
+    # for contour in selectionSorted[::everyNFronts]:
+    #     f = ffData(contour,mode = "mnhPGD", baseDate=baseDate,wsen=wsen)
+    #     lCnt.append((f.toGeoJson(),f = ffData(contour,mode = "mnhPGD", baseDate=baseDate,wsen=wsen)))
+    #     larea.append((f.metadata["totalArea"],f.frontDate))
+    # with open(frontsKMLOUT, "w") as text_file:
+    #     text_file.write(to_timed_kml(lCnt, croll=change_color_every))
+     
+
+def genKMLFiles(PGDFILE, BMAPFILE, FFINPUTPATTERN, BMAPKMLOUT,frontsKMLOUT, everyNFronts=1,change_color_every=6,btslice=None,tickRatio=60000):
 
     dBmap = xr.open_dataset(BMAPFILE)
     baseDate= datetime(int(dBmap.domain.refYear), 1, 1, 0, 0, 0, 0)
@@ -677,13 +895,15 @@ def genKMLFiles(PGDFILE, BMAPFILE, FFINPUTPATTERN, BMAPKMLOUT,frontsKMLOUT, ever
     contours1  = glob.glob(FFINPUTPATTERN)
         
     lCnt=[]
+    larea=[]
     import os
-    selectionSorted =  sorted(contours1)   
+    selectionSorted =  sorted(contours1, key=extract_last_number)  
     if btslice is not None:
         selectionSorted = selectionSorted[btslice[0]:btslice[1]]
     for contour in selectionSorted[::everyNFronts]:
         f = ffData(contour,mode = "mnhPGD", baseDate=baseDate,wsen=wsen)
         lCnt.append((f.toGeoJson(),f.frontDate))
+        larea.append((f.metadata["totalArea"],f.frontDate))
     with open(frontsKMLOUT, "w") as text_file:
         text_file.write(to_timed_kml(lCnt, croll=change_color_every))
     
@@ -691,12 +911,12 @@ def genKMLFiles(PGDFILE, BMAPFILE, FFINPUTPATTERN, BMAPKMLOUT,frontsKMLOUT, ever
     
    
     fdat.setATimeMatrix(dBmap.arrival_time_of_front.values)
-    ros = fdat.getROSMatrix()
+    ros = fdat.getROSMatrix(max_speed_filter=0.3)
 
-    arrayToPng(ros, BMAPKMLOUT+"ROS.png", output_cbar_png=BMAPKMLOUT+"ROSCBAR.png")
+    arrayToPng(ros, BMAPKMLOUT+"ROS.png", output_cbar_png=BMAPKMLOUT+"ROSCBAR.png",tickRatio=tickRatio)
     
     create_kml(west, south, east, north,"ROS", BMAPKMLOUT+"ROS.png",  BMAPKMLOUT, pngcbarfile=BMAPKMLOUT+"ROSCBAR.png")
-    
+  
     #bmap2kml(dBmap,wsen,BMAPKMLOUT+"2.kml")
 
 def ffFromPgd(PGDFILE,domainDate=None,ignitions = None, fuel_test = None):

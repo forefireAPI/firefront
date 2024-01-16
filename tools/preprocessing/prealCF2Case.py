@@ -17,7 +17,7 @@
 import numpy as np
 import netCDF4 as nc4
 from PIL import Image
-
+from .ffToGeoJson import get_WSEN_LBRT_ZS_From_Pgd
  
 def addFieldToNcFile(ncfile, field, fieldname, typeName, dvartype):
         print("adding ", fieldname)
@@ -126,7 +126,7 @@ def FiretoNC(filename, domainProperties, parametersProperties, fuelModelMap, ele
 def PGD2Case(pgd_path, png_path, out_path, dateStartDom, fuel_test=None, gen_wind=None):
     WSEN, LBRT, ZS = get_WSEN_LBRT_ZS_From_Pgd(pgd_path)
     image2Case(WSEN, LBRT, ZS, png_path, out_path, dateStartDom, fuel_test=fuel_test, gen_wind=gen_wind)
-    
+
     
 def image2Case(WSEN, LBRT, ZS, png_path, out_path, dateStartDom, fuel_test=None, gen_wind=None):
     
