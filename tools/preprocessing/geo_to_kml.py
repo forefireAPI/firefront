@@ -44,18 +44,15 @@ def to_timed_kml(geo_jsonAndStamp: list,croll=1):
     Convert to kml from geoJsons and timestamps
     """
     distinct_colors = [
-        '#FF0000FF',  # Red
-        '#FFFF00FF',  # Yellow
-        '#FF00FF00',  # Green
-        '#FF00FFFF',  # Cyan
-        '#FF0000FF',  # Blue
-        '#FFFF00FF',  # Magenta
-        '#FF888888',  # Gray
-        '#FFCC6600',  # Orange
-        '#FF993399',  # Purple
-        '#FF669999',  # Teal
-        '#FF3366CC',  # Royal Blue
-        '#FF990000',  # Maroon
+        '#FFFF00FF',  # 
+        '#FF000000',  # 
+        '#FF000000',  # 
+        '#FF0000FF',  # 
+        '#FF000000',  # 
+        '#FF000000',  # 
+        '#FF00AAFF',  # 
+        '#FF000000',  # 
+        '#FF000000',  # 
     ]
     tdata = ""
     nc=0

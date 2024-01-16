@@ -24,7 +24,7 @@ from PIL import Image
 import rasterio
 from rasterio.warp import calculate_default_transform, reproject, transform_bounds, Resampling
 import numpy as np
-from . import get_WSEN_LBRT_ZS_From_Pgd,create_kml,generate_indexed_png_and_legend
+from .ffToGeoJson import create_kml,generate_indexed_png_and_legend
 
 
 attribute_widths_road_edge_full = {
@@ -93,10 +93,10 @@ attribute_widths_road_Edge_heavu = {
     'cycleway': 1,
 }
 attribute_widths_road_Edge = {
-    'secondary': 2,
+    'secondary': 1,
     'track': 0.5,
-    'tertiary': 1,
-    'primary': 3,
+    'tertiary': 0.7,
+    'primary': 1.5,
 }
 
 def extract_subregion(input_tif, output_tif, westI, southI, eastI, northI):
