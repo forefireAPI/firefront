@@ -17,7 +17,6 @@ License along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 
 */
-
 #include "Command.h"
 using namespace std;
 
@@ -53,7 +52,22 @@ vector<string> Command::outputDirs;
 
 Command::Session Command::currentSession =
 {
+	/*struct Session{
+		SimulationParameters* params;
+		FireDomain* fd;
+		FireDomain* fdp;
+		FireFront* ff;
+		StringRepresentation* outStrRep;
+		StringRepresentation* outStrRepp;
+		TimeTable* tt;
+		Simulator* sim;
+		ostream* outStream;
+		int debugMode;
+	};*/
+
 		SimulationParameters::GetInstance(),
+		0,
+		0,
 		0,
 		0,
 		0,
@@ -62,7 +76,7 @@ Command::Session Command::currentSession =
 		&cout,
 		0,
 };
-FireDomain* Command::domain = 0;
+ 
 
 // Construction of the dictionary
 Command::CmdDictEntry Command::cmdDict[] =	{
@@ -89,6 +103,7 @@ Command::CmdDictEntry Command::cmdDict[] =	{
 const Command::commandMap Command::translator = Command::makeCmds();
 const Command::commandMan Command::manpages = Command::makeMan();
 
+ 
 // Defaults constructor and destructor for the 'Command' abstract class
 Command::Command() {
 
@@ -101,6 +116,7 @@ void Command::increaseLevel(){
 	currentLevel++;
 }
 
+
 void Command::decreaseLevel(){
 	currentLevel--;
 }
@@ -108,10 +124,7 @@ void Command::decreaseLevel(){
 int Command::createDomain(const string& arg, size_t& numTabs){
 
 	if ( currentSession.fd != 0 ){
-		cout<<"WARNING: you are trying to construct a new FireDomain "
-				<<"whereas one is already instantiated. You most probably "
-				<<"have a FireDomain command in your initialization file "
-				<<"while coupling ForeFire with an atmospheric model..."<<endl;
+	 
 	}
 
 	size_t n = argCount(arg);
@@ -123,29 +136,58 @@ int Command::createDomain(const string& arg, size_t& numTabs){
 		setStartTime(t);
 		setReferenceTime(t);
 		/* creating the domain */
-		currentSession.fd = new FireDomain(t, SW, NE);
-		/* setting up the pointer to the domain */
-		domain = currentSession.fd;
-		/* creating the related timetable and simulator */
-		currentSession.tt = new TimeTable(new FFEvent(domain));
-		currentSession.sim = new Simulator(currentSession.tt
-				, currentSession.fd->outputs);
-		domain->setTimeTable(currentSession.tt);
-		/* linking to the domain front */
-		currentSession.ff = domain->getDomainFront();
-		/* managing the outputs */
-		ostringstream ffOutputsPattern;
-		ffOutputsPattern<<currentSession.params->getParameter("caseDirectory")<<'/'
-				<<currentSession.params->getParameter("fireOutputDirectory")<<'/'
-				<<currentSession.params->getParameter("outputFiles")
-				<<"."<<domain->getDomainID();
-		currentSession.params->setParameter("ffOutputsPattern", ffOutputsPattern.str());
-		currentSession.outStrRep = new StringRepresentation(domain);
-		if ( currentSession.params->getInt("outputsUpdate") != 0 ){
-			currentSession.tt->insert(new FFEvent(currentSession.outStrRep));
-		}
+		if ( currentSession.fd != 0 ){
+ 
+			if(currentSession.fd->getDomainID() == 1){
+				
+				currentSession.params->setParameter("runmode", "masterMNH");
+				currentSession.fdp = new FireDomain(t, SW, NE);
+				currentSession.fdp->setTimeTable(currentSession.tt);
+				//currentSession.ff = currentSession.fdp->getDomainFront();
+				
+				ostringstream ffOutputsFNAME;
+				ffOutputsFNAME<<currentSession.params->getParameter("caseDirectory")<<'/'
+						<<currentSession.params->getParameter("fireOutputDirectory")<<'/'
+						<<currentSession.params->getParameter("outputFiles")
+						<<"."<<currentSession.fdp->getDomainID();
+				currentSession.params->setParameter("PffOutputsPattern", ffOutputsFNAME.str());
+				currentSession.outStrRepp = new StringRepresentation(currentSession.fdp);
+				currentSession.outStrRepp->setOutPattern(ffOutputsFNAME.str());
+				if ( currentSession.params->getInt("outputsUpdate") != 0 ){
+					currentSession.tt->insert(new FFEvent(currentSession.outStrRepp));
+					
+				}
+				
+				
+			}
+		}else{
+			currentSession.fd = new FireDomain(t, SW, NE);
+			
+		
+			/* setting up the pointer to the domain */
+		
+
+			/* creating the related timetable and simulator */
+			currentSession.tt = new TimeTable(new FFEvent(getDomain()));
+			currentSession.sim = new Simulator(currentSession.tt
+					, currentSession.fd->outputs);
+			getDomain()->setTimeTable(currentSession.tt);
+			/* linking to the domain front */
+			currentSession.ff = getDomain()->getDomainFront();
+			/* managing the outputs */
+			ostringstream ffOutputsPattern;
+			ffOutputsPattern<<currentSession.params->getParameter("caseDirectory")<<'/'
+					<<currentSession.params->getParameter("fireOutputDirectory")<<'/'
+					<<currentSession.params->getParameter("outputFiles")
+					<<"."<<getDomain()->getDomainID();
+			currentSession.params->setParameter("ffOutputsPattern", ffOutputsPattern.str());
+			currentSession.outStrRep = new StringRepresentation(currentSession.fd);
+			if ( currentSession.params->getInt("outputsUpdate") != 0 ){
+				currentSession.tt->insert(new FFEvent(currentSession.outStrRep));
+			}
 		/* increasing the level */
-		increaseLevel();
+			increaseLevel();
+		}
 		/* local copy of the reference time */
 		return normal;
 	} else {
@@ -154,20 +196,35 @@ int Command::createDomain(const string& arg, size_t& numTabs){
 }
 
 int Command::startFire(const string& arg, size_t& numTabs){
+	
 	size_t n = argCount(arg);
     if (n < 2) {
         throw MissingTime();
     }
+
+	if( getDomain()->getDomainID() > 0 ){
+		 
+			return normal;
+	}
     
+	FireDomain* refDomain = getDomain();
+	//if (currentSession.fdp != 0) {
+	//		cout<<"Starting fire reference from "<<refDomain->getDomainID()<<" to "<<currentSession.fdp->getDomainID()<<endl;
+     //       refDomain = currentSession.fdp;
+      //  } 
+
+		
+	  
     SimulationParameters *simParam = SimulationParameters::GetInstance();
     
     FFPoint pos = getPoint("loc", arg);
-    if (domain->striclyWithinDomain(pos))
+    if ((refDomain->striclyWithinDomain(pos)))
     {
         if (currentSession.ff != 0) {
             completeFront(currentSession.ff);
         }
 
+		
         double t = getFloat("t", arg);
         
         if (t == FLOATERROR) 
@@ -189,7 +246,7 @@ int Command::startFire(const string& arg, size_t& numTabs){
                     << endl << "DATE OF FIRE : " << date << endl << "SECS BETWEEN BOTH : " << t << endl << endl;
         }
         
-        double perimRes = domain->getPerimeterResolution() * 2;
+        double perimRes = refDomain->getPerimeterResolution() * 2;
         int fdom = getInt("domain", arg);
         if ( fdom == INTERROR ) fdom = 0;
 
@@ -197,7 +254,7 @@ int Command::startFire(const string& arg, size_t& numTabs){
         double kappa = 0.;
         string state = "init";
         FireFront* contfront = currentSession.ff->getContFront();
-        currentSession.ff = domain->addFireFront(t, contfront);
+        currentSession.ff = refDomain->addFireFront(t, contfront);
 
         FFVector vel1 = FFVector(0, 1);
         FFVector vel2 = FFVector(1, -1);
@@ -212,16 +269,16 @@ int Command::startFire(const string& arg, size_t& numTabs){
         
         vel1 *= 0.1;
         vel2 *= 0.1;
-        vel3 *= 0.1;
+        vel3 *= 0.1; 
 
+        FireNode* lastnode = refDomain->addFireNode(pos1, vel1, t, fdepth, kappa, currentSession.ff, 0);
+        lastnode = refDomain->addFireNode(pos2, vel2, t, fdepth, kappa, currentSession.ff, lastnode);
+        refDomain->addFireNode(pos3, vel3, t, fdepth, kappa, currentSession.ff, lastnode); 
 
-        FireNode* lastnode = domain->addFireNode(pos1, vel1, t, fdepth, kappa, currentSession.ff, 0);
-        lastnode = domain->addFireNode(pos2, vel2, t, fdepth, kappa, currentSession.ff, lastnode);
-        domain->addFireNode(pos3, vel3, t, fdepth, kappa, currentSession.ff, lastnode);
-        completeFront(currentSession.ff);
+		completeFront(currentSession.ff); 
     }
     
-    //simParam->setParameter("ISOdate", simParam->FormatISODate(simParam->getInt("refTime") + domain->getSimulationTime(), domain->getReferenceYear(), domain->getReferenceDay()));
+    //simParam->setParameter("ISOdate", simParam->FormatISODate(simParam->getInt("refTime") + refDomain->getSimulationTime(), refDomain->getReferenceYear(), refDomain->getReferenceDay()));
     
 	return normal;
 }
@@ -239,7 +296,7 @@ int Command::createFireFront(const string& arg, size_t& numTabs){
 			}
 			/* creating the new front */
 			FireFront* contfront = currentSession.ff->getContFront();
-			currentSession.ff = domain->addFireFront(t, contfront);
+			currentSession.ff = getDomain()->addFireFront(t, contfront);
 
 		} else if (  numTabs > currentLevel ) {
 
@@ -248,7 +305,7 @@ int Command::createFireFront(const string& arg, size_t& numTabs){
 			currentFrontCompleted = false;
 			/* creation of an inner front to the current one */
 			FireFront* contfront = currentSession.ff;
-			currentSession.ff = domain->addFireFront(t, contfront);
+			currentSession.ff = getDomain()->addFireFront(t, contfront);
 			currentLevel = numTabs;
 
 		} else if ( numTabs < currentLevel ){
@@ -261,7 +318,7 @@ int Command::createFireFront(const string& arg, size_t& numTabs){
 			for ( size_t k=0; k < currentLevel-numTabs; k++ ) {
 				contfront = contfront->getContFront();
 			}
-			currentSession.ff = domain->addFireFront(t, contfront);
+			currentSession.ff = getDomain()->addFireFront(t, contfront);
 			currentLevel = numTabs;
 
 		}
@@ -277,7 +334,7 @@ int Command::addFireNode(const string& arg, size_t& numTabs){
 	if ( lastReadLoc == 0 ) lastReadLoc = new FFPoint(-numeric_limits<double>::infinity(),-numeric_limits<double>::infinity());
 
 	size_t n = argCount(arg);
-	double perimRes = domain->getPerimeterResolution();
+	double perimRes = getDomain()->getPerimeterResolution();
 	if ( n >= 3 ) {
 		FFPoint pos = getPoint("loc", arg);
 		FFVector vel = getVector("vel", arg);
@@ -294,28 +351,28 @@ int Command::addFireNode(const string& arg, size_t& numTabs){
 		string state = getString("state", arg);
 		if ( state == stringError or state == "moving" ) state = "init";
 		if ( numTabs != currentLevel + 1 ) {
-			cout<<currentSession.fd->getDomainID()<<": WARNING : asked for a FireNode "
+			cout<<getDomain()->getDomainID()<<": WARNING : asked for a FireNode "
 					<<" with wrong indentation, treating it the current fire front"<<endl;
 		}
 
 		if ( state == "link" ){
 
 			/* Creating a link node */
-			previousNode = domain->addFireNode(pos, vel, t
+			previousNode = getDomain()->addFireNode(pos, vel, t
 					, fdepth, kappa, currentSession.ff, previousNode
 					, fdom, id , FireNode::link);
-			if ( domain->commandOutputs ) cout<<domain->getDomainID()<<": INIT -> added "<<previousNode->toString()<<endl;
+			if ( getDomain()->commandOutputs ) cout<<getDomain()->getDomainID()<<": INIT -> added "<<previousNode->toString()<<endl;
 
 		} else if ( state == "final" ){
 
 				/* Creating a link node */
-				previousNode = domain->addFireNode(pos, vel, t
+				previousNode = getDomain()->addFireNode(pos, vel, t
 						, fdepth, kappa, currentSession.ff, previousNode
 						, fdom, id , FireNode::final);
-				if ( domain->commandOutputs ) cout<<domain->getDomainID()<<": INIT -> added "<<previousNode->toString()<<endl;
+				if ( getDomain()->commandOutputs ) cout<<getDomain()->getDomainID()<<": INIT -> added "<<previousNode->toString()<<endl;
 
-		} else if ( domain->striclyWithinDomain(pos)
-				and domain->striclyWithinDomain(*lastReadLoc) ){
+		} else if ( getDomain()->striclyWithinDomain(pos)
+				and getDomain()->striclyWithinDomain(*lastReadLoc) ){
 
 			/* Both nodes are within the domain and represent real firenodes */
 			/* checking the distance between the two nodes */
@@ -331,24 +388,24 @@ int Command::addFireNode(const string& arg, size_t& numTabs){
 				ipos = previousNode->getLoc() + posinc;
 				ivel = previousNode->getVel() + velinc;
 				itime = previousNode->getTime() + timeinc;
-				previousNode = domain->addFireNode(ipos, ivel, itime
+				previousNode = getDomain()->addFireNode(ipos, ivel, itime
 						, fdepth, kappa, currentSession.ff, previousNode);
-				if ( domain->commandOutputs )
-					cout<<domain->getDomainID()<<": INIT -> added inter-node "
+				if ( getDomain()->commandOutputs )
+					cout<<getDomain()->getDomainID()<<": INIT -> added inter-node "
 					<<previousNode->toString()<<endl;
 			}
 			// creating the firenode
-			previousNode = domain->addFireNode(pos, vel, t
+			previousNode = getDomain()->addFireNode(pos, vel, t
 					, fdepth, kappa, currentSession.ff, previousNode, fdom, id);
-			if ( domain->commandOutputs ) cout<<domain->getDomainID()
+			if ( getDomain()->commandOutputs ) cout<<getDomain()->getDomainID()
 					<<": INIT -> added "<<previousNode->toString()<<endl;
 
-		} else if ( !domain->striclyWithinDomain(pos)
-				and domain->striclyWithinDomain(*lastReadLoc) ){
+		} else if ( !getDomain()->striclyWithinDomain(pos)
+				and getDomain()->striclyWithinDomain(*lastReadLoc) ){
 
-			FFPoint linkPoint = domain->findIntersectionWithFrontiers(
+			FFPoint linkPoint = getDomain()->findIntersectionWithFrontiers(
 					pos, *lastReadLoc);
-			rightLinkNode = domain->addLinkNode(linkPoint);
+			rightLinkNode = getDomain()->addLinkNode(linkPoint);
 			/* checking the distance between the two nodes */
 			double distanceBetweenNodes = linkPoint.distance2D(previousNode->getLoc());
 			if ( distanceBetweenNodes > 2.*perimRes ){
@@ -357,34 +414,34 @@ int Command::addFireNode(const string& arg, size_t& numTabs){
 				FFPoint ipos;
 				for ( int k = 0; k < interNodes; k++ ){
 					ipos = previousNode->getLoc() + posinc;
-					previousNode = domain->addFireNode(ipos, vel, t
+					previousNode = getDomain()->addFireNode(ipos, vel, t
 							, fdepth, kappa, currentSession.ff, previousNode);
-					if ( domain->commandOutputs )
-						cout<<domain->getDomainID()<<": INIT -> added inter-node "
+					if ( getDomain()->commandOutputs )
+						cout<<getDomain()->getDomainID()<<": INIT -> added inter-node "
 						<<previousNode->toString()<<endl;
 				}
 			}
 			previousNode->insertAfter(rightLinkNode);
-			if ( leftLinkNode != 0 ) domain->relateLinkNodes(rightLinkNode, leftLinkNode);
+			if ( leftLinkNode != 0 ) getDomain()->relateLinkNodes(rightLinkNode, leftLinkNode);
 
-		} else if ( domain->striclyWithinDomain(pos)
-				and !domain->striclyWithinDomain(*lastReadLoc) ){
+		} else if ( getDomain()->striclyWithinDomain(pos)
+				and !getDomain()->striclyWithinDomain(*lastReadLoc) ){
 
 			if ( lastReadLoc->getX() == -numeric_limits<double>::infinity() ){
 
 				/* First node to be created */
-				previousNode = domain->addFireNode(pos, vel, t, fdepth, kappa
+				previousNode = getDomain()->addFireNode(pos, vel, t, fdepth, kappa
 						, currentSession.ff, previousNode, fdom, id);
-				if ( domain->commandOutputs )
-					cout<<domain->getDomainID()<<": INIT -> added "<<previousNode->toString()<<endl;
+				if ( getDomain()->commandOutputs )
+					cout<<getDomain()->getDomainID()<<": INIT -> added "<<previousNode->toString()<<endl;
 
 			} else {
 
 				/* Creating a link node */
 				FFPoint linkPoint =
-						domain->findIntersectionWithFrontiers(
+						getDomain()->findIntersectionWithFrontiers(
 								pos, *lastReadLoc);
-				leftLinkNode = domain->addLinkNode(linkPoint);
+				leftLinkNode = getDomain()->addLinkNode(linkPoint);
 				if ( rightLinkNode != 0 ) {
 					currentSession.ff->addFireNode(leftLinkNode, rightLinkNode);
 				} else {
@@ -400,17 +457,17 @@ int Command::addFireNode(const string& arg, size_t& numTabs){
 					FFPoint ipos;
 					for ( int k = 0; k < interNodes; k++ ){
 						ipos = previousNode->getLoc() + posinc;
-						previousNode = domain->addFireNode(ipos, vel, t
+						previousNode = getDomain()->addFireNode(ipos, vel, t
 								, fdepth, kappa, currentSession.ff, previousNode);
-						if ( domain->commandOutputs )
-							cout<<domain->getDomainID()<<": INIT -> added inter-node "
+						if ( getDomain()->commandOutputs )
+							cout<<getDomain()->getDomainID()<<": INIT -> added inter-node "
 							<<previousNode->toString()<<endl;
 					}
 				}
 				// creating the firenode
-				previousNode = domain->addFireNode(pos, vel, t
+				previousNode = getDomain()->addFireNode(pos, vel, t
 						, fdepth, kappa, currentSession.ff, previousNode, fdom, id);
-				if ( domain->commandOutputs ) cout<<domain->getDomainID()
+				if ( getDomain()->commandOutputs ) cout<<getDomain()->getDomainID()
 						<<": INIT -> added "<<previousNode->toString()<<endl;
 			}
 
@@ -430,7 +487,7 @@ void Command::completeFront(FireFront* ff){
 	FireNode* firstNode = ff->getHead();
 	FireNode* lastNode = firstNode->getPrev();
 	if ( firstNode->getState() == FireNode::init and lastNode->getState() == FireNode::init ){
-		double perimRes = domain->getPerimeterResolution();
+		double perimRes = getDomain()->getPerimeterResolution();
 		double distanceBetweenNodes = lastNode->distance2D(firstNode);
 		double fdepth = 0.5*(firstNode->getFrontDepth()+lastNode->getFrontDepth());
 		double kappa = 0.5*(firstNode->getCurvature()+lastNode->getCurvature());
@@ -450,19 +507,19 @@ void Command::completeFront(FireFront* ff){
 				pos = lastNode->getLoc() + (k+1)*posinc;
 				vel = lastNode->getVel() + (k+1)*velinc;
 				t = lastNode->getTime() + (k+1)*timeinc;
-				prevNode = domain->addFireNode(pos, vel, t
+				prevNode = getDomain()->addFireNode(pos, vel, t
 						, fdepth, kappa, currentSession.ff, prevNode);
 				prevNode->computeNormal();
 			}
 		}
 	}
-	if ( domain->commandOutputs ){
-		cout<<domain->getDomainID()<<": "
+	if ( getDomain()->commandOutputs ){
+		cout<<getDomain()->getDomainID()<<": "
 			<< "****************************************" << endl;
-		cout<<domain->getDomainID()<<": "
+		cout<<getDomain()->getDomainID()<<": "
 			<< " BEFORE THE BEGINNING OF THE SIMULATION: " << endl
 			<< ff->print(1);
-		cout<<domain->getDomainID()<<": "
+		cout<<getDomain()->getDomainID()<<": "
 			<< "****************************************" << endl;
 	}
 
@@ -474,7 +531,7 @@ void Command::completeFront(FireFront* ff){
 		if ( !currentSession.params->isValued("noInitialScan"))
 			{
 
-				domain->frontInitialBurningScan(ff->getTime(), ff, iniFrontDepth, iniBurningTime);
+				getDomain()->frontInitialBurningScan(ff->getTime(), ff, iniFrontDepth, iniBurningTime);
 			}
 	}
 
@@ -485,7 +542,7 @@ void Command::completeFront(FireFront* ff){
 }
 
 int Command::stepSimulation(const string& arg, size_t& numTabs){
-    if (domain == 0) return normal;
+    if (getDomain() == 0) return normal;
     
 	double dt = getFloat("dt",arg);
 	endTime = startTime + dt;
@@ -495,7 +552,7 @@ int Command::stepSimulation(const string& arg, size_t& numTabs){
 	goTo(etime.str().c_str(), numTabs);
     
     SimulationParameters *simParam = SimulationParameters::GetInstance();
-    simParam->setParameter("ISOdate", simParam->FormatISODate(simParam->getInt("refTime") + domain->getSimulationTime(), domain->getReferenceYear(), domain->getReferenceDay()));
+    simParam->setParameter("ISOdate", simParam->FormatISODate(simParam->getInt("refTime") + getDomain()->getSimulationTime(), getDomain()->getReferenceYear(), getDomain()->getReferenceDay()));
     
 	return normal;
 }
@@ -514,47 +571,55 @@ int Command::goTo(const string& arg, size_t& numTabs){
 	}
 
 	if ( endTime > startTime ){
-
-		if ( domain->commandOutputs ){
+		getDomain()->setTime(startTime);
+		if ( getDomain()->commandOutputs ){
 			cout.precision(numeric_limits<double>::digits10);
-			cout<<domain->getDomainID()<<": "
+			cout<<getDomain()->getDomainID()<<": "
 				<< "***************************************************" << endl;
-			cout<<domain->getDomainID()<<": "
+			cout<<getDomain()->getDomainID()<<": "
 				<< "   ADVANCING FOREFIRE SIMULATION FROM T="
 				<< startTime << " to " << endTime << endl;
-			cout<<domain->getDomainID()<<": "
+			cout<<getDomain()->getDomainID()<<": "
 				<< "***************************************************" << endl;
 		}
 
 
 		try {
 
-			if ( domain->parallel ){
+			if ( getDomain()->parallel ){
+			//	cout<<getDomain()->getDomainID()<<" at time "<<startTime <<"to "<<endTime <<" writing in halo"<<endl;
 				/* managing incoming information from other procs */
 				/* ********************************************** */
-				domain->manageHaloFirenodes(startTime);
+				if ( getDomain()->commandOutputs ) cout<<getDomain()->getDomainID() << ": managing halo " << endl;
+				//getDomain()->manageHaloFirenodes(startTime);
 			}
 
 			/* ******************************************** */
 			/* Advancing the simulation to the desired time */
 			/* ******************************************** */
+			//cout<<getDomain()->getDomainID()<<"  iteration : "<<FireDomain::atmoIterNumber<<" and "<<getDomain()->getNumIterationAtmoModel()<<endl;
+			FireDomain::atmoIterNumber = FireDomain::atmoIterNumber+1;
+			currentSession.params->setInt("atmoIterNumber",FireDomain::atmoIterNumber);
+			currentSession.fd->loadCellsInBinary();
+			getDomain()->loadWindDataInBinary(endTime);
 			currentSession.sim->goTo(endTime);
-
+			getDomain()->dumpCellsInBinary();
+			//currentSession.fd->dumpWindDataInBinary();
 			startTime = endTime;
-			domain->increaseNumIterationAtmoModel();
+			getDomain()->increaseNumIterationAtmoModel();
 
-			if ( domain->parallel ){
+			if ( getDomain()->parallel ){
 				/* sending information to the other procs */
 				/* ************************************** */
-				currentSession.fd->createFirenodesMatrices();
+				//getDomain()->createFirenodesMatrices();
 			}
 
 			/* outputs */
 			/* ******* */
-			if ( domain->commandOutputs ){
-				cout<<domain->getDomainID()<<": "
+			if ( getDomain()->commandOutputs ){
+				cout<<getDomain()->getDomainID()<<": "
 						<< "End of the step in domain "
-						<< domain->getDomainID() << endl
+						<< getDomain()->getDomainID() << endl
 						<< currentSession.outStrRep->dumpStringRepresentation();
 			}
 			if ( currentSession.params->getInt("debugFronts") != 0 )
@@ -562,26 +627,26 @@ int Command::goTo(const string& arg, size_t& numTabs){
 			/* burning map outputs */
 			if ( bmapOutputUpdate > 0 ){
 				if ( (int) ((endTime-refTime)/bmapOutputUpdate) > numBmapOutputs ){
-					domain->saveSimulation();
+					getDomain()->saveSimulation();
 					numBmapOutputs++;
 				}
 			}
 
 			/* backing up the state for future steps */
 			/* ************************************* */
-			domain->validateTopology("advance");
-			domain->backupState();
+			getDomain()->validateTopology("advance");
+			getDomain()->backupState();
 
 			/* saving simulation if needed */
 			/* *************************** */
-			if ( domain->getNumIterationAtmoModel() == numAtmoIterations )
-				domain->saveSimulation();
+			if ( getDomain()->getNumIterationAtmoModel() == numAtmoIterations )
+				getDomain()->saveSimulation();
 
 		} catch ( TopologicalException& e ) {
-			cout<<domain->getDomainID()<<": "<<e.what()<<endl;
-			domain->restoreValidState();
-			domain->setSafeTopologyMode(true);
-			cout<<domain->getDomainID()<<": "
+			cout<<getDomain()->getDomainID()<<": "<<e.what()<<endl;
+			getDomain()->restoreValidState();
+			getDomain()->setSafeTopologyMode(true);
+			cout<<getDomain()->getDomainID()<<": "
 					<< "**** MAKING THIS STEP IN SAFE TOPOLOGY MODE ****" << endl;
 			try {
 
@@ -590,29 +655,29 @@ int Command::goTo(const string& arg, size_t& numTabs){
 				/* ******************************************** */
 				currentSession.sim->goTo(endTime);
 				// Getting out of safe topology mode
-				domain->setSafeTopologyMode(false);
+				getDomain()->setSafeTopologyMode(false);
 				startTime = endTime;
-				domain->increaseNumIterationAtmoModel();
+				getDomain()->increaseNumIterationAtmoModel();
 
-				if ( domain->parallel ){
+				if ( getDomain()->parallel ){
 					/* sending information to the other procs */
 					/* ************************************** */
-					currentSession.fd->createFirenodesMatrices();
+					getDomain()->createFirenodesMatrices();
 				}
 
-				if ( domain->commandOutputs ){
-					cout<<domain->getDomainID()<<": "
+				if ( getDomain()->commandOutputs ){
+					cout<<getDomain()->getDomainID()<<": "
 							<< "End of the step in domain "
-							<< domain->getDomainID() << endl
+							<< getDomain()->getDomainID() << endl
 							<< currentSession.outStrRep->dumpStringRepresentation();
 				}
 
 				/* outputs */
 				/* ******* */
-				if ( domain->commandOutputs ){
-					cout<<domain->getDomainID()<<": "
+				if ( getDomain()->commandOutputs ){
+					cout<<getDomain()->getDomainID()<<": "
 							<< "End of the step in domain "
-							<< domain->getDomainID() << endl
+							<< getDomain()->getDomainID() << endl
 							<< currentSession.outStrRep->dumpStringRepresentation();
 				}
 				if ( currentSession.params->getInt("debugFronts") != 0 )
@@ -620,23 +685,23 @@ int Command::goTo(const string& arg, size_t& numTabs){
 				/* burning map outputs */
 				if ( bmapOutputUpdate > 0 ){
 					if ( (int) ((endTime-refTime)/bmapOutputUpdate) > numBmapOutputs ){
-						domain->saveSimulation();
+						getDomain()->saveSimulation();
 						numBmapOutputs++;
 					}
 				}
 
 				/* backing up the state for future steps */
 				/* ************************************* */
-				domain->validateTopology("advance");
-				domain->backupState();
+				getDomain()->validateTopology("advance");
+				getDomain()->backupState();
 
 				/* saving simulation if needed */
 				/* *************************** */
-				if ( domain->getNumIterationAtmoModel() == numAtmoIterations )
-					domain->saveSimulation();
+				if ( getDomain()->getNumIterationAtmoModel() == numAtmoIterations )
+					getDomain()->saveSimulation();
 			} catch (...) {
-				if ( domain->commandOutputs ){
-					cout<<domain->getDomainID()<<": "
+				if ( getDomain()->commandOutputs ){
+					cout<<getDomain()->getDomainID()<<": "
 						<< "**** ERROR IN SAFE TOPOLOGY MODE, QUITING ****" << endl;
 				}
 				// TODO supersafe mode ?
@@ -648,7 +713,7 @@ int Command::goTo(const string& arg, size_t& numTabs){
 }
 
 int Command::printSimulation(const string& arg, size_t& numTabs){
-	if ( domain == 0 ) return normal;
+	if ( getDomain() == 0 ) return normal;
     
     SimulationParameters *simParam = SimulationParameters::GetInstance();
     string finalStr = "";
@@ -701,8 +766,8 @@ int Command::systemExec(const string& arg, size_t& numTabs){
 }
 
 int Command::saveSimulation(const string& arg, size_t& numTabs){
-	if ( domain == 0 ) return normal;
-	domain->saveSimulation();
+	if ( getDomain() == 0 ) return normal;
+	getDomain()->saveSimulation();
 	return normal;
 }
 
@@ -766,13 +831,13 @@ int Command::triggerValue(const string& arg, size_t& numTabs){
 				FFVector a = getVector("vel", arg);
 				FFPoint b = getPoint("loc", arg);
 
-				if(currentSession.fd != 0){
-					if(currentSession.fd->getDataBroker() != 0){
-						if(currentSession.fd->getDataBroker()->PwindULayer != 0){
-							currentSession.fd->getDataBroker()->PwindULayer->setProjectionDirVector(a,b);
+				if(getDomain() != 0){
+					if(getDomain()->getDataBroker() != 0){
+						if(getDomain()->getDataBroker()->PwindULayer != 0){
+							getDomain()->getDataBroker()->PwindULayer->setProjectionDirVector(a,b);
 							}
-						if(currentSession.fd->getDataBroker()->PwindVLayer != 0){
-										currentSession.fd->getDataBroker()->PwindVLayer->setProjectionDirVector(a,b);
+						if(getDomain()->getDataBroker()->PwindVLayer != 0){
+										getDomain()->getDataBroker()->PwindVLayer->setProjectionDirVector(a,b);
 							}
 						return normal;
 						}
@@ -782,7 +847,7 @@ int Command::triggerValue(const string& arg, size_t& numTabs){
 
 	if(tmpArgs[0]== "fuel"){
 
-			if(currentSession.fd->getDataBroker() != 0){
+			if(getDomain()->getDataBroker() != 0){
 
 
 	   			vector<string> tmpVal;
@@ -791,7 +856,7 @@ int Command::triggerValue(const string& arg, size_t& numTabs){
 					tokenize(tmpArgs[1], tmpVal, delimiter);
 					istringstream iss(tmpVal[1]);
 					if ( iss >> val ){
-						currentSession.fd->updateFuelTable(tmpVal[0],val);
+						getDomain()->updateFuelTable(tmpVal[0],val);
 
 						return normal;
 					}
@@ -801,7 +866,7 @@ int Command::triggerValue(const string& arg, size_t& numTabs){
 	}
 	if(tmpArgs[0]== "fuelIndice"){
 
-			if(currentSession.fd->getDataBroker() != 0){
+			if(getDomain()->getDataBroker() != 0){
 
 				FFPoint loc = getPoint("loc", arg);
 				int fvalue = getInt("fuelType",arg);
@@ -810,7 +875,7 @@ int Command::triggerValue(const string& arg, size_t& numTabs){
 				//cout <<"at "<< loc.x<< "we have fuel "<< oldval<<endl;
 			//	cout <<"setting to "<< fvalue <<endl;
 
-				currentSession.fd->getDataBroker()->getLayer("fuel")->setValueAt(loc,0.0,fvalue);
+				getDomain()->getDataBroker()->getLayer("fuel")->setValueAt(loc,0.0,fvalue);
 			//	double newval = currentSession.fd->getDataBroker()->getLayer("fuel")->getValueAt(loc,0);
 			//	cout <<"at "<< loc.x<< " we have now fuel "<< fvalue <<endl;
 				return normal;
@@ -827,10 +892,10 @@ int Command::include(const string& arg, size_t& numTabs){
 	if ( instream ) {
 		// reading all the commands (one command per line) of the input file
 		string line;
-		size_t numLine = 0;
+		//size_t numLine = 0;
 		while ( getline( instream, line ) ) {
 			//    while ( getline( cin, line ) ) {
-			numLine++;
+			//numLine++;
 			// checking for comments or newline
 			if((line[0] == '#')||(line[0] == '*')||(line[0] == '\n'))
 				continue;
@@ -853,7 +918,8 @@ int Command::help(const string& arg, size_t& numTabs){
 int Command::man(const string& cmd, size_t& numTabs){
 	commandMan::const_iterator cmdman = manpages.find( cmd );
 	if ( cmdman == manpages.end() ) {
-		cout << "unknown command, try 'help'." << endl;
+		if(cmd.at(0) != '!')
+			cout << "unknown command, try 'help'." << endl;
 	} else {
 		// calling the right function
 		cout << cmdman->second;
@@ -887,7 +953,40 @@ int Command::loadData(const string& arg, size_t& numTabs){
 		cout << "File "<< path<<" doesn't exist or no longer available" << endl;
 		return error;
 	}
-#ifdef NETCDF_NOT_LEGACY 
+#ifdef NETCDF_LEGACY 
+	NcFile* ncFile = new NcFile(path.c_str(), NcFile::ReadOnly);
+
+	if (!ncFile->is_valid())
+	{
+		cout << "File is not a valid NetCDF file" << endl;
+		return error;
+	}
+    
+    simParam->setParameter("NetCDFfile", args[0]);
+
+	for (int layer = 0; layer < ncFile->num_vars(); layer++)
+	{
+		string varName(ncFile->get_var(layer)->name());
+
+		if (varName == "domain")
+		{
+
+			NcVar* ncparams = ncFile->get_var(varName.c_str());
+			int numParams = (size_t) ncparams->num_atts();
+			NcAtt* ncparam;
+
+			for (int i = 0; i < numParams; i++)
+			{
+				ncparam = ncparams->get_att(i);
+				simParam->setParameter(ncparam->name(), ncparam->as_string(0));
+			}
+
+			if (ncparam != 0)
+				delete ncparam;
+		}
+	}
+
+#else
   simParam->setParameter("NetCDFfile", args[0]);
   try
    {
@@ -934,40 +1033,6 @@ int Command::loadData(const string& arg, size_t& numTabs){
 		cout<<"cannot read landscape file"<<endl;
 	
 	}
-#else
- 
-
-	NcFile* ncFile = new NcFile(path.c_str(), NcFile::ReadOnly);
-
-	if (!ncFile->is_valid())
-	{
-		cout << "File is not a valid NetCDF file" << endl;
-		return error;
-	}
-    
-    simParam->setParameter("NetCDFfile", args[0]);
-
-	for (int layer = 0; layer < ncFile->num_vars(); layer++)
-	{
-		string varName(ncFile->get_var(layer)->name());
-
-		if (varName == "domain")
-		{
-
-			NcVar* ncparams = ncFile->get_var(varName.c_str());
-			int numParams = (size_t) ncparams->num_atts();
-			NcAtt* ncparam;
-
-			for (int i = 0; i < numParams; i++)
-			{
-				ncparam = ncparams->get_att(i);
-				simParam->setParameter(ncparam->name(), ncparam->as_string(0));
-			}
-
-			if (ncparam != 0)
-				delete ncparam;
-		}
-	}
 #endif
     if (args.size() > 1){
         double secs;
@@ -999,8 +1064,8 @@ int Command::loadData(const string& arg, size_t& numTabs){
     }
 
 
-    //domain->addLayer("data", "windU", "windU");
-    //domain->addLayer("data", "windV", "windV");
+    //getDomain()->addLayer("data", "windU", "windU");
+    //getDomain()->addLayer("data", "windV", "windV");
 	return normal;
 }
 
@@ -1261,26 +1326,27 @@ void Command::ExecuteCommand(string& line){
 				else{
 					commandMap::const_iterator curcmd = translator.find( scmd );
 					if ( curcmd == translator.end() ) {
-						cout << "unknown command  >"<< scmd << "< , try 'help[]'." << endl;
+						if(scmd.at(0) != '!')
+							cout << "unknown command  >"<< scmd << "< , try 'help[]'." << endl;
 					} else {
 						try {
 							// calling the right function
 							(curcmd->second)(command[1], numTabs);
 						} catch( BadOption& ) {
-							cout<<domain->getDomainID()<<": "
+							cout<<getDomain()->getDomainID()<<": "
 									<< "argument(s) '" << command[1] << "' is (are) not fit for command '"
 									<< command[0] << "'" << endl;
 							cout << "type 'man[" << command[0] << "]' for more information" << endl;
 						} catch( MissingOption& mo) {
-							cout<<domain->getDomainID()<<": "
+							cout<<getDomain()->getDomainID()<<": "
 									<< "command '" << command[0] << "' misses "
 									<< mo.num << " options." << endl;
 							cout << "type 'man[" << command[0] << "]' for more information" << endl;
 						} catch( MissingTime& ) {
-							cout<<domain->getDomainID()<<": "
+							cout<<getDomain()->getDomainID()<<": "
 									<< "you have to specify a time for that command (as in 't=0.')" << endl;
 						} catch (...) {
-							cout<<domain->getDomainID()<<": "
+							cout<<getDomain()->getDomainID()<<": "
 									<< " PROBLEM: Command associated to "<<line<<" ended in error"<< endl;
 						}
 					}
@@ -1290,6 +1356,9 @@ void Command::ExecuteCommand(string& line){
 }
 
 FireDomain* Command::getDomain(){
+	if (currentSession.fdp != 0) {
+		return currentSession.fdp;
+	}
 	return currentSession.fd;
 }
 

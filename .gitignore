@@ -17,5 +17,9 @@ __pycache__
 # editors
 .vscode
 
+#mac files
+**/.DS_Store
+
 # jupyter notebooks checkpoints
 .ipynb_checkpoints
+CMakeLists.txt

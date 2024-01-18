@@ -1,0 +1,149 @@
+step=3
+dateString=20190814
+start=12
+end=27
+INISTARTM2INRUN1TIME=4
+ABSOLUTESTARTHOUR=13
+
+
+if [ "$#" -ge 4 ]; then
+    dateString=$1
+    start=$2
+    end=$3
+    INISTARTM2INRUN1TIME=$4
+    ABSOLUTESTARTHOUR=$5
+fi
+
+echo "MAKE_RUNFF using " $start $end $dateString  
+MODEL1DURATIONINSECONDS=$(( (end - ABSOLUTESTARTHOUR) * 3600 ))
+
+formatted_start=$(printf "%02d" $start)
+ABSHS=$(printf "%02g" $ABSOLUTESTARTHOUR)
+INIS=$(printf "%03g" $INISTARTM2INRUN1TIME)
+
+
+cat > EXSEG1.nam <<EOF
+&NAM_CONFIO LCDF4=T LLFIOUT=T LLFIREAD=T /
+&NAM_LUNITn CINIFILE="RUN12.1.PRUN1.${INIS}",
+            CINIFILEPGD="PGD_D2000mA.nested",
+EOF
+indice=1
+for i in $(seq -f "%02g" $(( start + step )) $step $(( end - step ))); do
+    echo  " $indice= M1.$dateString.00.$i"
+    echo "            CCPLFILE(${indice})=\"M1.${dateString}.00.${i}\","    >> EXSEG1.nam
+    indice=$((indice + 1))
+done
+cat >> EXSEG1.nam <<EOF
+            CCPLFILE(${indice})="M1.${dateString}.00.${end}"
+/
+&NAM_DYNn  XTSTEP= 8.0, CPRESOPT= "ZRESI", NITR= 4,
+           LITRADJ=T, LHORELAX_UVWTH=T, LHORELAX_RV=T, LVE_RELAX=T,
+           NRIMX=1, NRIMY=1, XRIMKMAX=.01, XT4DIFU=1000. 
+/
+&NAM_ADVn  CUVW_ADV_SCHEME= "CEN4TH", 
+           CTEMP_SCHEME= "RKC4", 
+           CMET_ADV_SCHEME= "PPM_01",
+           CSV_ADV_SCHEME= "PPM_01" 
+/
+&NAM_LBCn  CLBCX= 2*"OPEN", CLBCY= 2*"OPEN", XCPHASE= 5. 
+/
+&NAM_TURBn CTURBDIM="1DIM", CTURBLEN="BL89",
+           LSUBG_COND= T, CSUBG_AUCV="CLFR" 
+/
+&NAM_PARAMn  CTURB  = "TKEL",
+             CRAD   = "ECMW",
+             CCLOUD = "ICE3",
+             CDCONV = "NONE",
+             CSCONV = "NONE" 
+/
+&NAM_PARAM_RADn  XDTRAD= 900., XDTRAD_CLONLY= 300. 
+/
+&NAM_CONF CCONF= "START", LFLAT= F, CEQNSYS= "DUR",  nhalo = 1, 
+          NMODEL= 3, NVERB= 10, csplit = 'BSPLITTING', CEXP= "FCAST", CSEG= "FIRE" 
+/
+&NAM_DYN XSEGLEN= ${MODEL1DURATIONINSECONDS}., XASSELIN= 0.2, LCORIO= T,
+         LNUMDIFU=T, LNUMDIFTH=T, XALKTOP= 0.01,
+         XALZBOT= 10000., LZDIFFU= T 
+/
+&NAM_NESTING NDAD(1) = 1    , NDAD(2) = 1 ,     NDAD(3) = 2 ,
+             NDTRATIO(1) = 1, NDTRATIO(2) = 4, NDTRATIO(3) = 4,
+             XWAY(1) = 0,    XWAY(2) = 2. ,    XWAY(3) = 2.  /
+&NAM_BACKUP XBAK_TIME_FREQ= 3600. /
+&NAM_CONFZ MPI_BUFFER_SIZE= 200 /
+&NAM_CH_ISBAn 
+/
+&NAM_CONFn NSV_USER=1
+/
+&NAM_FOREFIRE   LFOREFIRE=T, COUPLINGRES=200,
+                        NFFSCALARS=1, FFSVNAMES(1)='BRatio',
+                        FFOUTUPS(1)=300, PHYSOUT(1)=1, FLOWOUT(1)=1, CHEMOUT(1)=0,
+                        FFOUTUPS(2)=120, PHYSOUT(2)=1, FLOWOUT(2)=1, CHEMOUT(2)=0,
+                        FFOUTUPS(3)=20, PHYSOUT(3)=1, FLOWOUT(3)=1, CHEMOUT(3)=0
+/
+
+
+EOF
+
+cat > EXSEG2.nam <<EOF
+&NAM_CONFIO LCDF4=T LLFIOUT=T LLFIREAD=T 
+/
+&NAM_LUNITn CINIFILE="M2.${dateString}.00.${ABSHS}", 
+            CINIFILEPGD="PGD_D400mA.nested" 
+/
+&NAM_DYNn  CPRESOPT= "ZRESI", NITR= 4, 
+           LITRADJ=T, LHORELAX_UVWTH=F, LHORELAX_RV=F, LVE_RELAX=T,
+           NRIMX=0, NRIMY=0, XRIMKMAX=.0025, XT4DIFU= 400. 
+/
+&NAM_ADVn  CUVW_ADV_SCHEME= "CEN4TH",
+           CTEMP_SCHEME= "RKC4",
+           CMET_ADV_SCHEME= "PPM_01",
+           CSV_ADV_SCHEME= "PPM_01"
+/
+&NAM_LBCn  CLBCX= 2*"OPEN", CLBCY= 2*"OPEN", XCPHASE= 20. 
+/
+&NAM_TURBn CTURBDIM="3DIM", CTURBLEN="DELT", LSUBG_COND= T 
+/
+&NAM_PARAMn  CTURB  = "TKEL",
+             CRAD   = "ECMW",
+             CCLOUD = "ICE3",
+             CDCONV = "NONE",
+             CSCONV = "NONE" 
+/
+&NAM_PARAM_RADn  XDTRAD= 900., XDTRAD_CLONLY= 300. 
+/
+&NAM_CONFn NSV_USER=1
+/
+&nam_forefire /
+EOF
+
+cat > EXSEG3.nam <<EOF
+&NAM_CONFIO LCDF4=T LLFIOUT=T LLFIREAD=T 
+/
+&NAM_LUNITn CINIFILE="M3.${dateString}.00.${ABSHS}", 
+            CINIFILEPGD="PGD_D80mA.nested" 
+/
+&NAM_DYNn  CPRESOPT= "ZRESI", NITR= 4, 
+           LITRADJ=T, LHORELAX_UVWTH=F, LHORELAX_RV=F, LVE_RELAX=T,
+           NRIMX=0, NRIMY=0, XRIMKMAX=.008, XT4DIFU= 200. 
+/
+&NAM_ADVn  CUVW_ADV_SCHEME= "CEN4TH",
+           CTEMP_SCHEME= "RKC4",
+           CMET_ADV_SCHEME= "PPM_01",
+           CSV_ADV_SCHEME= "PPM_01"
+/
+&NAM_LBCn  CLBCX= 2*"OPEN", CLBCY= 2*"OPEN", XCPHASE= 20. 
+/
+&NAM_TURBn CTURBDIM="3DIM", CTURBLEN="DELT", LSUBG_COND= T 
+/
+&NAM_PARAMn  CTURB  = "TKEL",
+             CRAD   = "ECMW",
+             CCLOUD = "ICE3",
+             CDCONV = "NONE",
+             CSCONV = "NONE" 
+/
+&NAM_PARAM_RADn  XDTRAD= 900., XDTRAD_CLONLY= 300. 
+/
+&NAM_CONFn NSV_USER=1
+/
+&nam_forefire /
+EOF

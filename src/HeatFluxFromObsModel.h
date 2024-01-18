@@ -44,8 +44,8 @@ class HeatFluxFromObsModel: public FluxModel {
     size_t nominalHeatFlux_s_data;
 
 	/*! coefficients needed by the model */
-	double burningTime;
-	double residenceTime;
+	//double burningTime;
+	//double residenceTime;
 
 	/*double nominalHeatFlux;*/
 

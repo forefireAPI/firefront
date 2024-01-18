@@ -1,0 +1,7 @@
+rm *nam*
+rm file_for_xtransfer
+rm slurm*
+rm PGD_D*
+rm OUTPUT_L*
+rm *.dir
+rm *.hdr

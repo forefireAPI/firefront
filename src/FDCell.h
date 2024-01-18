@@ -48,7 +48,6 @@ class FDCell {
 	BurningMap* arrivalTimes; /*!< Burning map inside the cell */
 	bool allocated; /*!< boolean for the allocation of the burning map */
 
-
 	list<FireNode*>::iterator ifn;
 
 	static const double infinity;
@@ -56,7 +55,10 @@ class FDCell {
 public:
 
 	static bool outputs; /*! boolean for outputs */
-
+	size_t toDumpDomainID;/*! for paralleIO assigned Domain */
+	bool allDumped; /*! boolean to state it has fully dumped */
+	
+    bool hasPassedCom; /*!< boolean to state if has already been collected for com parallel*/
 	list<FireNode*> fireNodes; /*!< firenodes present in the cell */
 
 	/*! \brief default constructor */
@@ -122,6 +124,12 @@ public:
 	/*! \brief removing a firenode into that cell */
 	void removeFireNode(FireNode*);
 
+	/*! \brief comStatus for Parallel */
+	bool hasFiredInHalo();
+	bool isActive();
+	bool isActiveForDump();
+	void setFiredInHalo(bool val);
+	
 	/*! \brief computing the burning ratio of the cell */
 	double getBurningRatio(const double&);
 
@@ -143,7 +151,7 @@ public:
 
 	/*! \brief managing the trash cell of the domain */
 	void makeTrash();
-
+	void loadBin(std::ifstream&  );
 	/*! \brief string for cell information */
 	string toString();
 

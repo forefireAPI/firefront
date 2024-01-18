@@ -5,7 +5,7 @@ RUN apt-get update
 
 RUN apt install build-essential -y
 
-RUN apt install libnetcdf-dev libnetcdf-cxx-legacy-dev -y
+RUN apt install libnetcdf-dev libnetcdf-cxx-legacy-dev libnetcdf-c++4-dev -y
 
 RUN apt install cmake -y
 

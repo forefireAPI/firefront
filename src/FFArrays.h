@@ -97,7 +97,9 @@ public:
 	void copyDataToFortran(T*);
 	/*!  \brief copying contained data from a Fortran array  */
 	void copyDataFromFortran(const T*);
-
+	void loadBin(std::ifstream&  );
+	void loadBinAtLoc(std::ifstream&  , size_t , size_t ,size_t);
+	void dumpBin(std::ofstream&  );
 	// Printing functions
 	string print2D(size_t = 0, size_t = 0);
 };
@@ -166,6 +168,82 @@ size_t FFArray<T>::getDim(string dim){
 	if ( dim == "z" ) return nz;
 	if ( dim == "t" ) return nt;
 	return size;
+}
+
+template<typename T>
+void FFArray<T>::dumpBin(std::ofstream&  FileOut){
+
+	FileOut.write(reinterpret_cast<const char*>(&nx), sizeof(size_t));
+	FileOut.write(reinterpret_cast<const char*>(&ny), sizeof(size_t));
+	FileOut.write(reinterpret_cast<const char*>(&nz), sizeof(size_t));
+	FileOut.write(reinterpret_cast<const char*>(&nt), sizeof(size_t));
+	FileOut.write(reinterpret_cast<const char*>(data), nx*ny*nz*nt*sizeof(T));
+	
+}
+template<typename T>
+void FFArray<T>::loadBin(std::ifstream&  FileIn){
+	size_t nnx;
+	size_t nny;
+	size_t nnz;
+	size_t nnt;
+	FileIn.read((char *)&nnx, sizeof(size_t));
+	FileIn.read((char *)&nny, sizeof(size_t));
+	FileIn.read((char *)&nnz, sizeof(size_t));
+	FileIn.read((char *)&nnt, sizeof(size_t));
+
+	if((nnx != nx) ||(nny != ny)) {
+
+		cout << "LOADING  NOT good dimentions in FARRAY "<<(nx*ny)<<"::"<<(nnx*nny)<<" read "<<nnx<<":"<<nny<<":"<<nnz<<":"<<nnt<<endl;
+		return;
+	
+	}
+	
+	FileIn.read((char *)data, nx*ny*nz*nt*sizeof(T));
+}
+template<typename T>
+void FFArray<T>::loadBinAtLoc(std::ifstream&  FileIn, size_t startI, size_t startJ,size_t domFsize){
+
+	size_t nnx;
+	size_t nny;
+	size_t nnz;
+	size_t nnt;
+	
+	if(domFsize <= 5*sizeof(size_t)) {
+		cout << "LOADING EMPTY wind dimentions in FARRAY "<<domFsize<<" bytes"<<endl;
+		return;
+	}
+
+	FileIn.read((char *)&nnx, sizeof(size_t));
+	FileIn.read((char *)&nny, sizeof(size_t));
+	FileIn.read((char *)&nnz, sizeof(size_t));
+	FileIn.read((char *)&nnt, sizeof(size_t));
+
+	size_t nelems = domFsize/sizeof(T);
+	if(nnx*nny*nnz*nnt + 4 != nelems) {
+		cout << "LOADING NOT good wind dimentions in FARRAY "<<nelems<<" and read "<<nnx<<":"<<nny<<":"<<nnz<<":"<<nnt<<":"<<endl;
+		return;
+	}
+	FileIn.ignore((nny+2)*sizeof(T));
+	for (size_t i = startI+1; i < startI+nnx; i++ ){
+	//	FileIn.ignore(2*sizeof(T));
+		FileIn.read((char *)&(data[i*ny + startJ+2]), (nny-3)*sizeof(T));
+		FileIn.ignore(3*sizeof(T));
+	}
+	/*
+	size_t insize = nnx*nny*nnz*nnt;
+	T newdata[insize];
+	FileIn.read((char *)newdata, insize*sizeof(T));
+	size_t nn = nny;
+	
+	for (size_t i = startI+1; i < startI+nnx; i++ ){
+			nn+=2;
+			for (size_t j = startJ+2; j < startJ+nny-1; j++ ){
+				data[i*ny + j] = newdata[nn++];
+			}
+			nn+=1;
+		}
+		*/
+	
 }
 
 template<typename T>

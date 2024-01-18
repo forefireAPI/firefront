@@ -149,31 +149,34 @@ public:
 			, FFPoint& extent, double& timespan
 			, size_t& nnx, size_t& nny, size_t& nnz, size_t& nnt, T* vals) :
 		DataLayer<T>(name), startTime(t0)
-		, nx(nnx), ny(nny), nz(nnz), nt(nnt) {
+		, nx(nnx), ny(nny), nz(nnz), nt(nnt) { 
 		array = new FFArray<T>(name, vals, nnx, nny, nnz, nnt);
 		size = (size_t) nx*ny*nz*nt;
-
+ 
 		SWCornerX = SWCorner.getX();
 		nameOf=name;
 		SWCornerY = SWCorner.getY();
 		SWCornerZ = SWCorner.getZ();
 		NECornerX = SWCornerX + extent.getX();
 		NECornerY = SWCornerY + extent.getY();
-		NECornerZ = SWCornerZ + extent.getZ();
+		NECornerZ = SWCornerZ + extent.getZ(); 
 		endTime = startTime + timespan;
+ 
 		dx = extent.getX()/nx;
 		dy = extent.getY()/ny;
 		dz = extent.getZ()/nz;
-		dt = timespan/(nt-1);
-		interp = InterpolationBilinear;
-
+		dt = 0;
+		if((timespan < 3600*24)&&	(nt>1)){	 
+			dt = timespan/(nt-1);
+		}
+ 
+		interp = InterpolationBilinear; 
 		interDirID0 = 2 ;
 		interDirID1 = 2 ;
 		interDirRatio = 1  ;
 		interDirScaler = 1  ;
 		 projectionDirValue = 0;
-         projectionScaleValue = 0;
-
+         projectionScaleValue = 0; 
 
 		if(nt>1){
 			interp = InterpolationBilinearT;
@@ -182,7 +185,6 @@ public:
 		{
 			interp = InterpolationBilinearDir;
 		}
-
 	}
 	/*! \brief destructor */
 	~XYZTDataLayer();

@@ -38,8 +38,11 @@ FDCell::FDCell(FireDomain* fd, size_t nx, size_t ny) :
 	mapSize = mapSizeX*mapSizeY;
 	arrivalTimes = NULL;
 	allocated = false;
-}
-
+	hasPassedCom = false;
+	toDumpDomainID = 0;
+	allDumped = false;
+	
+	}
 FDCell::~FDCell() {
 	if ( allocated ) delete arrivalTimes;
 }
@@ -92,7 +95,14 @@ double FDCell::getArrivalTime(const size_t& i, const size_t& j){
 	if ( arrivalTimes == 0 ) return infinity;
 	return (*arrivalTimes)(i,j);
 }
-
+void FDCell::loadBin(std::ifstream&  FileIn){
+	if ( !allocated ){
+		arrivalTimes = new BurningMap(SWCorner, NECorner, mapSizeX, mapSizeY);
+		allocated = true;
+	}
+				
+	arrivalTimes->loadBin(FileIn);
+}
 FireDomain* FDCell::getDomain(){
 	return domain;
 }
@@ -117,6 +127,19 @@ size_t FDCell::getI(){
 	return globalI;
 }
 
+bool FDCell::isActive(){
+	return allocated;
+}
+
+bool FDCell::isActiveForDump(){
+	if (!allocated) return false;
+	if (allDumped) return false;
+	if(arrivalTimes->maxTime()<numeric_limits<double>::infinity()){
+		allDumped = true;
+	}
+	return true;
+}
+
 size_t FDCell::getJ(){
 	return globalJ;
 }
@@ -132,6 +155,13 @@ FFPoint& FDCell::getNECorner(){
 size_t FDCell::getNumFN(){
 	return fireNodes.size();
 }
+
+bool FDCell::hasFiredInHalo(){
+	return hasPassedCom;
+}
+void FDCell::setFiredInHalo(bool val){
+	 hasPassedCom = val;
+	 }
 
 void FDCell::addFireNode(FireNode* fn){
 	for ( ifn = fireNodes.begin(); ifn != fireNodes.end(); ++ifn ){
@@ -242,7 +272,7 @@ double FDCell::applyModelsOnBmap(string layername, const double& bt, const doubl
 				modelIndex = layer->getFunctionIndexAt(center, bt);
 				// Return 0 if no model defined in the area
 				value = modelIndex<0?0:domain->getModelValueAt(modelIndex, center, bt, et, arrivalTime);
-				if(!isnan(value)){
+				if(!std::isnan(value)){
 					cellFlux += value;
 					if (value > 0)
 						modelCount[modelIndex] = modelCount[modelIndex]+1;

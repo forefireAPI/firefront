@@ -29,24 +29,31 @@ using namespace std;
 namespace libforefire {
 
 // static variables initialization
-FireDomain* StringRepresentation::domain = 0;
+
 size_t StringRepresentation::currentLevel = 0;
 ostringstream StringRepresentation::outputstr("");
 bool writedOnce = false;
-
+string outPattern;
+FireDomain* domain = 0;
 StringRepresentation::StringRepresentation(FireDomain* fdom) : Visitor() {
     lastLevel = -1;
 	domain = fdom;
+ 
+    outPattern = SimulationParameters::GetInstance()->getParameter("ffOutputsPattern");
 	setTime(domain->getTime());
 	updateStep = SimulationParameters::GetInstance()->getDouble("outputsUpdate");
 	setUpdateTime(domain->getTime());
 	dumpMode = FF_MODE;
 }
 
-StringRepresentation::~StringRepresentation() {
+StringRepresentation::~StringRepresentation() { 
 }
 
 void StringRepresentation::input(){
+}
+
+void StringRepresentation::setOutPattern(string s){
+    outPattern = s;
 }
 
 void StringRepresentation::update(){
@@ -68,8 +75,8 @@ void StringRepresentation::output(){
 	writedOnce= true;
 
 	ostringstream oss;
-	oss<<SimulationParameters::GetInstance()->getParameter("ffOutputsPattern")
-			<<"."<<getTime();
+
+	oss<<outPattern<<"."<<getTime();
 	ofstream outputfile(oss.str().c_str());
 	if ( outputfile ) {
 		outputfile<<dumpStringRepresentation();
@@ -86,7 +93,6 @@ void StringRepresentation::visit(FireDomain* fd) {
     }
     if (dumpMode == GEOJSON_MODE)
     {
-        SimulationParameters *simParam = SimulationParameters::GetInstance();
         
         outputstr << '{' << "\"type\": \"FeatureCollection\"," << endl;
         outputstr << "\t" << "\"projection\":\"";

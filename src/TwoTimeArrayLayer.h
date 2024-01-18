@@ -27,6 +27,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 #include "SimulationParameters.h"
 #include "include/Futils.h"
 
+#include <sys/stat.h>
 using namespace std;
 
 namespace libforefire {
@@ -59,6 +60,7 @@ template<typename T> class TwoTimeArrayLayer : public DataLayer<T> {
 	SimulationParameters* params;
 
 	static const int mnhMult = 100;
+	
 
 	/*! \brief extending the matrix of mnh size to an extended one */
 	void copyDomainInformation(FFArray<T>*, FFArray<T>*);
@@ -93,6 +95,7 @@ public:
 		nx = arrayt1->getDim("x");
 		ny = arrayt1->getDim("y");
 		size = arrayt1->getSize();
+		
 		tmpMatrix = new FFArray<T>("coreMatrix", 0., nx-2, ny-2);
 		params = SimulationParameters::GetInstance();
 		params->setInt("mnhMultiplier", mnhMult);
@@ -123,7 +126,7 @@ public:
 	void getMatrix(FFArray<T>**, const double&);
 	/*! \brief stores data from a fortran array into the FFArray */
 	void setMatrix(string&, double*, const size_t&, size_t&, const double&);
-
+	void loadMultiWindBin(string , double, size_t , size_t* , size_t* );
 	/*! \brief print the related FFArray */
 	string print();
 	void dumpAsBinary(string, const double&
@@ -344,6 +347,36 @@ void TwoTimeArrayLayer<T>::getMatrix(FFArray<T>** matrix, const double& time){
 	*matrix = arrayt2;
 }
 
+template<typename T> void TwoTimeArrayLayer<T>::loadMultiWindBin(string filePattern,double refTime,size_t numberOfDomains, size_t* startI, size_t* startJ){
+
+	FFArray<double>* tmpArray = arrayt1;
+//	string windFileName(params->getParameter("caseDirectory")+'/'+params->getParameter("PPath")+'/'+to_string(FireDomain::atmoIterNumber%2)+"/");
+//	string windFileName(params->getParameter("caseDirectory")+'/'+params->getParameter("fireOutputDirectory")+'/'+params->getParameter("outputFiles")+".");
+    struct stat buffer;  
+
+	for (int i = 0; i < numberOfDomains; ++i) {
+		string domInName(filePattern+to_string(i+1)+"."+this->getKey());	 
+        if(stat(domInName.c_str(), &buffer) == 0){
+			ifstream FileIn(domInName.c_str(), ios_base::binary);
+			tmpArray->loadBinAtLoc(FileIn,startI[i],startJ[i],buffer.st_size);
+			FileIn.close();
+		}
+    }
+	
+	time1= time2;
+	// pointing the future array to other memory
+	arrayt2 = tmpArray;
+	time2 = refTime;
+   /* string windFullFileName(filePattern+"0."+this->getKey());
+	ofstream FileOut(windFullFileName.c_str(), ios_base::binary);
+	tmpArray->dumpBin(FileOut);
+	FileOut.flush();   
+	FileOut.rdbuf()->pubsync(); 
+	FileOut.close();*/
+	
+
+}
+
 template<typename T>
 void TwoTimeArrayLayer<T>::setMatrix(string& mname, double* inMatrix
 		, const size_t& sizein, size_t& sizeout, const double& newTime){
@@ -360,6 +393,15 @@ void TwoTimeArrayLayer<T>::setMatrix(string& mname, double* inMatrix
 			// copying data from atmospheric matrix
 			tmpMatrix->copyDataFromFortran(inMatrix);
 			copyDomainInformation(tmpMatrix, arrayt2);
+			size_t atmoIterNumber = params->getInt("atmoIterNumber");
+			string domInName(params->getParameter("caseDirectory")+'/'+params->getParameter("PPath")+'/'+to_string((atmoIterNumber+1)%2)+"/"+params->getParameter("mpirank")+"."+this->getKey());
+			ofstream FileOut(domInName.c_str(), ios_base::binary);
+	
+			arrayt2->dumpBin(FileOut);
+			FileOut.flush();   
+			FileOut.rdbuf()->pubsync(); 
+			FileOut.close();
+
 		} else if ( mname == "outerWindU" or mname == "outerWindV" ){
 			/* Information concerning the outer wind velocities */
 			tmpMatrix->copyDataFromFortran(inMatrix);
@@ -390,6 +432,7 @@ string TwoTimeArrayLayer<T>::print(){
 	return arrayt2->print2D();
 }
 
+
 template<typename T>
 void TwoTimeArrayLayer<T>::dumpAsBinary(string filename, const double& t
 		, FFPoint& SWC, FFPoint& NEC, size_t& nnx, size_t& nny){
@@ -405,7 +448,7 @@ void TwoTimeArrayLayer<T>::dumpAsBinary(string filename, const double& t
 	int tlocal = (int) t;
 	*/
 
-	T vals[nnx*nny];
+/*	T vals[nnx*nny];
 
 	double ddx = (NEC.getX()-SWC.getX())/(nnx-1);
 	double ddy = (NEC.getY()-SWC.getY())/(nny-1);
@@ -429,8 +472,6 @@ void TwoTimeArrayLayer<T>::dumpAsBinary(string filename, const double& t
 	loctl.setX(SWC.getX() +(ddx*(nnx-1)) );
 	loctl.setY(SWC.getY() +(ddy*(nny-1)) );
 
-
-	/* writing the interpolated matrix in a binary file */
 	ostringstream outputfile;
 	outputfile<<filename<<"."<<this->getKey();
 
@@ -439,7 +480,7 @@ void TwoTimeArrayLayer<T>::dumpAsBinary(string filename, const double& t
 	FileOut.write(reinterpret_cast<const char*>(&nnx), sizeof(size_t));
 	FileOut.write(reinterpret_cast<const char*>(&nny), sizeof(size_t));
 	FileOut.write(reinterpret_cast<const char*>(&vals), sizeof(vals));
-	FileOut.close();
+	FileOut.close();*/
 }
 
 }

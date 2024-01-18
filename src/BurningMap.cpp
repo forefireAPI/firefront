@@ -1,6 +1,6 @@
 /*
 
-Copyright (C) 2012 ForeFire Team, SPE, UniversitŽ de Corse.
+Copyright (C) 2012 ForeFire Team, SPE, Universitï¿½ de Corse.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -40,6 +40,7 @@ BurningMap(const FFPoint& sw, const FFPoint& ne
 sizeX(nx), sizeY(ny), SWCorner(sw), NECorner(ne) {
 	try {
 		arrivalTimeMap = new FFArray<double>("ArrivalTime", numeric_limits<double>::infinity(), sizeX, sizeY);
+		
 		dx = ( NECorner.getX()-SWCorner.getX() )/sizeX;
 		dy = ( NECorner.getY()-SWCorner.getY() )/sizeY;
 	} catch ( const std::bad_alloc & ) {
@@ -70,11 +71,29 @@ double& BurningMap::operator ()(size_t i, size_t j){
 	return (*arrivalTimeMap)(i,j);
 }
 
+
+
 FFArray<double>* BurningMap::getMap(){
 	return arrivalTimeMap;
 }
 
 // Mutators
+void BurningMap::loadBin(std::ifstream&  FileIn){
+
+				/*	size_t nny;
+					size_t nnz;
+					size_t nnt;
+		double vals[sizeX*sizeY];
+		FileIn.read((char *)&nnx, sizeof(size_t));
+		FileIn.read((char *)&nny, sizeof(size_t));
+		FileIn.read((char *)&nnz, sizeof(size_t));
+		FileIn.read((char *)&nnt, sizeof(size_t));
+		FileIn.read((char *)&vals, sizeof(vals));*/
+	//cout<<" EHHHOUI "<<arrivalTimeMap->loadBin()<<" and "<<nnx*nny<<endl;
+		arrivalTimeMap->loadBin(	FileIn);
+ 
+	
+}
 void BurningMap::setBurning(FFPoint& p, const double& time){
 	// finding the indices in the burning matrix
 	int kx = int((p.getX()-SWCorner.getX())/dx);
@@ -94,6 +113,19 @@ bool BurningMap::nothingBurning(const double& time){
 		}
 	}
 	return true;
+}
+
+double BurningMap::maxTime(){
+	
+	double infHere = numeric_limits<double>::infinity();
+	double myMax = -9999;
+	for ( size_t i = 0; i < sizeX; i++ ) {
+		for ( size_t j = 0; j < sizeY; j++ ) {
+			myMax = max((*arrivalTimeMap)(i,j),myMax);
+			 if(myMax == infHere) return infHere;
+		}
+	}
+	return myMax;
 }
 
 size_t BurningMap::getSizeX(){

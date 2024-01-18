@@ -220,10 +220,10 @@ void DataBroker::registerFluxModel(FluxModel* model) {
 					<< (model->wantedProperties)[prop] << endl;
 		}
 	}
-
+	 
 	/* registering the flux model in the fire domain */
 	domain->registerFluxModel(model->index, model);
-
+ 
 	/* constructing the table of fuel parameters values */
 	if (model->numFuelProperties > 0)
 		extractFuelProperties(fuelPropertiesTable, model);
@@ -271,6 +271,7 @@ void DataBroker::registerLayer(string name, DataLayer<double>* layer) {
 
 	/* inserting the layer into the map of layers */
 
+	 
 	ilayer = layersMap.find(name);
 	if (ilayer != layersMap.end()) {
 
@@ -288,7 +289,7 @@ void DataBroker::registerLayer(string name, DataLayer<double>* layer) {
 
 	/* looking for possible match with predefined layers */
 	if (name.find("altitude") != string::npos) {
-		altitudeLayer = layer;
+		altitudeLayer = layer; 
 		// along with the topography comes the slope
 		slopeLayer = new GradientDataLayer<double>("slope", altitudeLayer,
 				params->getDouble("spatialIncrement"));
@@ -301,7 +302,8 @@ void DataBroker::registerLayer(string name, DataLayer<double>* layer) {
 		temperatureLayer = layer;
 	}
 	if (name.find("windU") != string::npos){
-		windULayer = layer;
+
+			windULayer = layer;
 	}
 	if (name.find("windV") != string::npos){
 		windVLayer = layer;
@@ -342,7 +344,7 @@ void DataBroker::setAtmosphericDomain(const FFPoint& SWCorner,
 
 void DataBroker::initializeAtmosphericLayers(const double& time,
 		const size_t& bnx, const size_t& bny) {
-
+			cout<<"SIZE IN "<<domain->getDomainID()<<" and "<<atmosphericNx<<":"<<atmosphericNy<<endl;
 	atmosphericData->setSize(atmosphericNx, atmosphericNy);
 
 	double dx = (atmoNECorner.getX() - atmoSWCorner.getX()) / atmosphericNx;
@@ -365,12 +367,31 @@ void DataBroker::initializeAtmosphericLayers(const double& time,
 	registerLayer("outerWindV", wvl);
 
 	// Loading the topography
-	Array2DdataLayer<double>* alt = new Array2DdataLayer<double>("altitude",
-			atmosphericData->topography, atmoSWCorner, atmoNECorner);
+	Array2DdataLayer<double>* alt = new Array2DdataLayer<double>("altitude",		atmosphericData->topography, atmoSWCorner, atmoNECorner);
 
 	registerLayer("altitude", alt);
 }
 
+void DataBroker::loadMultiWindBin(double refTime,size_t numberOfDomains, size_t* startI, size_t* startJ){
+	string windFileName(params->getParameter("caseDirectory")+'/'+params->getParameter("PPath")+'/'+to_string(FireDomain::atmoIterNumber%2)+"/");
+
+					if (windULayer != 0){	
+						((TwoTimeArrayLayer<double>* )windULayer)->loadMultiWindBin(windFileName,refTime,numberOfDomains,startI,startJ);
+					}
+					if (windVLayer != 0){
+						((TwoTimeArrayLayer<double>* )windVLayer)->loadMultiWindBin(windFileName,refTime,numberOfDomains,startI,startJ);
+					}
+}
+void DataBroker::dumpWindDataInBinary(){
+	//string windFileName(params->getParameter("caseDirectory")+'/'+params->getParameter("PPath")+'/'+to_string((FireDomain::atmoIterNumber+1)%2)+"/"+to_string(domain->getDomainID()));
+	
+				//	if (windULayer != 0)	((TwoTimeArrayLayer<double>* )windULayer)->setAtmoNumber(FireDomain::atmoIterNumber);
+						//((TwoTimeArrayLayer<double>* )windULayer)->dumpMultiWindBin(windFileName);
+					
+				//	if (windVLayer != 0)	((TwoTimeArrayLayer<double>* )windULayer)->setAtmoNumber(FireDomain::atmoIterNumber);
+						//((TwoTimeArayLayer<double>* )windVLayer)->dumpMultiWindBin(windFileName);
+					
+}
 void DataBroker::initializeParallelProperties(const size_t& nx,
 		const size_t& ny, const size_t& nz, const double& initval) {
 
@@ -411,12 +432,18 @@ void DataBroker::dropProperty(string name) {
 }
 
 void DataBroker::insureLayersExistence() {
-	/* checking the layers needed for the propagation and flux models */
+	/* checking the layers needed for the propagation and flux models */ 
 	while (!neededProperties.empty()) {
+
 		if (getLayer(neededProperties.back()) == 0) {
 			if (neededProperties.back().find("normalWind") != string::npos) {
+				if (domain->getDomainID()==0) {
+					cout<<"looking for  "<<neededProperties.back()<<endl;
+					if (windULayer != 0)
+						cout<<"windULayer is  "<<windULayer->getKey()<<endl;
+					}
 				if (windULayer == 0 or windVLayer == 0)
-					cout << "layer for normal wind doesn't rely on existing"
+					cout<<windULayer << "layer for normal wind doesn't rely on existing"
 							<< " windU and windV layers, creating them if needed"
 							<< endl;
 				/* special treatment for normal wind */
@@ -440,9 +467,8 @@ void DataBroker::insureLayersExistence() {
 				if (params->isValued("fuel"))
 					fuelIndex = params->getDouble("fuel");
 				fuelLayer = new FuelDataLayer<double>("fuel", fuelIndex);
-			} else if (neededProperties.back().find("slope") != string::npos
-					and altitudeLayer == 0) {
-				cout
+			} else if (neededProperties.back().find("slope") != string::npos) {
+				cout << "DOMAIN "<< domain->getDomainID()
 						<< "layer for slope doesn't rely on existing altitude layer, creating it"
 						<< endl;
 				double val = 0.;
@@ -473,7 +499,7 @@ void DataBroker::insureLayersExistence() {
 				addConstantLayer(neededProperties.back(), val);
 			}
 		}
-		/* erasing the property from the list of properties to be treated */
+		/* erasing the property from the list of properties to be treated */ 
 		dropProperty(neededProperties.back());
 	}
 
@@ -623,7 +649,7 @@ DataLayer<double>* DataBroker::getLayer(const string& property) {
 
 	ilayer = layersMap.find(property);
 	if (ilayer != layersMap.end())
-		return ilayer->second;
+		return ilayer->second; 
 	return 0;
 }
 
@@ -791,526 +817,8 @@ string DataBroker::printLayers() {
 }
 
 /* handling multiple netcdf version... much code repeated as functions are different*/
-#ifdef NETCDF_NOT_LEGACY
-void DataBroker::loadFromNCFile(string filename) {
-	 try
-   {
-	NcFile dataFile(filename.c_str(), NcFile::read);
-	propGetterMap::const_iterator pg;
-	if (!dataFile.isNull()) {
-		std::multimap<std::string, NcVar> allVariables = dataFile.getVars();
-		NcVarAtt layerTypeNC;
-		string layerType;
-		for (auto it = allVariables.begin(); it != allVariables.end(); ++it){
- 
-            	layerTypeNC = it->second.getAtt("type");
-				if(layerTypeNC.isNull()) {
-					layerType="";
-				} else{
-					 layerTypeNC.getValues(layerType);
-				}
-			
-				string varName = it->first;
-				if (varName == "wind") {
-					XYZTDataLayer<double> * wul = constructXYZTLayerFromFile(&dataFile, "wind",0);
-					registerLayer("windU", wul);
-					XYZTDataLayer<double> * wvl = constructXYZTLayerFromFile(&dataFile, "wind",1);
-					registerLayer("windV", wvl);
-					PwindULayer = wul;
-					PwindVLayer = wvl;
-				}
-			pg = propPropertiesGetters.find(varName);
-			if (pg != propPropertiesGetters.end()) {
+#ifdef NETCDF_LEGACY
 
-				if (varName == "altitude") {
-					// altitude is given by the NetCDF file
-					XYZTDataLayer<double> * alt = constructXYZTLayerFromFile(
-							&dataFile, varName.c_str(),-1);
-
-					registerLayer(varName, alt);
-
-				} else if (varName == "windU") {
-					// wind is given by the NetCDF file
-					XYZTDataLayer<double> * wul = constructXYZTLayerFromFile(
-							&dataFile, varName.c_str(),-1);
-					registerLayer(varName, wul);
-				} else if (varName == "windV") {
-					// wind is given by the NetCDF file
-					XYZTDataLayer<double> * wvl = constructXYZTLayerFromFile(
-							&dataFile, varName.c_str(),-1);
-					registerLayer(varName, wvl);
-				}else if (varName == "temperature") {
-					// wind is given by the NetCDF file
-					XYZTDataLayer<double> * temp = constructXYZTLayerFromFile(
-							&dataFile, varName.c_str(),-1);
-					registerLayer(varName, temp);
-				}else if (varName == "moisture") {
-					// wind is given by the NetCDF file
-					XYZTDataLayer<double> * moist = constructXYZTLayerFromFile(
-							&dataFile, varName.c_str(),-1);
-					registerLayer(varName, moist);
-				} else if (varName == "fieldSpeed") {
-					dummyLayer = constructXYZTLayerFromFile(&dataFile,
-							varName.c_str(),-1);
-					registerLayer(varName, dummyLayer);
-				}
-			} 
-
-
-
-			else if (layerType.find("data") != string::npos) {
-
-				if (find(neededProperties.begin(), neededProperties.end(), varName) != neededProperties.end()) {
-					XYZTDataLayer<double>* newlayer = constructXYZTLayerFromFile(&dataFile,varName,-1);
-					registerLayer(varName, newlayer);
-				}
-			} else if (layerType.find("parameter") != string::npos) {
-				
-				  map<string,NcVarAtt> attributeList = it->second.getAtts();
-				  map<string,NcVarAtt>::iterator myIter; 
-					for(myIter=attributeList.begin();myIter !=attributeList.end();++myIter)
-					{
-					NcVarAtt att = myIter->second;
-					NcType attValType = att.getType();
-					string attsVal;
-					int attiVal;
-					float attfVal;
-					switch ((int)attValType.getTypeClass()) {
-							case NC_CHAR:
-								att.getValues(attsVal); 
-								params->setParameter(myIter->first, attsVal);
-								break;
-							case NC_INT:
-								
-								att.getValues(&attiVal); 
-								params->setParameter(myIter->first, std::to_string(attiVal));
-								break;
-							case NC_FLOAT:
-								 
-								att.getValues(&attfVal); 
-								params->setParameter(myIter->first, std::to_string(attfVal));
-								break;
-							default:
-								std::cout << myIter->first << " attribute of unhandled type " <<attValType.getName() << endl;
-								break;
-						}
-					}
-			}
-		}
-
-	 
-		fuelLayer = constructFuelLayerFromFile(&dataFile);
-		registerLayer("fuel", fuelLayer);
-		cout<<"sucessfully read landscape file"<<endl;
-	}
-	}catch(NcException& e)
-		{
-		e.what();
-		cout<<"cannot read landscape file"<<endl;
-	
-		}
-
-}
-double DataBroker::getNetCDFFileVersion(NcVar* var) {
-	double nVersion = 1;
-	map<string,NcVarAtt> attributeList = var->getAtts();
-    map<string,NcVarAtt>::iterator myIter;
-    myIter = attributeList.find("version");
-    if(myIter == attributeList.end()){
-     return nVersion;
-    }
-    myIter->second.getValues(&nVersion);
-	return nVersion;
-}
-FFPoint DataBroker::getNetCDFSWCorner(NcVar* var) {
-	double Xorigin = 0;
-	double Yorigin = 0;
-	double Zorigin = 0;
-	NcVarAtt att = var->getAtt("SWx");
-	if(!att.isNull()){
-  		 att.getValues(&Xorigin);
-	} 
-    att = var->getAtt("SWy");
-	if(!att.isNull()){
-  		 att.getValues(&Yorigin);
-	} 
-	att = var->getAtt("SWz");
-	if(!att.isNull()){
-  		 att.getValues(&Zorigin);
-	} 
- 
-	FFPoint relSWC = FFPoint(Xorigin, Yorigin, Zorigin);
-	FFPoint shiftPos = FFPoint(params->getDouble("SHIFT_ALL_DATA_ABSCISSA_BY"),
-			params->getDouble("SHIFT_ALL_DATA_ORDINATES_BY"));
-	return shiftPos + relSWC;
-}
-double DataBroker::getNetCDFTimeOrigin(NcVar* var) {
-	double Lt =0;
- 	NcVarAtt att = var->getAtt("Lt");
-	if(!att.isNull()) att.getValues(&Lt);
-	return Lt;
-}
-FFPoint DataBroker::getNetCDFSpatialSpan(NcVar* var) {
-	double Lx = 0;
-	double Ly = 0; 
-	double Lz = 0; 
- 	NcVarAtt att = var->getAtt("Lx");
-	if(!att.isNull()) att.getValues(&Lx);
-	att = var->getAtt("Ly");
-	if(!att.isNull()) att.getValues(&Ly);
-	att = var->getAtt("Lz");
-	if(!att.isNull()) att.getValues(&Lz);
-	return FFPoint(Lx, Ly, Lz);
-}
-double DataBroker::getNetCDFTimeSpan(NcVar* var) {
-	double timeOrigin =0;
- 	NcVarAtt att = var->getAtt("t0");
-	if(!att.isNull()) att.getValues(&timeOrigin);
-	return timeOrigin;
-}
-XYZTDataLayer<double>* DataBroker::constructXYZTLayerFromFile(	NcFile* NcdataFile, string property, int dimTSelected = -1) {
-			
-			
-	NcVar domvar = NcdataFile->getVar("domain");
-	FFPoint SWCorner = getNetCDFSWCorner(&domvar); 
-	FFPoint spatialExtent = getNetCDFSpatialSpan(&domvar); 
-	double timeOrigin = getNetCDFTimeOrigin(&domvar); 
-	double Lt = getNetCDFTimeSpan(&domvar); 
-	double version = getNetCDFFileVersion(&domvar); 
-	NcVar values = NcdataFile->getVar(property);
-
-	if (values.getDimCount() > 4) {
-		cout << "Variable " << property << " doesn't have the right dimension ("
-				<< values.getDimCount() << " instead of 4 maximum) version" <<version<< endl;
-	}
-
-	size_t nx = 0;
-	size_t ny = 0;
-	size_t nz = 0;
-	size_t nt = 0;
-
-	if (values.getDimCount() == 2) {
-		ny = (size_t) values.getDim(0).getSize();
-		nx = (size_t) values.getDim(1).getSize();
-	}
-	if (values.getDimCount() == 3) {
-		nz = (size_t) values.getDim(0).getSize();
-		ny = (size_t) values.getDim(1).getSize();
-		nx = (size_t) values.getDim(2).getSize();
-
-	}
-	if (values.getDimCount() == 4) {
-		nt = (size_t) values.getDim(0).getSize();
-		nz = (size_t) values.getDim(1).getSize();
-		ny = (size_t) values.getDim(2).getSize();
-		nx = (size_t) values.getDim(3).getSize();
-	}
-
-		 if (dimTSelected>-1){
-			 	 nt = 1;
-
-		    }
-	
-	double* data = readAndTransposeFortranProjectedField(&values, nt, nz, ny, nx,true,dimTSelected);
- 
-	if (isRelevantData(SWCorner, spatialExtent)) {
-
-		XYZTDataLayer<double>* newlayer = new XYZTDataLayer<double>(property,
-				SWCorner, timeOrigin, spatialExtent, Lt, nx, ny, nz, nt, data);
-		delete[] data;
-		return newlayer;
-
-	} else {
-		cout << "WARNING, spatial domain of validity for variable " << property
-				<< ": " << SWCorner.print() << " -> ("
-				<< SWCorner.getX() + spatialExtent.getX() << ","
-				<< SWCorner.getY() + spatialExtent.getY() << ","
-				<< SWCorner.getZ() + spatialExtent.getZ()
-				<< ") has no intersection with the fire domain: ("
-				<< domain->SWCornerX() << "," << domain->SWCornerY() << ") -> ("
-				<< domain->NECornerX() << "," << domain->NECornerY() << ")"
-				<< endl << "...resizing to the fire domain..." << endl;
-
-		FFPoint SWC = FFPoint(domain->SWCornerX(), domain->SWCornerY(), 0.);
-		FFPoint ext = FFPoint(domain->NECornerX() - domain->SWCornerX(),
-				domain->NECornerY() - domain->SWCornerY(), 10000.);
-		double t0 = 0;
-		double Dt = 10000000.;
-		XYZTDataLayer<double>* newlayer = new XYZTDataLayer<double>(property,
-				SWC, t0, ext, Dt, nx, ny, nz, nt, data);
-		delete[] data;
-		return newlayer;
-
-	}
-	}
-FuelDataLayer<double>* DataBroker::constructFuelLayerFromFile(	NcFile* NcdataFile) {
-	NcVar domvar = NcdataFile->getVar("domain");
-	FFPoint SWCorner = getNetCDFSWCorner(&domvar); 
-	FFPoint spatialExtent = getNetCDFSpatialSpan(&domvar); 
-	double timeOrigin = getNetCDFTimeOrigin(&domvar); 
-	double Lt = getNetCDFTimeSpan(&domvar); 
-	double version = getNetCDFFileVersion(&domvar);  
-	NcVar values = NcdataFile->getVar("fuel");
-
-	if (values.getDimCount() > 4) {
-		cout << "Variable fuel doesn't have the right dimension ("
-				<< values.getDimCount() << " instead of 4 maximum)" << endl;
-	}
-
-	size_t nx = 0;
-	size_t ny = 0;
-	size_t nz = 0;
-	size_t nt = 0;
-
-	if (values.getDimCount() == 2) {
-		ny = (size_t) values.getDim(0).getSize();
-		nx = (size_t) values.getDim(1).getSize();
-	}
-	if (values.getDimCount() == 3) {
-		nz = (size_t) values.getDim(0).getSize();
-		ny = (size_t) values.getDim(1).getSize();
-		nx = (size_t) values.getDim(2).getSize();
-
-	}
-	if (values.getDimCount() == 4) {
-		nt = (size_t) values.getDim(0).getSize();
-		nz = (size_t) values.getDim(1).getSize();
-		ny = (size_t) values.getDim(2).getSize();
-		nx = (size_t) values.getDim(3).getSize();
-	}
-		
-	/* Getting the data */
-	/*------------------*/
-	int* fuelMap = readAndTransposeIntFortranProjectedField(&values, nt, nz, ny,	nx, version>0,-1);
-
-	if (isRelevantData(SWCorner, spatialExtent)) {
-		FuelDataLayer<double>* newlayer = new FuelDataLayer<double>("fuel",SWCorner, timeOrigin, spatialExtent, Lt, nx, ny, nz, nt,fuelMap);
-		delete[] fuelMap;
-		return newlayer;
-	} else {
-		cout << "WARNING, spatial domain of validity for fuel table: "
-				<< SWCorner.print() << " -> ("
-				<< SWCorner.getX() + spatialExtent.getX() << ","
-				<< SWCorner.getY() + spatialExtent.getY() << ","
-				<< SWCorner.getZ() + spatialExtent.getZ()
-				<< ") has no intersection with the fire domain: ("
-				<< domain->SWCornerX() << "," << domain->SWCornerY() << ") -> ("
-				<< domain->NECornerX() << "," << domain->NECornerY() << ")"
-				<< endl << "...resizing to the fire domain..." << endl;
-
-		FFPoint SWC = FFPoint(domain->SWCornerX(), domain->SWCornerY(), 0.);
-		FFPoint ext = FFPoint(domain->NECornerX() - domain->SWCornerX(),
-				domain->NECornerY() - domain->SWCornerY(), 10000.);
-		double t0 = 0;
-		double Dt = 10000000.;
-		FuelDataLayer<double>* newlayer = new FuelDataLayer<double>("fuel", SWC,t0, ext, Dt, nx, ny, nz, nt, fuelMap);
-		delete[] fuelMap;
-		return newlayer;
-	}
-	return 0;
-	}
-int* DataBroker::readAndTransposeIntFortranProjectedField(NcVar* val,const size_t &nt, const size_t &nz, const size_t &ny, const size_t &nx,bool transpose = true, int selectedT =-1) {
-		size_t nnt = nt;
-		size_t SelectedTdim = selectedT<0?0:selectedT;
-		 if (selectedT>-1) 	 nnt = 1;
-	    vector<size_t>  mySlab{nnt,nz,ny,nx};	 
-		vector<size_t>  myStart{SelectedTdim,0,0,0};	 
-		
-		//vector<int> start( selectedT<0?0:selectedT,0,0,0 );
-		//vector<size_t> slab( nnt, nz, ny, nx );
-
-	    int* tmp = new int[nnt * nz * ny * nx];
-		val->getVar(myStart,mySlab,tmp);
-		if (!transpose){
-			cout<< "not transposing field "<<endl;
-			return tmp;
-		}
-
-		
-		int* data = new int[nnt * nz * ny * nx];
-		size_t sizeV = nnt * nz * ny * nx;
-		size_t indC, indF;
-		size_t ii, jj, kk, ll, rest;
-		
-    
-	if (nnt>1){
-		//cout << "WARNING Timed data field with nz " << nz << endl;
-		size_t  restz;
-		for (indF = 0; indF < sizeV; indF++) {
- 
-				ll = indF / (nx * ny * nz) ;
-				restz = indF - (ll * nx * ny * nz) ;
-				kk = restz / (nx * ny);
-				rest = restz - kk * nx * ny;
-				jj = rest / nx;
-				ii = rest % nx;
- 
-				indC = ii * ny * nz * nnt + jj * nz * nnt + kk * nnt + ll;
-				
-				data[indC] = tmp[indF];
-				
-				
-			}
-	}
-	else{
-		for (indF = 0; indF < sizeV; indF++) {
- 
-			kk = indF / (nx * ny);
-			rest = indF - kk * nx * ny;
-			jj = rest / nx;
-			ii = rest % nx;
- 
-			indC = ii * ny * nz + jj * nz + kk;
-			
-			data[indC] = tmp[indF];
-			
-			
-		}
-	}
-	free(tmp);
-	return data;
-
-
-		}
-double* DataBroker::readAndTransposeFortranProjectedField(NcVar* val,const size_t &nt, const size_t &nz, const size_t &ny, const size_t &nx,bool transpose = true,  int selectedT = -1) {
-		size_t nnt = nt;
-		size_t SelectedTdim = selectedT<0?0:selectedT;
-		 if (selectedT>-1) 	 nnt = 1;
-	    vector<size_t>  mySlab{nnt,nz,ny,nx};	 
-		vector<size_t>  myStart{SelectedTdim,0,0,0};	 
-		
-		//vector<int> start( selectedT<0?0:selectedT,0,0,0 );
-		//vector<size_t> slab( nnt, nz, ny, nx );
-
-	    double* tmp = new double[nnt * nz * ny * nx];
-		val->getVar(myStart,mySlab,tmp);
-		if (!transpose){
-			cout<< "not transposing field "<<endl;
-			return tmp;
-		}
-
-		
-		double* data = new double[nnt * nz * ny * nx];
-		size_t sizeV = nnt * nz * ny * nx;
-		size_t indC, indF;
-		size_t ii, jj, kk, ll, rest;
-		
-    
-	if (nnt>1){
-		//cout << "WARNING Timed data field with nz " << nz << endl;
-		size_t  restz;
-		for (indF = 0; indF < sizeV; indF++) {
- 
-				ll = indF / (nx * ny * nz) ;
-				restz = indF - (ll * nx * ny * nz) ;
-				kk = restz / (nx * ny);
-				rest = restz - kk * nx * ny;
-				jj = rest / nx;
-				ii = rest % nx;
- 
-				indC = ii * ny * nz * nnt + jj * nz * nnt + kk * nnt + ll;
-				
-				data[indC] = tmp[indF];
-				
-				
-			}
-	}
-	else{
-		for (indF = 0; indF < sizeV; indF++) {
- 
-			kk = indF / (nx * ny);
-			rest = indF - kk * nx * ny;
-			jj = rest / nx;
-			ii = rest % nx;
- 
-			indC = ii * ny * nz + jj * nz + kk;
-			
-			data[indC] = tmp[indF];
-			
-			
-		}
-	}
-	free(tmp);
-	return data;
-
-
-		}
-PropagativeLayer<double>* DataBroker::constructPropagativeLayerFromFile(NcFile* NcdataFile, string property) {
-			cout << "DataBroker::constructPropagativeLayerFromFile " << " newCDF Not Implemented" << endl;
-		}
-FluxLayer<double>* DataBroker::constructFluxLayerFromFile(NcFile* NcdataFile,	string property) {
-			cout << "DataBroker::constructFluxLayerFromFile " << " newCDF Not Implemented" << endl;		
-		}
-void DataBroker::initializePropagativeLayer(string filename) {
-	 try
-   {
-	NcFile dataFile(filename.c_str(), NcFile::read);
-	propGetterMap::const_iterator pg;
-		if (!dataFile.isNull()) {
-			std::multimap<std::string, NcVar> allVariables = dataFile.getVars();
-			NcVarAtt layerTypeNC;
-			string layerType;
-			for (auto it = allVariables.begin(); it != allVariables.end(); ++it){
-					layerTypeNC = it->second.getAtt("type");
-					if(layerTypeNC.isNull()) {
-						layerType="";
-					} else{
-						layerTypeNC.getValues(layerType);
-					}
-					if (layerType.find("propagative") != string::npos) {
-						PropagativeLayer<double>* propLayer = constructPropagativeLayerFromFile(&dataFile, it->first);
-						domain->setPropagativeLayer(propLayer);
-					}
-			}
-		}
-		if (domain->getPropagativeLayer() == 0) {
-		if (!domain->addPropagativeLayer( params->getParameter("propagationModel"))) {
-			cout<< "PROBLEM: it was not possible to retrieve propagation model "<< params->getParameter("propagationModel") << endl;
-		}
-	}
-
-	if (domain->getPropagativeLayer() != 0) registerLayer(domain->getPropagativeLayer()->getKey(), domain->getPropagativeLayer());
-
-	}catch(NcException& e)
-	{
-		e.what();
-		cout<<"cannot read landscape file in initialisation of prop layer"<<endl;
-	}
-}
-void DataBroker::initializeFluxLayers(string filename) {
-	try
-   {
-		NcFile dataFile(filename, NcFile::read);
-		if (!dataFile.isNull()) {
-			std::multimap<std::string, NcVar> allVariables = dataFile.getVars();
-			NcVarAtt layerTypeNC;
-			string layerType = "";
-			
-			for (auto it = allVariables.begin(); it != allVariables.end(); ++it){
-				 
-					layerTypeNC = it->second.getAtt("type");
-					if(layerTypeNC.isNull()) {
-						layerType="";
-					} else{
-						layerTypeNC.getValues(layerType);
-					}
-			 
-					if (layerType.find("flux") != string::npos) {
-						FluxLayer<double>* newlayer = constructFluxLayerFromFile(&dataFile, it->first);
-						registerFluxLayer(it->first, newlayer);
-					}
-			}
-		}
-		
-
-	}catch(NcException& e)
-	{
-		e.what();
-		cout<<"Problem reading landscape file in initialisation of flux layer"<<endl;
-	}
-
-}
-#else
 void DataBroker::initializePropagativeLayer(string filename) {
 
 	NcFile* NcdataFile = new NcFile(filename.c_str(), NcFile::ReadOnly);
@@ -1419,11 +927,13 @@ void DataBroker::loadFromNCFile(string filename) {
 					XYZTDataLayer<double> * wul = constructXYZTLayerFromFile(
 							NcdataFile, varName.c_str(),-1);
 					registerLayer(varName, wul);
+					windULayer = wul;
 				} else if (varName == "windV") {
 					// wind is given by the NetCDF file
 					XYZTDataLayer<double> * wvl = constructXYZTLayerFromFile(
 							NcdataFile, varName.c_str(),-1);
 					registerLayer(varName, wvl);
+					windVLayer = wvl;
 				}else if (varName == "temperature") {
 					// wind is given by the NetCDF file
 					XYZTDataLayer<double> * temp = constructXYZTLayerFromFile(
@@ -2019,6 +1529,646 @@ PropagativeLayer<double>* DataBroker::constructPropagativeLayerFromFile(	NcFile*
 		delete[] data;
 		return newlayer;
 
+	}
+
+}
+
+#else
+void DataBroker::loadFromNCFile(string filename) {
+	 try
+   {
+	NcFile dataFile(filename.c_str(), NcFile::read);
+	propGetterMap::const_iterator pg;
+	if (!dataFile.isNull()) {
+
+		
+		std::multimap<std::string, NcVar> allVariables = dataFile.getVars();
+		NcVarAtt layerTypeNC;
+		string layerType;
+		for (auto it = allVariables.begin(); it != allVariables.end(); ++it){
+ 
+            	layerTypeNC = it->second.getAtt("type");
+				if(layerTypeNC.isNull()) {
+					layerType="";
+				} else{
+					 layerTypeNC.getValues(layerType);
+				}
+			
+				string varName = it->first;
+				if (varName == "wind") {
+					XYZTDataLayer<double> * wul = constructXYZTLayerFromFile(&dataFile, "wind",0);
+					registerLayer("windU", wul);
+					XYZTDataLayer<double> * wvl = constructXYZTLayerFromFile(&dataFile, "wind",1);
+					registerLayer("windV", wvl);
+					PwindULayer = wul;
+					PwindVLayer = wvl;
+				}
+ 
+			pg = propPropertiesGetters.find(varName);
+			if (pg != propPropertiesGetters.end()) {
+
+				if (varName == "altitude") {
+					if (domain->getDomainID() == 0) {
+					// altitude is given by the NetCDF file
+    				   XYZTDataLayer<double> * altus = constructXYZTLayerFromFile(	&dataFile, varName.c_str(),-1);
+					   registerLayer(varName, altus);
+					}
+
+				} else if (varName == "windU") {
+					// wind is given by the NetCDF file
+					XYZTDataLayer<double> * wul = constructXYZTLayerFromFile(
+							&dataFile, varName.c_str(),-1);
+							windULayer = wul;
+					registerLayer(varName, wul);
+				} else if (varName == "windV") {
+					// wind is given by the NetCDF file
+					XYZTDataLayer<double> * wvl = constructXYZTLayerFromFile(
+							&dataFile, varName.c_str(),-1);
+					registerLayer(varName, wvl);
+				}else if (varName == "temperature") {
+					// wind is given by the NetCDF file
+					XYZTDataLayer<double> * temp = constructXYZTLayerFromFile(
+							&dataFile, varName.c_str(),-1);
+					registerLayer(varName, temp);
+				}else if (varName == "moisture") {
+					// wind is given by the NetCDF file
+					XYZTDataLayer<double> * moist = constructXYZTLayerFromFile(
+							&dataFile, varName.c_str(),-1);
+					registerLayer(varName, moist);
+				} else if (varName == "fieldSpeed") {
+					dummyLayer = constructXYZTLayerFromFile(&dataFile,
+							varName.c_str(),-1);
+					registerLayer(varName, dummyLayer);
+				}
+			} 
+
+
+
+			else if (layerType.find("data") != string::npos) {
+
+				if (find(neededProperties.begin(), neededProperties.end(), varName) != neededProperties.end()) {
+					XYZTDataLayer<double>* newlayer = constructXYZTLayerFromFile(&dataFile,varName,-1);
+					registerLayer(varName, newlayer);
+				}
+			} else if (layerType.find("parameter") != string::npos) {
+				
+				  map<string,NcVarAtt> attributeList = it->second.getAtts();
+				  map<string,NcVarAtt>::iterator myIter; 
+					for(myIter=attributeList.begin();myIter !=attributeList.end();++myIter)
+					{
+					NcVarAtt att = myIter->second;
+					NcType attValType = att.getType();
+					string attsVal;
+					int attiVal;
+					float attfVal;
+					switch ((int)attValType.getTypeClass()) {
+							case NC_CHAR:
+								att.getValues(attsVal); 
+								params->setParameter(myIter->first, attsVal);
+								break;
+							case NC_INT:
+								
+								att.getValues(&attiVal); 
+								params->setParameter(myIter->first, std::to_string(attiVal));
+								break;
+							case NC_FLOAT:
+								 
+								att.getValues(&attfVal); 
+								params->setParameter(myIter->first, std::to_string(attfVal));
+								break;
+							default:
+								std::cout << myIter->first << " attribute of unhandled type " <<attValType.getName() << endl;
+								break;
+						}
+					}
+			}
+		}
+
+	 
+		fuelLayer = constructFuelLayerFromFile(&dataFile);
+		registerLayer("fuel", fuelLayer);
+	 
+	}
+	}catch(NcException& e)
+		{
+		e.what();
+		cout<<"cannot read landscape file"<<endl;
+	
+		}
+
+}
+double DataBroker::getNetCDFFileVersion(NcVar* var) {
+	double nVersion = 1;
+	map<string,NcVarAtt> attributeList = var->getAtts();
+    map<string,NcVarAtt>::iterator myIter;
+    myIter = attributeList.find("version");
+    if(myIter == attributeList.end()){
+     return nVersion;
+    }
+    myIter->second.getValues(&nVersion);
+	return nVersion;
+}
+FFPoint DataBroker::getNetCDFSWCorner(NcVar* var) {
+	double Xorigin = 0;
+	double Yorigin = 0;
+	double Zorigin = 0;
+	NcVarAtt att = var->getAtt("SWx");
+	if(!att.isNull()){
+  		 att.getValues(&Xorigin);
+	} 
+    att = var->getAtt("SWy");
+	if(!att.isNull()){
+  		 att.getValues(&Yorigin);
+	} 
+	att = var->getAtt("SWz");
+	if(!att.isNull()){
+  		 att.getValues(&Zorigin);
+	} 
+ 
+	FFPoint relSWC = FFPoint(Xorigin, Yorigin, Zorigin);
+	FFPoint shiftPos = FFPoint(params->getDouble("SHIFT_ALL_DATA_ABSCISSA_BY"),
+			params->getDouble("SHIFT_ALL_DATA_ORDINATES_BY"));
+	return shiftPos + relSWC;
+}
+double DataBroker::getNetCDFTimeOrigin(NcVar* var) {
+	double Lt =0;
+ 	NcVarAtt att = var->getAtt("Lt");
+	if(!att.isNull()) att.getValues(&Lt);
+	return Lt;
+}
+FFPoint DataBroker::getNetCDFSpatialSpan(NcVar* var) {
+	double Lx = 0;
+	double Ly = 0; 
+	double Lz = 0; 
+ 	NcVarAtt att = var->getAtt("Lx");
+	if(!att.isNull()) att.getValues(&Lx);
+	att = var->getAtt("Ly");
+	if(!att.isNull()) att.getValues(&Ly);
+	att = var->getAtt("Lz");
+	if(!att.isNull()) att.getValues(&Lz);
+	return FFPoint(Lx, Ly, Lz);
+}
+double DataBroker::getNetCDFTimeSpan(NcVar* var) {
+	double timeOrigin =0;
+ 	NcVarAtt att = var->getAtt("t0");
+	if(!att.isNull()) att.getValues(&timeOrigin);
+	return timeOrigin;
+}
+XYZTDataLayer<double>* DataBroker::constructXYZTLayerFromFile(	NcFile* NcdataFile, string property, int dimTSelected = -1) {
+			
+			
+	NcVar domvar = NcdataFile->getVar("domain");
+	FFPoint SWCorner = getNetCDFSWCorner(&domvar); 
+	FFPoint spatialExtent = getNetCDFSpatialSpan(&domvar); 
+	double timeOrigin = getNetCDFTimeOrigin(&domvar); 
+	double Lt = getNetCDFTimeSpan(&domvar); 
+	double version = getNetCDFFileVersion(&domvar); 
+	NcVar values = NcdataFile->getVar(property);
+	if (values.getDimCount() > 4) {
+		cout << "Variable " << property << " doesn't have the right dimension ("
+				<< values.getDimCount() << " instead of 4 maximum) version" <<version<< endl;
+	}
+
+	size_t nx = 0;
+	size_t ny = 0;
+	size_t nz = 0;
+	size_t nt = 0;
+
+	if (values.getDimCount() == 2) {
+		ny = (size_t) values.getDim(0).getSize();
+		nx = (size_t) values.getDim(1).getSize();
+	}
+	if (values.getDimCount() == 3) {
+		nz = (size_t) values.getDim(0).getSize();
+		ny = (size_t) values.getDim(1).getSize();
+		nx = (size_t) values.getDim(2).getSize();
+
+	}
+	if (values.getDimCount() == 4) {
+		nt = (size_t) values.getDim(0).getSize();
+		nz = (size_t) values.getDim(1).getSize();
+		ny = (size_t) values.getDim(2).getSize();
+		nx = (size_t) values.getDim(3).getSize();
+	}
+
+		 if (dimTSelected>-1){
+			 	 nt = 1;
+
+		    }
+	
+	double* data = readAndTransposeFortranProjectedField(&values, nt, nz, ny, nx,true,dimTSelected);
+ 
+	if (isRelevantData(SWCorner, spatialExtent)) {
+//
+		//cout << "Variable " << property <<" " <<data[0]<< " have "<<timeOrigin<<" "<< values.getDimCount()<< " " << Lt<< " " << nx<< " " << ny<< " " << nz<< " " << nt<< " " << " SW" <<SWCorner.print()<< " ext:"<<spatialExtent.print()<< endl;
+
+		XYZTDataLayer<double>* newlayer = new XYZTDataLayer<double>(property,	SWCorner, timeOrigin, spatialExtent, Lt, nx, ny, nz, nt, data);
+		
+		delete[] data;
+		return newlayer;
+
+	} else {
+		cout << "WARNING, spatial domain of validity for variable " << property
+				<< ": " << SWCorner.print() << " -> ("
+				<< SWCorner.getX() + spatialExtent.getX() << ","
+				<< SWCorner.getY() + spatialExtent.getY() << ","
+				<< SWCorner.getZ() + spatialExtent.getZ()
+				<< ") has no intersection with the fire domain: ("
+				<< domain->SWCornerX() << "," << domain->SWCornerY() << ") -> ("
+				<< domain->NECornerX() << "," << domain->NECornerY() << ")"
+				<< endl << "...resizing to the fire domain..." << endl;
+
+		FFPoint SWC = FFPoint(domain->SWCornerX(), domain->SWCornerY(), 0.);
+		FFPoint ext = FFPoint(domain->NECornerX() - domain->SWCornerX(),
+				domain->NECornerY() - domain->SWCornerY(), 10000.);
+		double t0 = 0;
+		double Dt = 10000000.;
+		XYZTDataLayer<double>* newlayer = new XYZTDataLayer<double>(property,
+				SWC, t0, ext, Dt, nx, ny, nz, nt, data);
+		delete[] data;
+		return newlayer;
+
+	}
+	}
+FuelDataLayer<double>* DataBroker::constructFuelLayerFromFile(	NcFile* NcdataFile) {
+	NcVar domvar = NcdataFile->getVar("domain");
+	FFPoint SWCorner = getNetCDFSWCorner(&domvar); 
+	FFPoint spatialExtent = getNetCDFSpatialSpan(&domvar); 
+	double timeOrigin = getNetCDFTimeOrigin(&domvar); 
+	double Lt = getNetCDFTimeSpan(&domvar); 
+	double version = getNetCDFFileVersion(&domvar);  
+	NcVar values = NcdataFile->getVar("fuel");
+
+	if (values.getDimCount() > 4) {
+		cout << "Variable fuel doesn't have the right dimension ("
+				<< values.getDimCount() << " instead of 4 maximum)" << endl;
+	}
+
+	size_t nx = 0;
+	size_t ny = 0;
+	size_t nz = 0;
+	size_t nt = 0;
+
+	if (values.getDimCount() == 2) {
+		ny = (size_t) values.getDim(0).getSize();
+		nx = (size_t) values.getDim(1).getSize();
+	}
+	if (values.getDimCount() == 3) {
+		nz = (size_t) values.getDim(0).getSize();
+		ny = (size_t) values.getDim(1).getSize();
+		nx = (size_t) values.getDim(2).getSize();
+
+	}
+	if (values.getDimCount() == 4) {
+		nt = (size_t) values.getDim(0).getSize();
+		nz = (size_t) values.getDim(1).getSize();
+		ny = (size_t) values.getDim(2).getSize();
+		nx = (size_t) values.getDim(3).getSize();
+	}
+		
+	/* Getting the data */
+	/*------------------*/
+	int* fuelMap = readAndTransposeIntFortranProjectedField(&values, nt, nz, ny,	nx, version>0,-1);
+
+	if (isRelevantData(SWCorner, spatialExtent)) {
+		FuelDataLayer<double>* newlayer = new FuelDataLayer<double>("fuel",SWCorner, timeOrigin, spatialExtent, Lt, nx, ny, nz, nt,fuelMap);
+		delete[] fuelMap;
+		return newlayer;
+	} else {
+		cout << "WARNING, spatial domain of validity for fuel table: "
+				<< SWCorner.print() << " -> ("
+				<< SWCorner.getX() + spatialExtent.getX() << ","
+				<< SWCorner.getY() + spatialExtent.getY() << ","
+				<< SWCorner.getZ() + spatialExtent.getZ()
+				<< ") has no intersection with the fire domain: ("
+				<< domain->SWCornerX() << "," << domain->SWCornerY() << ") -> ("
+				<< domain->NECornerX() << "," << domain->NECornerY() << ")"
+				<< endl << "...resizing to the fire domain..." << endl;
+
+		FFPoint SWC = FFPoint(domain->SWCornerX(), domain->SWCornerY(), 0.);
+		FFPoint ext = FFPoint(domain->NECornerX() - domain->SWCornerX(),
+				domain->NECornerY() - domain->SWCornerY(), 10000.);
+		double t0 = 0;
+		double Dt = 10000000.;
+		FuelDataLayer<double>* newlayer = new FuelDataLayer<double>("fuel", SWC,t0, ext, Dt, nx, ny, nz, nt, fuelMap);
+		delete[] fuelMap;
+		return newlayer;
+	}
+	return 0;
+	}
+int* DataBroker::readAndTransposeIntFortranProjectedField(NcVar* val,const size_t &nt, const size_t &nz, const size_t &ny, const size_t &nx,bool transpose = true, int selectedT =-1) {
+		size_t nnt = nt;
+		size_t SelectedTdim = selectedT<0?0:selectedT;
+		 if (selectedT>-1) 	 nnt = 1;
+	    vector<size_t>  mySlab{nnt,nz,ny,nx};	 
+		vector<size_t>  myStart{SelectedTdim,0,0,0};	 
+		
+		//vector<int> start( selectedT<0?0:selectedT,0,0,0 );
+		//vector<size_t> slab( nnt, nz, ny, nx );
+
+	    int* tmp = new int[nnt * nz * ny * nx];
+		val->getVar(myStart,mySlab,tmp);
+		if (!transpose){
+			cout<< "not transposing field "<<endl;
+			return tmp;
+		}
+
+		
+		int* data = new int[nnt * nz * ny * nx];
+		size_t sizeV = nnt * nz * ny * nx;
+		size_t indC, indF;
+		size_t ii, jj, kk, ll, rest;
+		
+    
+	if (nnt>1){
+		//cout << "WARNING Timed data field with nz " << nz << endl;
+		size_t  restz;
+		for (indF = 0; indF < sizeV; indF++) {
+ 
+				ll = indF / (nx * ny * nz) ;
+				restz = indF - (ll * nx * ny * nz) ;
+				kk = restz / (nx * ny);
+				rest = restz - kk * nx * ny;
+				jj = rest / nx;
+				ii = rest % nx;
+ 
+				indC = ii * ny * nz * nnt + jj * nz * nnt + kk * nnt + ll;
+				
+				data[indC] = tmp[indF];
+				
+				
+			}
+	}
+	else{
+		for (indF = 0; indF < sizeV; indF++) {
+ 
+			kk = indF / (nx * ny);
+			rest = indF - kk * nx * ny;
+			jj = rest / nx;
+			ii = rest % nx;
+ 
+			indC = ii * ny * nz + jj * nz + kk;
+			
+			data[indC] = tmp[indF];
+			
+			
+		}
+	}
+	free(tmp);
+	return data;
+
+
+		}
+double* DataBroker::readAndTransposeFortranProjectedField(NcVar* val,const size_t &nt, const size_t &nz, const size_t &ny, const size_t &nx,bool transpose = true,  int selectedT = -1) {
+		size_t nnt = nt;
+		size_t SelectedTdim = selectedT<0?0:selectedT;
+		 if (selectedT>-1) 	 nnt = 1;
+	    vector<size_t>  mySlab{nnt,nz,ny,nx};	 
+		vector<size_t>  myStart{SelectedTdim,0,0,0};	 
+		
+		//vector<int> start( selectedT<0?0:selectedT,0,0,0 );
+		//vector<size_t> slab( nnt, nz, ny, nx );
+
+	    double* tmp = new double[nnt * nz * ny * nx];
+		val->getVar(myStart,mySlab,tmp);
+		if (!transpose){
+			cout<< "not transposing field "<<endl;
+			return tmp;
+		}
+
+		
+		double* data = new double[nnt * nz * ny * nx];
+		size_t sizeV = nnt * nz * ny * nx;
+		size_t indC, indF;
+		size_t ii, jj, kk, ll, rest;
+		
+    
+	if (nnt>1){
+		//cout << "WARNING Timed data field with nz " << nz << endl;
+		size_t  restz;
+		for (indF = 0; indF < sizeV; indF++) {
+ 
+				ll = indF / (nx * ny * nz) ;
+				restz = indF - (ll * nx * ny * nz) ;
+				kk = restz / (nx * ny);
+				rest = restz - kk * nx * ny;
+				jj = rest / nx;
+				ii = rest % nx;
+ 
+				indC = ii * ny * nz * nnt + jj * nz * nnt + kk * nnt + ll;
+				
+				data[indC] = tmp[indF];
+				
+				
+			}
+	}
+	else{
+		for (indF = 0; indF < sizeV; indF++) {
+ 
+			kk = indF / (nx * ny);
+			rest = indF - kk * nx * ny;
+			jj = rest / nx;
+			ii = rest % nx;
+ 
+			indC = ii * ny * nz + jj * nz + kk;
+			
+			data[indC] = tmp[indF];
+			
+			
+		}
+	}
+	free(tmp);
+	return data;
+
+
+		}
+PropagativeLayer<double>* DataBroker::constructPropagativeLayerFromFile(NcFile* NcdataFile, string property) {
+			cout << "DataBroker::constructPropagativeLayerFromFile " << " newCDF Not Implemented" << endl;
+			return NULL;
+		}
+FluxLayer<double>* DataBroker::constructFluxLayerFromFile(NcFile* NcdataFile,	string property) {
+					
+			/* Getting the information on the mesh */
+			/*-------------------------------------*/
+			// Getting information on the extension of the domain
+
+			NcVar domvar = NcdataFile->getVar("domain");
+			FFPoint SWCorner = getNetCDFSWCorner(&domvar); 
+			FFPoint spatialExtent = getNetCDFSpatialSpan(&domvar); 
+			double timeOrigin = getNetCDFTimeOrigin(&domvar); 
+			double Lt = getNetCDFTimeSpan(&domvar); 
+			double version = getNetCDFFileVersion(&domvar);  
+			
+			/* Getting the desired flux layer */
+			/*--------------------------------*/
+
+			NcVar values = NcdataFile->getVar(property);
+			if (values.getDimCount() > 4) {
+				cout << "Variable fuel doesn't have the right dimension ("
+						<< values.getDimCount() << " instead of 4 maximum)" << endl;
+			}
+
+ 
+
+			/* Sending the information on the models to the domain */
+			/*-----------------------------------------------------*/
+ 
+
+			NcVarAtt indices = values.getAtt("indices");
+			int indModel = 0; 
+			if(!indices.isNull()) indices.getValues(&indModel);
+			else cout << "DataBroker::constructFluxLayerFromFile cant get number of indices of model property " << endl;
+ 			
+			stringstream mname;
+			string modelName;
+ 
+			//for (size_t i = 0; i < numModels; i++) {
+ 
+ 
+			mname << "model" << indModel << "name";
+			NcVarAtt tmpName = values.getAtt(mname.str());//mname.str());
+			if(!tmpName.isNull()) tmpName.getValues(modelName);
+			 
+			 
+			//modelName = tmpName->as_string(0);
+			//delete tmpName;
+ 
+			domain->fluxModelInstanciation(indModel, modelName);
+ 
+			//}
+	 
+			
+
+			size_t nx = 0;
+			size_t ny = 0;
+			size_t nz = 0;
+			size_t nt = 0;
+
+			if (values.getDimCount() == 2) {
+				ny = (size_t) values.getDim(0).getSize();
+				nx = (size_t) values.getDim(1).getSize();
+			}
+			if (values.getDimCount() == 3) {
+				nz = (size_t) values.getDim(0).getSize();
+				ny = (size_t) values.getDim(1).getSize();
+				nx = (size_t) values.getDim(2).getSize();
+
+			}
+			if (values.getDimCount() == 4) {
+				nt = (size_t) values.getDim(0).getSize();
+				nz = (size_t) values.getDim(1).getSize();
+				ny = (size_t) values.getDim(2).getSize();
+				nx = (size_t) values.getDim(3).getSize();
+			}
+				
+
+			/* Getting the data */
+			/*------------------*/
+			int* data = readAndTransposeIntFortranProjectedField(&values, nt, nz, ny,	nx, version>0,-1);
+
+			if (isRelevantData(SWCorner, spatialExtent)) {
+
+				/* Instanciating the data layer */
+				/*------------------------------*/
+				
+				FluxLayer<double>* newlayer = new FluxLayer<double>(property,
+						atmoSWCorner, atmoNECorner, atmosphericNx, atmosphericNy,
+						domain->getCells(), data, SWCorner, timeOrigin, spatialExtent,
+						Lt, nx, ny, nz, nt);
+				delete[] data;
+				return newlayer;
+
+			} else {
+
+				cout << "WARNING, spatial domain of validity for variable " << property
+						<< ": " << SWCorner.print() << " -> ("
+						<< SWCorner.getX() + spatialExtent.getX() << ","
+						<< SWCorner.getY() + spatialExtent.getY() << ","
+						<< SWCorner.getZ() + spatialExtent.getZ()
+						<< ") has no intersection with the fire domain: ("
+						<< domain->SWCornerX() << "," << domain->SWCornerY() << ") -> ("
+						<< domain->NECornerX() << "," << domain->NECornerY() << ")"
+						<< endl << "...resizing to the fire domain..." << endl;
+
+				FFPoint SWC = FFPoint(domain->SWCornerX(), domain->SWCornerY(), 0.);
+				FFPoint ext = FFPoint(domain->NECornerX() - domain->SWCornerX(),
+						domain->NECornerY() - domain->SWCornerY(), 10000.);
+				double t0 = 0;
+				double Dt = 10000000.;
+				FluxLayer<double>* newlayer = new FluxLayer<double>(property,
+						atmoSWCorner, atmoNECorner, atmosphericNx, atmosphericNy,
+						domain->getCells(), data, SWC, t0, ext, Dt, nx, ny, nz, nt);
+				delete[] data;
+				return newlayer;
+
+			}	
+
+		}
+void DataBroker::initializePropagativeLayer(string filename) {
+	 try
+   {
+	NcFile dataFile(filename.c_str(), NcFile::read);
+	propGetterMap::const_iterator pg;
+		if (!dataFile.isNull()) {
+			std::multimap<std::string, NcVar> allVariables = dataFile.getVars();
+			NcVarAtt layerTypeNC;
+			string layerType;
+			for (auto it = allVariables.begin(); it != allVariables.end(); ++it){
+					layerTypeNC = it->second.getAtt("type");
+					if(layerTypeNC.isNull()) {
+						layerType="";
+					} else{
+						layerTypeNC.getValues(layerType);
+					}
+					if (layerType.find("propagative") != string::npos) {
+						PropagativeLayer<double>* propLayer = constructPropagativeLayerFromFile(&dataFile, it->first);
+						domain->setPropagativeLayer(propLayer);
+					}
+			}
+		}
+		if (domain->getPropagativeLayer() == 0) {
+		if (!domain->addPropagativeLayer( params->getParameter("propagationModel"))) {
+			cout<< "PROBLEM: it was not possible to retrieve propagation model "<< params->getParameter("propagationModel") << endl;
+		}
+	}
+
+	if (domain->getPropagativeLayer() != 0) registerLayer(domain->getPropagativeLayer()->getKey(), domain->getPropagativeLayer());
+
+	}catch(NcException& e)
+	{
+		e.what();
+		cout<<"cannot read landscape file in initialisation of prop layer"<<endl;
+	}
+}
+void DataBroker::initializeFluxLayers(string filename) {
+	try
+   {
+		NcFile dataFile(filename, NcFile::read);
+		if (!dataFile.isNull()) {
+			std::multimap<std::string, NcVar> allVariables = dataFile.getVars();
+			NcVarAtt layerTypeNC;
+			string layerType = "";
+			
+			for (auto it = allVariables.begin(); it != allVariables.end(); ++it){
+				 
+					layerTypeNC = it->second.getAtt("type");
+					if(layerTypeNC.isNull()) {
+						layerType="";
+					} else{
+						layerTypeNC.getValues(layerType);
+					}
+					if (layerType.find("flux") != string::npos) { 
+						FluxLayer<double>* newlayer = constructFluxLayerFromFile(&dataFile, it->first);
+						registerFluxLayer(it->first, newlayer);
+					}
+			}
+		}
+		
+
+	}catch(NcException& e)
+	{
+		e.what();
+		cout<<"Problem reading landscape file in initialisation of flux layer"<<endl;
 	}
 
 }

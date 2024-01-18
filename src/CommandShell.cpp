@@ -96,11 +96,11 @@ void CommandShell::FFShell(ifstream* inputStream){
 	if ( inputStream ){
 		// reading all the commands (one command per line) of the input file
 		string line;
-		size_t numLine = 0;
+		//size_t numLine = 0;
 		string standAlone = "setParameter[runmode=standalone]";
 		executor.ExecuteCommand(standAlone);
 		while ( getline( *inputStream, line ) ) {
-			numLine++;
+			//numLine++;
 			// checking for comments or newline
 			if((line[0] == '#')||(line[0] == '*')||(line[0] == '\n'))
 				continue;
@@ -112,9 +112,9 @@ void CommandShell::FFShell(ifstream* inputStream){
 		cout << "type 'help[]' for information" << endl;
 		// reading all the commands (one command per line) from the terminal
 		string line;
-		size_t numLine = 0;
+		//size_t numLine = 0;
 		while ( getline( cin, line ) ) {
-			numLine++;
+			//numLine++;
 			// checking for comments or newline
 			if((line[0] == '#')||(line[0] == '*')||(line[0] == '\n'))
 				continue;
