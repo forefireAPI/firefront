@@ -646,18 +646,16 @@ def readNcField(fname, varname):
     ncz = netcdf.netcdf_file(fname, 'r') 
     return ncz.variables[varname][:]
 
-def genATMapImage(fname,fnameZ):
+def genATMapImage(fname,pdgFile, outFile):
     from scipy.io import netcdf
     from scipy import interpolate
     
-    #fname = "/Volumes/stooges data/jonathan2014/observed.2.nc" #sys.argv[1]
     nc = netcdf.netcdf_file(fname, 'r') 
     at = nc.variables['arrival_time_of_front'][:]
     shpAT =  at.shape
     nx, ny, nz = shpAT[1], shpAT[0], 1 
     
-    #fnameZ = "/Volumes/stooges data/jonathan2014/3DOM1.3.TES21.003.cdf"
-    ncz = netcdf.netcdf_file(fnameZ, 'r') 
+    ncz = netcdf.netcdf_file(pdgFile, 'r') 
     zgrid = np.transpose(ncz.variables['ZS'][:,:])
     
     ox = ncz.variables['XHAT'][0]
@@ -705,9 +703,9 @@ def genATMapImage(fname,fnameZ):
                 z[i,j,k] = kernelOut[i,j]
     atime = np.zeros((nx , ny , nz )) 
     atime[:,:,0] = np.transpose(at)
-    gridToVTK("./image", x, y, z, cellData = {"atime" : atime}, pointData = None)
+    gridToVTK(outFile, x, y, z, cellData = {"atime" : atime}, pointData = None)
     
-    exit(1)
+ 
 
 
 def ffFrontsToVtk(inFFpattern = "", outPath = ""):
@@ -859,7 +857,7 @@ def ffmnhFileToVtk(inpattern = "", pgdFile = "", outPath = "",cleanFile = False,
     gf.save()
     
     if (norecompute or cleanFile) :
-    	print("Quit because not recomputing")
+    	print("Quit because not recomputing", norecompute, cleanFile)
     	return
     if len(steps) < 1:
         print("nothing more to be done")
@@ -887,6 +885,7 @@ def ffmnhFileToVtk(inpattern = "", pgdFile = "", outPath = "",cleanFile = False,
     print(f"Found {numOfDomains} domains")
     domains = np.zeros(shape=(4,numOfDomains),dtype=float)
 
+    print(f"opening PGD nc file {pgdFile} for domains")
     with nc4.Dataset(pgdFile, 'r') as nc_file:
         
     # Récupérer les données pour XHAT et YHAT et les convertir en tableaux NumPy
@@ -1117,55 +1116,41 @@ def ffmnhFileToVtk(inpattern = "", pgdFile = "", outPath = "",cleanFile = False,
 
 
  
-        
-inpattern = ""
-outPath = ""
-inFFpattern = ""
-cleanFile = False
-lidarIn = None
-lidarOut = None
-startStep = -1
-endStep = -1
-genDomainOrigin = None
-genDomainExtent = None
-norecompute=True
-quitAfterCompute=False
-xcfdName = None
+import argparse
 
+def main():
+    parser = argparse.ArgumentParser(description='Convert ffmnh files to VTK format.')
+  #  parser.add_argument('bmapNC', help='Input file pattern for multi procs MNH runs. Example: "MODEL/output"')
+  #  parser.add_argument('mnhDumps', help='Input file pattern for multi procs MNH runs. Example: "MODEL/output"')
+  #  parser.add_argument('mnhDumps', help='Input file pattern for multi procs MNH runs. Example: "MODEL/output"')
+    parser.add_argument('mnhDumps', help='Input file pattern for multi procs MNH runs. Example: "MODEL/output"')
+    parser.add_argument('pgdFile', help='PGD physiographic file for the model (required).')
+    parser.add_argument('outPath', help='Output path for VTK files (required).')
+    parser.add_argument('-clean', action='store_true', help='Enable this flag to clean the output files before processing.')
+    parser.add_argument('-lidar', nargs=2, help='Lidar emulator input and output files. Provide two file paths.')
+    parser.add_argument('-steps', nargs=2, type=int, help='Start and end generation steps for processing. Provide two integers.')
+    parser.add_argument('-norecompute', action='store_true', help='Enable this flag to skip recompute phase.')
+    parser.add_argument('-quit', action='store_true', help='Enable this flag to quit after computation without further processing.')
+    parser.add_argument('-cdf', help='Provide a prefix for CDF output (one file per step). Example: "CDFOUT/step"')
 
-if(len(sys.argv)==1):
-    print("Usage pMNHFF2VTK.py infilePattern [in Domain File Pattern] [out path] +(one option \"-norecompute\" \"-cdf\" \"-lidar lidarfilein lidarfileout\" \"-steps startgenstep endgenstep\" --- example pMNHFF2VTK.py  MODEL2/output ForeFire/output vtkOutputs/ ")
- 
-if(len(sys.argv)>1):
-    inpattern = sys.argv[1]
-    inFFpattern = sys.argv[1]
-    outPath = "."
+    args = parser.parse_args()
+
+    ffmnhFileToVtk(
+        inpattern=args.mnhDumps, 
+        pgdFile=args.pgdFile,
+        outPath=args.outPath,
+        cleanFile=args.clean,
+        lidarIn=args.lidar[0] if args.lidar else None,
+        lidarOut=args.lidar[1] if args.lidar else None,
+        startStep=args.steps[0] if args.steps else -1,
+        endStep=args.steps[1] if args.steps else -1,
+        norecompute=args.norecompute,
+        quitAfterCompute=args.quit,
+        xcfdName=args.cdf
+    )
     
-if(len(sys.argv)>1):
-    inFFpattern =  sys.argv[2]
-    
-if(len(sys.argv)>2):
-    outPath =  sys.argv[3]
+    #fFrontsToVtk(inFFpattern = "", outPath = ""):
+    #genATMapImage(fname,pdgFile, outFile):
 
-if(len(sys.argv)>4):
-    if(sys.argv[4] == "-cdf"):
-        xcfdName = sys.argv[5] 
-        print("saving also in cdf with prefix ", xcfdName)
-    if(sys.argv[4] == "-lidar"):
-        if(len(sys.argv)>5):
-            lidarIn  =  sys.argv[5]
-            lidarOut =  sys.argv[6]    
-            print(f"Simulating lidar scan using {lidarIn} outputing to {lidarOut}")
-    if(sys.argv[4] == "-steps"):
-        if(len(sys.argv)>=5):
-            startStep =  int(sys.argv[5])
-            endStep =  int(sys.argv[6])    
-            print("Gen from step%d to %d"%(startStep,endStep))
-    if(sys.argv[4] == "-norecompute"):
-        print("Not recomputing, but re-building the index pvd file")
-        norecompute=True
-        quitAfterCompute=True
-
-if(len(sys.argv)>2):      
-    ffmnhFileToVtk(inpattern = inpattern,outPath = outPath,cleanFile = cleanFile,lidarIn = lidarIn,lidarOut = lidarOut,startStep = startStep,endStep = endStep,genDomainOrigin = genDomainOrigin,genDomainExtent = genDomainExtent,norecompute=norecompute,quitAfterCompute=quitAfterCompute,xcfdName = xcfdName, vect_vars = ("U","V","W") ,scal_vars = ("T","P","BRatio","moist", "TKE"))
-    
+if __name__ == "__main__":
+    main()
