@@ -1154,3 +1154,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+#fFrontsToVtk(inFFpattern = "ForeFire/Outputs/output.0.", outPath = "")

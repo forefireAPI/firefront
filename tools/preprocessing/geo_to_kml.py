@@ -44,20 +44,17 @@ def to_timed_kml(geo_jsonAndStamp: list,croll=1):
     Convert to kml from geoJsons and timestamps
     """
     distinct_colors = [
-        '#FFFF00FF',  # 
-        '#FF000000',  # 
-        '#FF000000',  # 
         '#FF0000FF',  # 
-        '#FF000000',  # 
-        '#FF000000',  # 
-        '#FF00AAFF',  # 
-        '#FF000000',  # 
-        '#FF000000',  # 
+        '#FF333333',  # 
+        '#FF333333',  # 
+        '#FF0000AA',  # 
+        '#FF333333',  # 
+        '#FF333333',  # 
     ]
     tdata = ""
     nc=0
     for geo_json, tstamp in geo_jsonAndStamp:
-        kmlLineStyle = 	"<Style>	<LineStyle>	<color>%s</color>	<width>2</width> </LineStyle><PolyStyle>	<fill>0</fill>	</PolyStyle></Style>"%distinct_colors[int(nc/croll)]
+        kmlLineStyle = 	"<Style>	<LineStyle>	<color>%s</color>	<width>3</width> </LineStyle><PolyStyle>	<fill>0</fill>	</PolyStyle></Style>"%distinct_colors[int(nc/croll)]
         tdata=tdata+"\n"+gen_kml_data(geo_json, tstamp=tstamp,kmlLineStyle=kmlLineStyle)
         nc=nc+1
         if int(nc/croll) >= len(distinct_colors):

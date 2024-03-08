@@ -84,45 +84,47 @@ def xarrayToDirHdr(xrarray, filenamedir, filenamehdr):
             file.write(f"{key}: {value}\n")
             
 
-dirin = '/Users/filippi_j/soft/Meso-NH/PGD/srtm_ne_250.dir'
-hdrin = '/Users/filippi_j/soft/Meso-NH/PGD/srtm_ne_250.hdr'
-dirout = '/Users/filippi_j/soft/Meso-NH/PGD/srtm_cs_75.dir'
-hdrout = '/Users/filippi_j/soft/Meso-NH/PGD/srtm_cs_75.hdr'
 
-# Charger les données
-data_xarray = dirHDRtoXarray(dirin, hdrin)
-print("data loaded")
-# Sélectionner le sous-ensemble
-subset = data_xarray.sel(latitude=slice(40, 45), longitude=slice(6, 13))
-#subset.plot()
-# Augmenter la résolution
-# Le facteur 4 signifie que chaque dimension sera 4 fois plus grande
-zoom_factor = 4
-#resampled_data = scipy.ndimage.zoom(subset, (zoom_factor, zoom_factor), order=3)  # order=3 pour une interpolation cubique
+def makeSubset():
+    dirin = '/Users/filippi_j/soft/Meso-NH/PGD/srtm_ne_250.dir'
+    hdrin = '/Users/filippi_j/soft/Meso-NH/PGD/srtm_ne_250.hdr'
+    dirout = '/Users/filippi_j/soft/Meso-NH/PGD/ffDEM.dir'
+    hdrout = '/Users/filippi_j/soft/Meso-NH/PGD/ffDEM.hdr'
 
-# Convert subset to float
-
-# Create a mask for the -9999 values
-mask = subset == -9999
-
-# Replace -9999 values with NaN using xarray's where method
-data_with_0 = subset.where(~mask, 0)
-
-
-
-resampled_data = scipy.ndimage.zoom(data_with_0, (zoom_factor, zoom_factor), order=3)
-
-resampled_mask = scipy.ndimage.zoom(mask, (zoom_factor, zoom_factor), order=0)
-# Reapply the mask to the resampled data
-resampled_data_masked = np.where(resampled_mask, -9999, resampled_data)
-
-
-
-# Créer un nouvel xarray.DataArray avec les nouvelles coordonnées
-new_lats = np.linspace(subset.latitude.min(), subset.latitude.max(), resampled_data_masked.shape[0])
-new_lons = np.linspace(subset.longitude.min(), subset.longitude.max(), resampled_data_masked.shape[1])
-resampled_xarray = xr.DataArray(resampled_data_masked, coords=[new_lats, new_lons], dims=['latitude', 'longitude'])
-
-# Sauvegarder les données
-xarrayToDirHdr(resampled_xarray, dirout, hdrout)
+    # Charger les données
+    data_xarray = dirHDRtoXarray(dirin, hdrin)
+    print("data loaded")
+    # Sélectionner le sous-ensemble
+    subset = data_xarray.sel(latitude=slice(30, 60.02), longitude=slice(-15, 35))
+    #subset.plot()
+    # Augmenter la résolution
+    # Le facteur 4 signifie que chaque dimension sera 4 fois plus grande
+    zoom_factor = 4
+    #resampled_data = scipy.ndimage.zoom(subset, (zoom_factor, zoom_factor), order=3)  # order=3 pour une interpolation cubique
+    
+    # Convert subset to float
+    
+    # Create a mask for the -9999 values
+    mask = subset == -9999
+    
+    # Replace -9999 values with NaN using xarray's where method
+    data_with_0 = subset.where(~mask, 0)
+    
+    
+    
+    resampled_data = scipy.ndimage.zoom(data_with_0, (zoom_factor, zoom_factor), order=3)
+    print("resampled")
+    resampled_mask = scipy.ndimage.zoom(mask, (zoom_factor, zoom_factor), order=0)
+    # Reapply the mask to the resampled data
+    resampled_data_masked = np.where(resampled_mask, -9999, resampled_data)
+    print("masked")
+    
+    
+    # Créer un nouvel xarray.DataArray avec les nouvelles coordonnées
+    new_lats = np.linspace(subset.latitude.min(), subset.latitude.max(), resampled_data_masked.shape[0])
+    new_lons = np.linspace(subset.longitude.min(), subset.longitude.max(), resampled_data_masked.shape[1])
+    resampled_xarray = xr.DataArray(resampled_data_masked, coords=[new_lats, new_lons], dims=['latitude', 'longitude'])
+    
+    # Sauvegarder les données
+    xarrayToDirHdr(resampled_xarray, dirout, hdrout)
 

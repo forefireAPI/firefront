@@ -110,12 +110,12 @@ def FiretoNC(filename, domainProperties, parametersProperties, fuelModelMap, ele
                 numOfModels += len(fMap["table"])
             
             for fMap in fluxModelMap:  
-                fVar = addFieldToNcFile(ncfile, fMap["data"], fMap["name"], 'flux', 'i1')
+                fVar = addFieldToNcFile(ncfile, fMap["data"], fMap["name"], 'flux', 'i2')
                 #ncfile.createVariable(fMap["name"], 'i4', ('DIMT', 'DIMZ', 'DIMY', 'DIMX'))
                 #fVar.type = "flux" ;
                 for entry in fMap["table"].keys():
                     setattr(fVar, "model%dname"%fMap["table"][entry], entry)
-                fVar.indices = np.array(list(fMap["table"].values()),dtype=('i1'))
+                fVar.indices = np.array(list(fMap["table"].values()),dtype=('i2'))
                 #fVar[0,0,:,:] = fMap["data"]
 
         
@@ -125,7 +125,7 @@ def FiretoNC(filename, domainProperties, parametersProperties, fuelModelMap, ele
 
 def PGD2Case(pgd_path, png_path, out_path, dateStartDom, fuel_test=None, gen_wind=None):
     WSEN, LBRT, ZS = get_WSEN_LBRT_ZS_From_Pgd(pgd_path)
-    image2Case(WSEN, LBRT, ZS, png_path, out_path, dateStartDom, fuel_test=fuel_test, gen_wind=gen_wind)
+    image2Case(WSEN, LBRT, ZS, png_path, out_path, dateStartDom, fuel_test=fuel_test, gen_wind=None)
 
     
 def image2Case(WSEN, LBRT, ZS, png_path, out_path, dateStartDom, fuel_test=None, gen_wind=None):
@@ -181,11 +181,11 @@ def image2Case(WSEN, LBRT, ZS, png_path, out_path, dateStartDom, fuel_test=None,
         #fuelMap[fuelData == 2] = 1
         #fuelMap[fuelData == 3] = 0
     else:
-        fuelMap   = 1*np.ones(np.shape(elevation),dtype=('u1'))
+        fuelMap   = 1*np.ones(np.shape(elevation),dtype=('i2'))
     
     if fuel_test is not None :
         fuelData = np.flipud(np.asarray(Image.open(imgPath)))
-        fuelMap = np.zeros(np.shape(fuelData),dtype=('i1'))
+        fuelMap = np.zeros(np.shape(fuelData),dtype=('i2'))
         n_bandes = len(fuel_test)
         limites = np.linspace(0, fuelMap.shape[1], n_bandes + 1).astype(int)
         elevation = elevation*0
@@ -236,12 +236,12 @@ def image2Case(WSEN, LBRT, ZS, png_path, out_path, dateStartDom, fuel_test=None,
     
     heatFluxModelMap = {}
     heatFluxModelMap["name"] =  "heatFlux"
-    heatFluxModelMap["data"] =  np.zeros(np.shape(elevation),dtype=('u1'))
+    heatFluxModelMap["data"] =  np.zeros(np.shape(elevation),dtype=('i2'))
     heatFluxModelMap["table"] =  {"heatFluxBasic":0,}
     
     vaporFluxModelMap = {}
     vaporFluxModelMap["name"] =  "vaporFlux"
-    vaporFluxModelMap["data"] =  np.ones(np.shape(elevation),dtype=('u1'))
+    vaporFluxModelMap["data"] =  np.ones(np.shape(elevation),dtype=('i2'))
     vaporFluxModelMap["table"] =  {"vaporFluxBasic":1,}
     
      
