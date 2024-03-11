@@ -1,10 +1,6 @@
 # How to Install Coupled ForeFire with Meso NH; tested on OSX Ventura with Apple Silicon
 
-Created on Fri Mar 8, 16:00:33, 2024
-
-Author: filippi_j
-
-This guide details the steps to install coupled CPDE with Meso NH on Apple Silicon Macs running OSX Ventura.
+This guide details the steps to install coupled ForeFire with Meso NH on Apple Silicon Macs running OSX Ventura.
 
 ## Requirements
 
@@ -13,7 +9,6 @@ Before proceeding, ensure the following packages are installed via Homebrew:
 - GCC (should be pre-installed)
 - GFortran
 - OpenMPI
-- libxml2
 
 Acquire MesoNH from the official depot at [MesoNH Depot](http://mesonh.aero.obs-mip.fr). If encountering Git issues, download the tarball from [MNH-V5-7-0.tar.gz](http://mesonh.aero.obs-mip.fr/mesonh/dir_open/dir_MESONH/MNH-V5-7-0.tar.gz).
 
@@ -159,7 +154,7 @@ On OSX, you might encounter an infinite loop issue with `mpirun` due to case sen
 1. Navigate to the Meso NH bin directory:
 
    ```bash
-   cd path/to/MesoNH/bin
+   cd PATHTOMNH/bin
    ```
 
 2. Rename `Mpirun` to avoid conflicts with the case-insensitive filesystem of OSX:
