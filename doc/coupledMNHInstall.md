@@ -1,86 +1,169 @@
-"""
-Created on Fri Mar  8 16:00:33 2024
+# How to Install Coupled ForeFire with Meso NH; tested on OSX Ventura with Apple Silicon
 
-@author: filippi_j
-How to install coupled cpde with Meso NH
-"""
+Created on Fri Mar 8, 16:00:33, 2024
 
-This should work on apple silicon with OSX Ventura
+Author: filippi_j
 
+This guide details the steps to install coupled CPDE with Meso NH on Apple Silicon Macs running OSX Ventura.
 
-Requirements :
+## Requirements
 
-some packages installed with brew
-gcc (you should have that already)
-gfortran
-openmpi
-libxml2
+Before proceeding, ensure the following packages are installed via Homebrew:
 
-get MesoNH preferably from depot at http://mesonh.aero.obs-mip.fr
-but also from tarball if git troubles
-http://mesonh.aero.obs-mip.fr/mesonh/dir_open/dir_MESONH/MNH-V5-7-0.tar.gz
+- GCC (should be pre-installed)
+- GFortran
+- OpenMPI
+- libxml2
 
+Acquire MesoNH from the official depot at [MesoNH Depot](http://mesonh.aero.obs-mip.fr). If encountering Git issues, download the tarball from [MNH-V5-7-0.tar.gz](http://mesonh.aero.obs-mip.fr/mesonh/dir_open/dir_MESONH/MNH-V5-7-0.tar.gz).
 
-!!!  Use bash, not ksh !!!! it may broke quite a bit of scripts
+**Important Note:** Utilize Bash instead of Ksh to avoid potential script compatibility issues.
 
-First export these variables :
+## Configuration Steps
 
-export ARCH=LXgfortran
-export VER_MPI=MPIAUTO
-export OPTLEVEL=O2
-export MNH_FOREFIRE=1.0
+1. **Export Environment Variables**
 
-then enter the src directory in the MesoNH dir and do 
-./configure
+   Begin by setting the necessary environment variables in your terminal:
 
-it should create -->  ../conf/profile_mesonh-LXgfortran-R8I4-MNH-V5-7-0-FF-MPIAUTO-O2
-load it by runing
-. ../conf/profile_mesonh-LXgfortran-R8I4-MNH-V5-7-0-FF-MPIAUTO-O2
+   ```bash
+   export ARCH=LXgfortran
+   export VER_MPI=MPIAUTO
+   export OPTLEVEL=O2
+   export MNH_FOREFIRE=1.0
+   ```
 
+2. **Run Configuration Script**
 
-SOME FIXUPS for OSX :
-    libxml2 on configure
-        if there is a problem while configure of Netcdf 4.9.2  (like requires libxml --disableDAP4-:
-        a fixup : install autotools:
-        brew install autoconf automake libtool
-        go to the src/LIB/netcdf-c-4.9.2/ 
-        edit configure.ac
-        find line "	if test "x$ISOSX" = xyes && test "x$have_libxml2" = xno ; then " around l:1222
-        remove "test"
-        it should now look like 
-        "	if test "x$ISOSX" = xyes && "x$have_libxml2" = xno ; then "
-        run autoreconf to regenerate configure script from modified configure.ac
-        test is now broken, configure should pass
+   Navigate to the `src` directory within the MesoNH directory and execute the configuration script:
 
-    Netcdfcxx configure hangs at "-n 4.3.1" problem
-        Meso-NH/src/LIB/netcdf-cxx4-4.3.1 there is a "VERSION" file that needs to be empty not "-n 4.4.3" 
-        or whatever.... problem it is made during the "configure step" of netcdfcxx 
-        as fixup.... you will need 2 terminals... one is in src/LIB/netcdf-cxx4-4.3.1 directory, the other mone is running the MesoNH make
-        during the make, ith the netcdfcxx termnal, rerun frenetically : "cat VERSION; echo "" > VERSION " so it can be cleared in the time beween it is created and the one it is used..
-        HINT : it is not comiming straight away after you launch make.. first is compiled HDF5 (long.. a few minutes),
-        then after a more verbose netcdf9 (quick.. a few seconds.. start clearing), then eventually netcdfcxx
+   ```bash
+   ./configure
+   ```
 
-then run "make installmaster"
-you should have a running set-up
+   This should generate a configuration profile similar to:
 
-you can then compile ForeFire, enven linking with the netcdfcxx from MesoNH if you need to
-one forefire is installed and compiled with shared lib (it should be in firefront/lib/libforefireL.dylib)
-go to the MesoNH  exe/ directory and link with 
-ln -s PATHTOCOMPILEDFF/lib/libforefireL.dylib libForeFire.so
-do in the exe dir you should have stuff like 
-MESONH-LXgfortran-R8I4-MNH-V5-6-0-FF-MPIAUTO-O2 -> XXXX/src/dir_obj-LXgfortran-R8I4-MNH-V5-6-0-FF-MPIAUTO-O2/MASTER/MESONH
-AND (for forefire) : 
-libForeFire.so -> /Users/filippi_j/soft/firefront/lib/libforefireL.dylib
+   ```
+   ../conf/profile_mesonh-LXgfortran-R8I4-MNH-V5-7-0-FF-MPIAUTO-O2
+   ```
 
-to run, get the case 016_FOREFIRE
-go to the case directory
-do :
-export MPIRUN="mpirun -np 2" (for 2 cpus)
+3. **Load the Configuration Profile**
 
-then 
-RUN FIXUPS for OSX :
-    Mpi run in sme kind of infinite loop
-        go to the MesoNH bin dir and run :
-        mv Mpirun NoMpirun   OSx is somehow not case sentitive in the path
+   Load the generated configuration profile by running:
+
+   ```bash
+   . ../conf/profile_mesonh-LXgfortran-R8I4-MNH-V5-7-0-FF-MPIAUTO-O2
+   ```
 
 
+## Installation and Configuration
+
+After setting up your environment variables, proceed with the compilation:
+
+```bash
+make -j 4
+```
+
+Then installation :
+
+```bash
+make installmaster
+```
+
+This command initiates the installation process, and upon completion, you should have a working setup of Meso NH ready for further configuration and compilation of additional components, such as ForeFire.
+
+### Compiling ForeFire and Linking with Meso NH
+
+ForeFire must be compiled separately before being linked. Follow the cmake instruction for forefire, to link, follow the steps below after compiling ForeFire:
+
+1. Ensure ForeFire is compiled with a shared library, on osX it should be located at `firefront/lib/libforefireL.dylib`.
+2. Navigate to the Meso NH `exe/` directory and create a symbolic link to the ForeFire library:
+
+   ```bash
+   ln -s PATHTOCOMPILEDFF/lib/libforefireL.dylib libForeFire.so
+   ```
+
+Replace `PATHTOCOMPILEDFF` with the actual path to your compiled ForeFire library. This step integrates ForeFire with Meso NH, enabling them to work together seamlessly.
+
+In the `exe/` directory, you should now have manies entries but most importantly :
+
+- `MESONH-LXgfortran-R8I4-MNH-V5-7-0-FF-MPIAUTO-O2-> PATHTOMNH/src/dir_obj-LXgfortran-R8I4-MNH-V5-7-0-FF-MPIAUTO-O2/MASTER/MESONH`
+
+And one more, in the same directory for ForeFire: `libForeFire.so -> PATHTOCOMPILEDFF/lib/libforefireL.dylib`
+
+### Running a Simulation
+
+To run a simulation with ForeFire:
+
+1. Navigate to the case directory, for example, the one for case 016_FOREFIRE.
+2. Set the `MPIRUN` environment variable to configure the number of CPUs to use. For instance, to use 2 CPUs, execute:
+
+   ```bash
+   export MPIRUN="mpirun -np 2"
+   ```
+3. Run the simulation as other KTESTS
+
+## Fixups for OSX
+
+During the installation and configuration of Meso NH and its components on OSX, you may encounter specific issues that require workarounds. Below are some solutions to common problems:
+
+### Fixing libxml2 Configuration Issue
+
+When configuring NetCDF 4.9.2, if you encounter an issue related to libxml2, follow these steps to resolve it:
+
+1. Install autotools if you haven't already:
+
+   ```bash
+   brew install autoconf automake libtool
+   ```
+
+2. Navigate to the NetCDF C library source directory:
+
+   ```bash
+   cd src/LIB/netcdf-c-4.9.2/
+   ```
+
+3. Open `configure.ac` and locate the following line around line 1222:
+
+   ```plaintext
+   if test "x$ISOSX" = xyes && test "x$have_libxml2" = xno; then
+   ```
+
+4. Modify the line by removing the second `test` keyword, so it reads:
+
+   ```plaintext
+   if test "x$ISOSX" = xyes && "x$have_libxml2" = xno; then
+   ```
+
+5. Run `autoreconf` to regenerate the `configure` script from the modified `configure.ac`. This change should allow the configuration process to proceed without the libxml2 error.
+
+### Fixing NetCDF C++ Configuration Hanging Issue
+
+If the configuration of NetCDF C++ hangs due to a version file issue, perform the following steps:
+
+1. In the `src/LIB/netcdf-cxx4-4.3.1` directory, you will find a `VERSION` file that incorrectly contains a version number (e.g., "-n 4.4.3"). This file needs to be empty.
+
+2. You will need to use two terminals for this fix. In one terminal, navigate to the `src/LIB/netcdf-cxx4-4.3.1` directory. In the other terminal, run the Meso NH make process.
+
+3. While the make process is running, frequently clear the `VERSION` file in the first terminal by running:
+
+   ```bash
+   cat VERSION; echo "" > VERSION
+   ```
+
+   This needs to be done quickly between the creation and usage of the `VERSION` file during the make process. Pay attention to the compilation stages: first HDF5 (which takes a few minutes), then a quick NetCDF 9 configuration, followed by the NetCDF C++ configuration where you need to apply the fix.
+
+### Fixing MPI Run Infinite Loop Issue
+
+On OSX, you might encounter an infinite loop issue with `mpirun` due to case sensitivity in paths. To resolve this:
+
+1. Navigate to the Meso NH bin directory:
+
+   ```bash
+   cd path/to/MesoNH/bin
+   ```
+
+2. Rename `Mpirun` to avoid conflicts with the case-insensitive filesystem of OSX:
+
+   ```bash
+   mv Mpirun NoMpirun
+   ```
