@@ -123,10 +123,7 @@ void Command::decreaseLevel(){
 
 int Command::createDomain(const string& arg, size_t& numTabs){
 
-	if ( currentSession.fd != 0 ){
-	 
-	}
-
+	
 	size_t n = argCount(arg);
 	if ( n >= 3 ) {
 		FFPoint SW = getPoint("sw", arg);
@@ -135,11 +132,13 @@ int Command::createDomain(const string& arg, size_t& numTabs){
 
 		setStartTime(t);
 		setReferenceTime(t);
+
+	
 		/* creating the domain */
 		if ( currentSession.fd != 0 ){
  
 			if(currentSession.fd->getDomainID() == 1){
-				
+					cout<<"creating FD as 1"<<endl;
 				currentSession.params->setParameter("runmode", "masterMNH");
 				currentSession.fdp = new FireDomain(t, SW, NE);
 				currentSession.fdp->setTimeTable(currentSession.tt);
@@ -162,7 +161,6 @@ int Command::createDomain(const string& arg, size_t& numTabs){
 			}
 		}else{
 			currentSession.fd = new FireDomain(t, SW, NE);
-			
 		
 			/* setting up the pointer to the domain */
 		
@@ -940,10 +938,10 @@ int Command::loadData(const string& arg, size_t& numTabs){
     
     if (args.size() > 2)
     {
-        cout << "Error: Need 1 or 2 arguments, not more" << endl;
+        cout << "LoadData Warning : expecting 1 or 2 arguments" << endl;
 		return error;
     }
-    
+    cout<<" Loading data "<<args.size()<<endl;
     SimulationParameters *simParam = SimulationParameters::GetInstance();
     string path = simParam->GetPath(args[0]);
 
@@ -988,11 +986,12 @@ int Command::loadData(const string& arg, size_t& numTabs){
 
 #else
   simParam->setParameter("NetCDFfile", args[0]);
+  cout<<" Loading data "<<args[0]<<endl;
   try
    {
 	NcFile dataFile(path.c_str(), NcFile::read);
 	 	if (!dataFile.isNull()) {
-			
+			cout<<" NC0 data "<<endl;
 			NcVar domVar = dataFile.getVar("domain");
 			if (!domVar.isNull()) {
 				  map<string,NcVarAtt> attributeList = domVar.getAtts();
@@ -1030,11 +1029,11 @@ int Command::loadData(const string& arg, size_t& numTabs){
 	}catch(NcException& e)
 	{
 		e.what();
-		cout<<"cannot read landscape file"<<endl;
+		cout<<"cannot load landscape file"<<endl;
 	
 	}
 #endif
-    if (args.size() > 1){
+    if (args.size() == 2){
         double secs;
         int year, yday;
         if (simParam->ISODateDecomposition(args[1], secs, year, yday))
@@ -1044,9 +1043,7 @@ int Command::loadData(const string& arg, size_t& numTabs){
             simParam->setInt("refTime", secs);
             simParam->setParameter("ISOdate", args[1]);
         }
-    }
 
-    if (args.size() == 2){
 		string com = "FireDomain[sw=("+simParam->getParameter("SWx")+".,"+simParam->getParameter("SWy")+".,"+simParam->getParameter("SWz")+".);ne=(";
 		{
 			std::ostringstream oss;
@@ -1058,10 +1055,17 @@ int Command::loadData(const string& arg, size_t& numTabs){
 			oss << ".);t="+simParam->getParameter("t0")+".]";
 			com += oss.str();
 		}
-
+		
 		ExecuteCommand(com);
+		
 
     }
+	if (args.size() == 1){
+			if ( currentSession.fd != 0 ){
+				currentSession.fd->getDataBroker()->loadFromNCFile(path.c_str());
+			}
+
+	}
 
 
     //getDomain()->addLayer("data", "windU", "windU");

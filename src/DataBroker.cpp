@@ -437,11 +437,12 @@ void DataBroker::insureLayersExistence() {
 
 		if (getLayer(neededProperties.back()) == 0) {
 			if (neededProperties.back().find("normalWind") != string::npos) {
+				/*
 				if (domain->getDomainID()==0) {
 					cout<<"looking for  "<<neededProperties.back()<<endl;
 					if (windULayer != 0)
 						cout<<"windULayer is  "<<windULayer->getKey()<<endl;
-					}
+					}*/
 				if (windULayer == 0 or windVLayer == 0)
 					cout<<windULayer << "layer for normal wind doesn't rely on existing"
 							<< " windU and windV layers, creating them if needed"
@@ -977,8 +978,13 @@ void DataBroker::loadFromNCFile(string filename) {
 		}
 
 		/* loading the fuel layer */
-		fuelLayer = constructFuelLayerFromFile(NcdataFile);
-		registerLayer("fuel", fuelLayer);
+		DataLayer<double>*  newLayer = constructFuelLayerFromFile(NcdataFile);
+			 
+		if(newLayer != 0){
+			DataLayer<double>* 
+			fuelLayer = newLayer
+ 			registerLayer("fuel", fuelLayer);
+			}
 
 	}
 

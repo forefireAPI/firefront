@@ -25,7 +25,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 #include "DataLayer.h"
 
 #include "FluxModel.h"
-#include <math.h>
+
+#include <cmath> // For atan2 and M_PI
 
 using namespace std;
 
@@ -64,8 +65,6 @@ template<typename T> class XYZTDataLayer : public DataLayer<T> {
 	double dz; /*!< increment in the Z direction */
 	double dt; /*!< increment in the T direction */
 
-	double projectionDirValue; /* value for direction Interpalation*/
-	double projectionScaleValue; /* value for direction Interpalation*/
 	int interDirID0 ;
 	int interDirID1;
 	double interDirRatio ;
@@ -106,12 +105,11 @@ public:
 			dz = 0.;
 			dt = 0.;
 			interDirID0 = 0 ;
-			 interDirID1 = 0 ;
-			 interDirRatio = 1  ;
-			 interDirScaler = 1  ;
-			 projectionDirValue = 0;
+			interDirID1 = 1 ;
+			interDirRatio = 1  ;
+			interDirScaler = 1  ;
+
 			interp = InterpolationBilinear;
-			projectionScaleValue = 0;
 
 	};
 	/*! \brief Constructor with a sole value */
@@ -135,14 +133,15 @@ public:
 		dy = 0.;
 		dz = 0.;
 		dt = 0.;
-		interDirID0 = 5 ;
-		 interDirID1 = 5 ;
-		 interDirRatio = 1  ;
-		 interDirScaler = 1  ;
-		 projectionDirValue = 0;
+		interDirID0 = 0 ;
+		interDirID1 = 1 ;
+		interDirRatio = 0.5  ;
+		interDirScaler = 1  ;
+		
 		interp = InterpolationBilinear;
 
-		projectionScaleValue = 0;
+	
+	
 	}
 	/*! \brief Constructor with a given file and given variable */
 	XYZTDataLayer(string name, FFPoint& SWCorner, double& t0
@@ -171,20 +170,36 @@ public:
 		}
  
 		interp = InterpolationBilinear; 
-		interDirID0 = 2 ;
-		interDirID1 = 2 ;
+		interDirID0 = 0 ;
+		interDirID1 = 1 ;
 		interDirRatio = 1  ;
 		interDirScaler = 1  ;
-		 projectionDirValue = 0;
-         projectionScaleValue = 0; 
 
 		if(nt>1){
 			interp = InterpolationBilinearT;
 		}
-		if(nz>1)
+		if((nt==1)&&(nz==2))
+		{
+			interp = InterpolationBilinearCoeff;
+		}		
+		if((nt==1)&&(nz==8))
 		{
 			interp = InterpolationBilinearDir;
 		}
+
+		if(	interp == InterpolationBilinear){
+			cout<<"layer "<<name<<" is mode InterpolationBilinear"<<endl;
+		}
+		if(	interp == InterpolationBilinearT){
+			cout<<"layer "<<name<<" is mode InterpolationBilinear with Time"<<endl;
+		}
+		if(	interp == InterpolationBilinearCoeff){
+			cout<<"layer "<<name<<" is mode InterpolationBilinear with UV Coeff"<<endl;
+		}
+		if(	interp == InterpolationBilinearDir){
+			cout<<"layer "<<name<<" is mode InterpolationBilinear Scalar Dir (8 directions)"<<endl;
+		}
+
 	}
 	/*! \brief destructor */
 	~XYZTDataLayer();
@@ -194,6 +209,7 @@ public:
 	static const short  InterpolationBilinear = 1;
 	static const short  InterpolationBilinearT = 2;
 	static const short  InterpolationBilinearDir = 3;
+	static const short  InterpolationBilinearCoeff  = 5;
 	static const short  InterpolationBilinearZ = 4;
 
 	/*! \brief interpolation method */
@@ -359,7 +375,26 @@ T XYZTDataLayer<T>::getValueAt(FFPoint loc, const double& t){
 					return at*val1 + (1.-at)*val2;
 
 				}
+		if ( interp == 	InterpolationBilinearCoeff ){
+					//along X axis
+					T tsw1 = getVal(uu,vv,0,0);
+					T tnw1 = getVal(uu,vv+1,0,0);
+					T tne1 = getVal(uu+1,vv+1,0,0);
+					T tse1 = getVal(uu+1,vv,0,0);
+					//along Y axis
+					T tsw2 = getVal(uu,vv,1,0);
+					T tnw2 = getVal(uu,vv+1,1,0);
+					T tne2 = getVal(uu+1,vv+1,1,0);
+					T tse2 = getVal(uu+1,vv,1,0);
 
+					T val1 = csw*tsw1 + cse*tse1 + cnw*tnw1 + cne*tne1;
+					T val2 = csw*tsw2 + cse*tse2 + cnw*tnw2 + cne*tne2;
+
+					/* interpolation in dir + scale*/
+
+					return interDirScaler*val1 + interDirRatio*val2;
+				
+			}
 		if ( interp == InterpolationBilinearDir ){
 
 					T tsw1 = getVal(uu,vv,interDirID0,0);
@@ -488,21 +523,26 @@ void XYZTDataLayer<T>::dumpAsBinary(string filename, const double& time
 
 template<typename T>
 void XYZTDataLayer<T>::setProjectionDirVector(FFVector& stimuliScaler, FFPoint& stimuliLocation){
-
-		double Pi = 3.14159265358;
-		interDirScaler = stimuliScaler.norm()/10;
-		double angle = 0;
-		if ( interDirScaler > 0  ){
-		    angle = stimuliScaler.toAngle()-Pi/2;
-		    if (angle <0) angle += 2*Pi;
+		if ( interp == 	InterpolationBilinearCoeff ){
+			interDirScaler=stimuliScaler.getVx();
+			interDirRatio=stimuliScaler.getVy();
 		}
-		double anglePied = (angle/(2*Pi))*nz;
+		if ( interp == 	InterpolationBilinearDir ){
+			double Pi = 3.14159265358;
+			interDirScaler = stimuliScaler.norm()/10;
+			double angle = 0;
+			if ( interDirScaler > 0  ){
+				angle = stimuliScaler.toAngle()-Pi/2;
+				if (angle <0) angle += 2*Pi;
+			}
+			double anglePied = (angle/(2*Pi))*nz;
 
-	     interDirID0 = floor(anglePied);
-		 interDirID1 = ceil(anglePied);
-		 interDirRatio = ( interDirID1 - anglePied );
+			interDirID0 = floor(anglePied);
+			interDirID1 = ceil(anglePied);
+			interDirRatio = ( interDirID1 - anglePied );
 
-		 if (interDirID1 >=nz) interDirID1 = 0;
+			if (interDirID1 >=nz) interDirID1 = 0;
+		}
 
 }
 

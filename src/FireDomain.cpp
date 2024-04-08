@@ -791,6 +791,21 @@ void FireDomain::readMultiDomainMetadata(){
 
 		XYZTDataLayer<double>* newLayer = new XYZTDataLayer<double>(name, origin,t0, span, timespan, nnx, nny, nnz, nnk, values);
 		dataBroker->registerLayer(name, newLayer);
+
+		cout<<"adding scalar Layer "<<name<<" of type "<<type<<" position "<<origin.x<<";"<<origin.y<<" size "<<span.x<< "initial date"<< t0<<" time duration "<<timespan<<endl;
+		if ( type == "windScalDir" ){
+			if ( name == "windU" ){
+				cout<<"associatiog variable PwindULayer"<<endl;
+				
+				dataBroker->PwindULayer = newLayer;
+			}
+			if ( name == "windV" ){
+				cout<<"associatiog variable PwindVLayer"<<endl;
+				dataBroker->PwindVLayer = newLayer;
+			}
+			}
+
+
 		return true;
 	}
 	bool FireDomain::addIndexLayer(string type, string name, double &x0, double &y0, double& t0, double& width, double& height, double& timespan, size_t& nnx,	size_t& nny, size_t& nnz, size_t& nnk, int* values){
@@ -3040,7 +3055,7 @@ void FireDomain::loadWindDataInBinary(double refTime){
 		<<params->getParameter("NetCDFfile");
         */
         infile << params->GetPath(params->getParameter("NetCDFfile"));
-
+		cout<<"reading in FireDom Constructor Common I"<<params->getParameter("NetCDFfile")<<endl;
        	dataBroker->initializePropagativeLayer(infile.str());
 
 		/* initializations for the flux models */
@@ -3059,11 +3074,7 @@ void FireDomain::loadWindDataInBinary(double refTime){
 		/* loading the data from a netCDF file */
 		dataBroker->loadFromNCFile(infile.str());
 		/* Insuring the presence of needed layers */
-		if (dataBroker->getLayer("windU") == 0) 
-			cout<<"Windu do not exist at "<<getDomainID()<<endl;
 		dataBroker->insureLayersExistence();
-			if (dataBroker->getLayer("windU") == 0) 
-			cout<<"Windu still not exist at "<<getDomainID()<<endl;
 		/* Initializing flux layers */
 		dataBroker->initFluxLayers(getTime());
 		/* Initializing the burning map layer */
@@ -3082,9 +3093,6 @@ void FireDomain::loadWindDataInBinary(double refTime){
 				cout<<"WARNING: but this proc has an mpi rank of "<<getDomainID()<<endl;
 			}
 		}
-		if (dataBroker->getLayer("windU") == 0) 
-			cout<<"Windu still very not exist at "<<getDomainID()<<endl;
-
 
 	}
 

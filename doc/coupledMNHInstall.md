@@ -35,10 +35,10 @@ Acquire MesoNH from the official depot at [MesoNH Depot](http://mesonh.aero.obs-
    ./configure
    ```
 
-   This should generate a configuration profile similar to:
+   This should generate a configuration similar to:
 
    ```
-   ../conf/profile_mesonh-LXgfortran-R8I4-MNH-V5-7-0-FF-MPIAUTO-O2
+   $SRC_MESONH/conf/profile_mesonh-LXgfortran-R8I4-MNH-V5-7-0-FF-MPIAUTO-O2
    ```
 
 3. **Load the Configuration Profile**
@@ -46,7 +46,7 @@ Acquire MesoNH from the official depot at [MesoNH Depot](http://mesonh.aero.obs-
    Load the generated configuration profile by running:
 
    ```bash
-   . ../conf/profile_mesonh-LXgfortran-R8I4-MNH-V5-7-0-FF-MPIAUTO-O2
+   . $SRC_MESONH/conf/profile_mesonh-LXgfortran-R8I4-MNH-V5-7-0-FF-MPIAUTO-O2
    ```
 
 
@@ -81,7 +81,7 @@ Replace `PATHTOCOMPILEDFF` with the actual path to your compiled ForeFire librar
 
 In the `exe/` directory, you should now have manies entries but most importantly :
 
-- `MESONH-LXgfortran-R8I4-MNH-V5-7-0-FF-MPIAUTO-O2-> PATHTOMNH/src/dir_obj-LXgfortran-R8I4-MNH-V5-7-0-FF-MPIAUTO-O2/MASTER/MESONH`
+- `MESONH-LXgfortran-R8I4-MNH-V5-7-0-FF-MPIAUTO-O2-> $SRC_MESONH/src/dir_obj-LXgfortran-R8I4-MNH-V5-7-0-FF-MPIAUTO-O2/MASTER/MESONH`
 
 And one more, in the same directory for ForeFire: `libForeFire.so -> PATHTOCOMPILEDFF/lib/libforefireL.dylib`
 
@@ -114,7 +114,7 @@ When configuring NetCDF 4.9.2, if you encounter an issue related to libxml2, fol
 2. Navigate to the NetCDF C library source directory:
 
    ```bash
-   cd src/LIB/netcdf-c-4.9.2/
+   cd $SRC_MESONH/src/LIB/netcdf-c-4.9.2/
    ```
 
 3. Open `configure.ac` and locate the following line around line 1222:
@@ -135,9 +135,9 @@ When configuring NetCDF 4.9.2, if you encounter an issue related to libxml2, fol
 
 If the configuration of NetCDF C++ hangs due to a version file issue, perform the following steps:
 
-1. In the `src/LIB/netcdf-cxx4-4.3.1` directory, you will find a `VERSION` file that incorrectly contains a version number (e.g., "-n 4.4.3"). This file needs to be empty.
+1. In the `$SRC_MESONH/src/LIB/netcdf-cxx4-4.3.1` directory, you will find a `VERSION` file that incorrectly contains a version number (e.g., "-n 4.4.3"). This file needs to be empty.
 
-2. You will need to use two terminals for this fix. In one terminal, navigate to the `src/LIB/netcdf-cxx4-4.3.1` directory. In the other terminal, run the Meso NH make process.
+2. You will need to use two terminals for this fix. In one terminal, navigate to the `$SRC_MESONH/src/LIB/netcdf-cxx4-4.3.1` directory. In the other terminal, run the Meso NH make process.
 
 3. While the make process is running, frequently clear the `VERSION` file in the first terminal by running:
 
@@ -154,7 +154,7 @@ On OSX, you might encounter an infinite loop issue with `mpirun` due to case sen
 1. Navigate to the Meso NH bin directory:
 
    ```bash
-   cd PATHTOMNH/bin
+   cd $SRC_MESONH/bin
    ```
 
 2. Rename `Mpirun` to avoid conflicts with the case-insensitive filesystem of OSX:
