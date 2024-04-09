@@ -1038,6 +1038,7 @@ int Command::loadData(const string& arg, size_t& numTabs){
         int year, yday;
         if (simParam->ISODateDecomposition(args[1], secs, year, yday))
         {
+			cout<<"loading at time "<<args[1]<<endl;
             simParam->setInt("refYear", year);
             simParam->setInt("refDay", yday);
             simParam->setInt("refTime", secs);

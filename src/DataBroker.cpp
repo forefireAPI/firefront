@@ -970,7 +970,7 @@ void DataBroker::loadFromNCFile(string filename) {
 					ncparam = ncparams->get_att(i);
 					string pname(ncparam->name());
 					string sval(ncparam->as_string(0));
-					params->setParameter(pname, sval);
+					//params->setParameter(pname, sval);
 				}
 				if (ncparam != 0)
 					delete ncparam;
