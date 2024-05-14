@@ -640,33 +640,29 @@ def getProbeValue(varArray,ploc):
     val += varArray[ploc[0]-1,ploc[1]-1,ploc[2]-1]*(1-ploc[3])*(1-ploc[4])*(ploc[5])
     return val
 
-def readNcField(fname, varname):
-    from scipy.io import netcdf
-  
-    ncz = netcdf.netcdf_file(fname, 'r') 
-    return ncz.variables[varname][:]
 
-def genATMapImage(fname,pdgFile, outFile):
-    from scipy.io import netcdf
+def genATMapImage(fname, pdgFile, outFile):
     from scipy import interpolate
+    with nc4.Dataset(fname, 'r') as nc_file:
+        at = nc_file.variables['arrival_time_of_front'][:]
+        shpAT = at.shape
+        nx, ny, nz = shpAT[1], shpAT[0], 1 
+
+    with nc4.Dataset(pdgFile, 'r') as nc_file:
+        zgrid = np.transpose(nc_file.variables['ZS'][:, :])
+        
+        zgridres = (nc_file.variables['XHAT'][-1]-nc_file.variables['XHAT'][0])/(len(nc_file.variables['XHAT'][:])-1)
+        print(len(nc_file.variables['XHAT'][:]),zgridres)
+        ox = nc_file.variables['XHAT'][0]
+        oy = nc_file.variables['YHAT'][0]
+        
+        ex = nc_file.variables['XHAT'][-1]+zgridres
+        ey = nc_file.variables['YHAT'][-1]+zgridres
+        
     
-    nc = netcdf.netcdf_file(fname, 'r') 
-    at = nc.variables['arrival_time_of_front'][:]
-    shpAT =  at.shape
-    nx, ny, nz = shpAT[1], shpAT[0], 1 
+    res = (ex - ox) / (nx)
     
-    ncz = netcdf.netcdf_file(pdgFile, 'r') 
-    zgrid = np.transpose(ncz.variables['ZS'][:,:])
-    
-    ox = ncz.variables['XHAT'][0]
-    oy = ncz.variables['YHAT'][0] 
-    
-    ex = ncz.variables['XHAT'][-1]
-    ey = ncz.variables['YHAT'][-1]+1000
-    
-    res= (ex-ox)/(nx+1)
-    
-    shpZ =  zgrid.shape
+    shpZ = zgrid.shape
     znx, zny = shpZ[0], shpZ[1] 
     
     kernelIn = zgrid
@@ -685,19 +681,19 @@ def genATMapImage(fname,pdgFile, outFile):
     
     kernelOut = newKernel(xx,yy)
     
-    from evtk.hl import imageToVTK 
-    # Dimensions 
+ 
     
-    X = np.arange(ox-50, 50+ox+(res*(nx+1)), res, dtype='float64') 
-    Y = np.arange(oy-50, 50+oy+(res*(ny+1)), res, dtype='float64') 
+    X = np.arange(ox, ex+res, res, dtype='float64') 
+    Y = np.arange(oy, ey+res, res, dtype='float64') 
+    print("AT Map Resolution ",res,zgridres, ex , ox , nx)
     
-    x = np.zeros(( nx + 1,ny + 1, nz + 1)) 
-    y = np.zeros(( nx + 1,ny + 1, nz + 1)) 
-    z = np.zeros(( nx + 1,ny + 1, nz + 1)) 
+    x = np.zeros(( nx+1 ,ny +1, nz )) 
+    y = np.zeros(( nx +1,ny +1, nz )) 
+    z = np.zeros(( nx +1,ny +1, nz )) 
     
-    for k in range(nz + 1): 
-        for j in range(ny + 1):
-            for i in range(nx + 1): 
+    for k in range(nz ): 
+        for j in range(ny+1 ):
+            for i in range(nx+1): 
                 x[i,j,k] = X[i]
                 y[i,j,k] = Y[j]
                 z[i,j,k] = kernelOut[i,j]
@@ -710,7 +706,7 @@ def genATMapImage(fname,pdgFile, outFile):
 
 def ffFrontsToVtk(inFFpattern = "", outPath = ""):
 
-    timedContourFiles = sorted(glob.glob(inFFpattern))
+    timedContourFiles = sorted(glob.glob(inFFpattern+"*"))
     
     gp = VtkGroup(f"{outPath}/fronts")
    
@@ -787,19 +783,41 @@ def ffFrontsToVtk(inFFpattern = "", outPath = ""):
     gp.save()
  
 
-def ffmnhFileToVtk(inpattern = "", pgdFile = "", outPath = "",cleanFile = False,lidarIn = None,lidarOut = None,startStep = -1,endStep = -1,genDomainOrigin = None,genDomainExtent = None,norecompute=False,quitAfterCompute=False,xcfdName = None, vect_vars = ("U","V","W") ,scal_vars = ("T","P","BRatio","moist", "TKE")):
+def ffmnhFileToVtk(inpattern="", pgdFile="", outPath="", cleanFile=False, lidarIn=None, lidarOut=None,
+                   startStep=-1, endStep=-1, genDomainOrigin=None, genDomainExtent=None, norecompute=False,
+                   quitAfterCompute=False, xcfdName=None, inputcdfvars=(), vect_vars=("U", "V", "W")):
+    
+    # Obtenir le préfixe du fichier
+    fprefix = inpattern.split("/")[-1]
 
-    fprefix=inpattern.split("/")[-1]
-    
-    gridKey  ="ZGRID"
-    bmapKey="bmap"
-    
-    scals={}
+    # Clés de grille et bmap
+    gridKey = "ZGRID"
+    bmapKey = "bmap"
+
+    # Variables scalaires et vectorielles
+    scals = {}
     scals["cells"] = ()
-    scals["points"] = scal_vars
-    
-    inputcdfvars = ()
-    
+    scals["points"] = []
+
+    # Liste des fichiers dans le répertoire de sortie correspondant au motif output.*
+    file_pattern =  f"{inpattern}.1.*"
+    files = glob.glob(file_pattern)
+
+    # Variables scalaires à exclure (vect_vars et gridKey)
+    exclude_vars = set(vect_vars + (gridKey,))
+
+    # Parcourir les fichiers et déterminer les variables scalaires
+    for file in files:
+        # Extraire le nom de la variable du fichier
+        variable = file.split(".")[-1]
+        if variable not in exclude_vars:
+            scals["points"].append(variable)
+
+    # Convertir en tuple (facultatif selon les besoins)
+    scals["points"] = tuple(scals["points"])
+
+    # Affichage pour vérifier les variables détectées
+    print("Variables scalaires détectées :", scals["points"], f"{inpattern}.1.*")
     Vects={}
     Vects["Wind"] =vect_vars
     
@@ -1119,40 +1137,52 @@ def ffmnhFileToVtk(inpattern = "", pgdFile = "", outPath = "",cleanFile = False,
 import argparse
 
 def main():
-    parser = argparse.ArgumentParser(description='Convert ffmnh files to VTK format.')
-  #  parser.add_argument('bmapNC', help='Input file pattern for multi procs MNH runs. Example: "MODEL/output"')
-  #  parser.add_argument('mnhDumps', help='Input file pattern for multi procs MNH runs. Example: "MODEL/output"')
-  #  parser.add_argument('mnhDumps', help='Input file pattern for multi procs MNH runs. Example: "MODEL/output"')
-    parser.add_argument('mnhDumps', help='Input file pattern for multi procs MNH runs. Example: "MODEL/output"')
-    parser.add_argument('pgdFile', help='PGD physiographic file for the model (required).')
-    parser.add_argument('outPath', help='Output path for VTK files (required).')
+    parser = argparse.ArgumentParser(
+    description="Convert ffmnh files to VTK format.\n\n"
+                "Examples:\n"
+                "  For field conversion:\n"
+                "    python pMNHFF2VTK.py -fields MODEL1/output PGD_D2000mA.nested.nc vtkout1 -steps 20 21\n"
+                "  For front processing:\n"
+                "    python pMNHFF2VTK.py -front ForeFire/Outputs/output.0. vtkFront/\n"
+                "  For ATMap generation:\n"
+                "    python pMNHFF2VTK.py -atmap ForeFire/Outputs/ForeFire.0.nc PGD_D80mA.nested.nc vtkmap",
+    formatter_class=argparse.RawTextHelpFormatter
+    )
+    parser.add_argument('-fields', nargs=3, help='Input : file pattern for multi procs MNH runs. with PGD physiographic file for the model, Output path for VTK files ')
     parser.add_argument('-clean', action='store_true', help='Enable this flag to clean the output files before processing.')
     parser.add_argument('-lidar', nargs=2, help='Lidar emulator input and output files. Provide two file paths.')
     parser.add_argument('-steps', nargs=2, type=int, help='Start and end generation steps for processing. Provide two integers.')
     parser.add_argument('-norecompute', action='store_true', help='Enable this flag to skip recompute phase.')
     parser.add_argument('-quit', action='store_true', help='Enable this flag to quit after computation without further processing.')
     parser.add_argument('-cdf', help='Provide a prefix for CDF output (one file per step). Example: "CDFOUT/step"')
+    parser.add_argument('-front', nargs=2, help='Input and output patterns for front processing. Provide two file paths.')
+    parser.add_argument('-atmap', nargs=3, help='ATMap input file, pgd file, and output file. Provide three file paths.')
 
     args = parser.parse_args()
-
-    ffmnhFileToVtk(
-        inpattern=args.mnhDumps, 
-        pgdFile=args.pgdFile,
-        outPath=args.outPath,
-        cleanFile=args.clean,
-        lidarIn=args.lidar[0] if args.lidar else None,
-        lidarOut=args.lidar[1] if args.lidar else None,
-        startStep=args.steps[0] if args.steps else -1,
-        endStep=args.steps[1] if args.steps else -1,
-        norecompute=args.norecompute,
-        quitAfterCompute=args.quit,
-        xcfdName=args.cdf
-    )
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
+        
+    if args.fields:
+        ffmnhFileToVtk(
+            inpattern=args.fields[0],
+            pgdFile=args.fields[1],
+            outPath=args.fields[2],
+            cleanFile=args.clean,
+            lidarIn=args.lidar[0] if args.lidar else None,
+            lidarOut=args.lidar[1] if args.lidar else None,
+            startStep=args.steps[0] if args.steps else -1,
+            endStep=args.steps[1] if args.steps else -1,
+            norecompute=args.norecompute,
+            quitAfterCompute=args.quit,
+            xcfdName=args.cdf
+        )
     
-    #fFrontsToVtk(inFFpattern = "", outPath = ""):
-    #genATMapImage(fname,pdgFile, outFile):
+    if args.front:
+        ffFrontsToVtk(inFFpattern=args.front[0], outPath=args.front[1])
+    
+    if args.atmap:
+        genATMapImage(fname=args.atmap[0], pdgFile=args.atmap[1], outFile=args.atmap[2])
 
 if __name__ == "__main__":
     main()
-
-#fFrontsToVtk(inFFpattern = "ForeFire/Outputs/output.0.", outPath = "")
