@@ -31,6 +31,37 @@ import numpy as np
 import xarray as xr
 import scipy.ndimage
 
+def geotiff_to_xarray(filename):
+    import rasterio
+    """ Load a GeoTIFF file as an xarray.DataArray, assuming WGS84 coordinates """
+    with rasterio.open(filename) as src:
+        data = src.read(1)  # Read the first band; adjust if necessary for multiple bands
+        # Get the bounds from the file
+        left, bottom, right, top = src.bounds.left, src.bounds.bottom, src.bounds.right, src.bounds.top
+        # Calculate the resolution of the raster
+        res_lat = (top - bottom) / src.height
+        res_lon = (right - left) / src.width
+        
+        # Generate coordinates based on the bounds and resolution
+        lats = np.linspace(bottom + res_lat / 2, top - res_lat / 2, src.height)
+        lons = np.linspace(left + res_lon / 2, right - res_lon / 2, src.width)
+        
+        # Create the xarray DataArray
+        da = xr.DataArray(
+            np.flipud(data),
+            dims=['latitude', 'longitude'],
+            coords={
+                'latitude': lats,
+                'longitude': lons
+            },
+            attrs={
+                'description': 'Raster data from {}'.format(filename),
+                'units': 'unknown',  # Modify according to the actual units
+                'nodata': src.nodatavals[0]
+            }
+        )
+    return da
+
 def read_hdr(filenamehdr):
     """ Lire le fichier .hdr et extraire les métadonnées """
     metadata = {}
@@ -79,7 +110,7 @@ def xarrayToDirHdr(xrarray, filenamedir, filenamehdr):
     }
 
     with open(filenamehdr, 'w') as file:
-        file.write("PROCESSED SRTM DATA VERSION 4.1, orography model, resolution 50\n")
+        file.write("PROCESSED SRTM DATA VERSION 4.1, orography model\n")
         for key, value in metadata.items():
             file.write(f"{key}: {value}\n")
             

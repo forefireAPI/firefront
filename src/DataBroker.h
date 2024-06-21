@@ -256,6 +256,9 @@ public:
 
 	/*! \brief reading a table from an ascii file */
 	void readTableFromAsciiFile(string, vector<map<string, double> >&);
+	/*! \brief reading a table from an sttring variable  */
+
+	void readTableFromString(const std::string&, vector<map<string, double> >&);
 
 	/*! \brief splitting a string according to a delimiter */
 	void tokenize(const string&, vector<string>&, const string&);

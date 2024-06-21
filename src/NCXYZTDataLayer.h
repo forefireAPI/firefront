@@ -187,7 +187,7 @@ public:
 			interp = InterpolationBilinearDir;
 		}
 
-		if(	interp == InterpolationBilinear){
+	/*	if(	interp == InterpolationBilinear){
 			cout<<"layer "<<name<<" is mode InterpolationBilinear"<<endl;
 		}
 		if(	interp == InterpolationBilinearT){
@@ -198,7 +198,7 @@ public:
 		}
 		if(	interp == InterpolationBilinearDir){
 			cout<<"layer "<<name<<" is mode InterpolationBilinear Scalar Dir (8 directions)"<<endl;
-		}
+		}*/
 
 	}
 	/*! \brief destructor */

@@ -3055,7 +3055,7 @@ void FireDomain::loadWindDataInBinary(double refTime){
 		<<params->getParameter("NetCDFfile");
         */
         infile << params->GetPath(params->getParameter("NetCDFfile"));
-		cout<<"reading in FireDom Constructor Common I"<<params->getParameter("NetCDFfile")<<endl;
+	
        	dataBroker->initializePropagativeLayer(infile.str());
 
 		/* initializations for the flux models */

@@ -16,6 +16,7 @@ import osmnx as ox
 from rasterio.features import geometry_mask
 from rasterio.warp import reproject, Resampling
 from rasterio.transform import from_origin
+
 import geopandas as gpd
 from rasterio.mask import mask
 from shapely.geometry import box
@@ -224,8 +225,6 @@ def extract_roads_from_geotiff(west,south,east,north, road_shape_file):
 def rasterize_shapefile(shapefile_path, ref_tif, output_path, attribute_widths=attribute_widths_road_Edge, default_width = 0.3, imbounds =None,code=62):
     print(f"Rasterizing roads {shapefile_path} to {output_path}  with {attribute_widths}")
     reference_properties = {}
-    width=2000
-    height = 2000
     
     gdf = gpd.read_file(shapefile_path)
     bounds = gdf.total_bounds  # minx, miny, maxx, maxy
@@ -324,9 +323,47 @@ def fake_fuel(legend_file_path, WSEN, LBRT,output_dir,fuel_resolution = 10):
     generate_indexed_png_and_legend(legend_file_path,fuel_road_indices, fuel_png, fuel_cbar_png)
     create_kml(west, south, east, north, "FUEL", fuel_png,fuel_kml , pngcbarfile=fuel_cbar_png) 
     
-    
 
-def landcover_roads_to_fuel(S2GLC_tif,legend_file_path, WSEN, LBRT,output_dir,fuel_resolution = 10):
+
+def rasterize_kml(kml_path, ref_tif, output_path, default_value=1, imbounds=None):
+    print(f"Rasterizing KML {kml_path} to {output_path}")
+
+    # Load reference GeoTIFF for spatial reference
+    with rasterio.open(ref_tif) as refT:
+        ref_crs = refT.crs
+        width = refT.width
+        height = refT.height
+        x_min, y_min, x_max, y_max = refT.bounds
+        if imbounds is not None:
+            x_min, y_min, x_max, y_max = imbounds
+        x_range = x_max - x_min
+        y_range = y_max - y_min
+
+        resolutionx = x_range / width
+        resolutiony = y_range / height
+        transform = from_origin(x_min, y_max, resolutionx, resolutiony)
+
+        # Create an empty raster
+        raster = refT.read(1, out_shape=(height, width))
+
+    # Load the KML file
+    gdf = gpd.read_file(kml_path, driver='KML')
+
+    # Rasterize each feature based on its name
+    for _, feature in gdf.iterrows():
+        polygon_name = feature['Name']  # Assuming the name attribute holds the values
+        polygon_value = int(polygon_name) if polygon_name.isdigit() else default_value
+        mask = geometry_mask([feature['geometry'].buffer(resolutionx / 2)], transform=transform, invert=True, out_shape=(height, width))
+        raster[mask] = polygon_value
+
+    # Save the rasterized data to a new GeoTIFF file
+    with rasterio.open(output_path, 'w', driver='GTiff',
+                       width=width, height=height,
+                       count=1, dtype=raster.dtype,
+                       crs=ref_crs, transform=transform) as dst:
+        dst.write(raster, 1)
+        
+def landcover_roads_to_fuel(S2GLC_tif,legend_file_path, WSEN, LBRT,output_dir,fuel_modifier=None, fuel_resolution = 10):
 
     fuel_indices_origin = f"{output_dir}/fuel_indices_S2GLC.tif"
     fuel_indices_warped = f"{output_dir}/fuel_indices_warped.tif"
@@ -336,6 +373,7 @@ def landcover_roads_to_fuel(S2GLC_tif,legend_file_path, WSEN, LBRT,output_dir,fu
     
     fuel_road_indices = f'{output_dir}/fuel.tif'
      
+    fuel_mod_road_indices = f'{output_dir}/fuelMod.tif'
     
     fuel_kml = f'{output_dir}/fuel.kml'
     fuel_png =f'{output_dir}/fuel.png'
@@ -356,6 +394,14 @@ def landcover_roads_to_fuel(S2GLC_tif,legend_file_path, WSEN, LBRT,output_dir,fu
  
     extract_roads_from_geotiff(west, south, east, north, roads_shape)
     rasterize_shapefile(roads_shape,fuel_indices_warped_clipped,fuel_road_indices,imbounds=(west, south,east ,north),code=62)
+    
+    reftif = fuel_road_indices
+    
+    if fuel_modifier is not None:
+        import fiona
+        fiona.drvsupport.supported_drivers['KML'] = 'rw'
+        rasterize_kml(fuel_modifier,fuel_road_indices,fuel_mod_road_indices)
+        reftif = fuel_mod_road_indices
 
-    generate_indexed_png_and_legend(legend_file_path,fuel_road_indices, fuel_png, fuel_cbar_png)
+    generate_indexed_png_and_legend(legend_file_path,reftif, fuel_png, fuel_cbar_png)
     create_kml(west, south, east, north, "FUEL", fuel_png,fuel_kml , pngcbarfile=fuel_cbar_png)

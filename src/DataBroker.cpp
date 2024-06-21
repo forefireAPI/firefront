@@ -97,8 +97,15 @@ void DataBroker::commonInitialization() {
 			<< params->getParameter("ForeFireDataDirectory") << '/'
 			<< params->getParameter("fuelsTableFile");
     */
-    infile << params->GetPath(params->getParameter("fuelsTableFile"));
-	readTableFromAsciiFile(infile.str(), fuelPropertiesTable);
+    std::string paramTable = params->getParameter("fuelsTable");
+    if (paramTable != "1234567890") {
+        readTableFromString(paramTable, fuelPropertiesTable);
+    } else {
+        std::ostringstream infile;
+        infile << params->GetPath(params->getParameter("fuelsTableFile"));
+        readTableFromAsciiFile(infile.str(), fuelPropertiesTable);
+    }
+
 }
 
 void DataBroker::updateFuelValues(PropagationModel* model, string key, double value){
@@ -529,6 +536,42 @@ bool DataBroker::isRelevantData(FFPoint& SW, FFPoint& ext) {
 	return true;
 }
 
+void DataBroker::readTableFromString(const std::string& data,
+                                     std::vector<std::map<std::string, double>>& table) {
+    std::istringstream dataStream(data);
+    std::string line;
+    const std::string delimiter = ";";
+    std::vector<std::string> paramNames;
+
+    // Get the first line to extract parameter names
+    if (!std::getline(dataStream, line)) {
+        throw std::runtime_error("ERROR: could not read the header line from data.");
+    }
+    tokenize(line, paramNames, delimiter);
+
+    // Process the rest of the data
+    std::vector<std::string> vals;
+    double dval;
+    while (std::getline(dataStream, line)) {
+        vals.clear();
+        tokenize(line, vals, delimiter);
+        if (vals.size() != paramNames.size()) {
+            throw std::runtime_error("ERROR: Number of values does not match number of parameters for fuel " + vals[0]);
+        }
+        
+        std::map<std::string, double> currentMap;
+        for (size_t pos = 0; pos < vals.size(); ++pos) {
+            std::istringstream iss(vals[pos]);
+            if (!(iss >> dval)) {
+                throw std::runtime_error("ERROR: could not cast " + vals[pos] +
+                                         " into a suitable value for parameter " + paramNames[pos] +
+                                         " of fuel " + vals[0]);
+            }
+            currentMap[paramNames[pos]] = dval;
+        }
+        table.push_back(std::move(currentMap));
+    }
+}
 
 void DataBroker::readTableFromAsciiFile(string filename,
 		vector<map<string, double> >& table) {

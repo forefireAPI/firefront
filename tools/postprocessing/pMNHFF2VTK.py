@@ -307,7 +307,32 @@ def formatBinS(fname, offset = 0):
     nzt = ((fsize-8-8)/(nxt*nyt))/8
     
   #  print fname, nxt, nyt, nzt
+
+def numberOfFields(fname):
+    fsize = os.path.getsize(fname)
+ 
+    c_file = open(fname,"rb")
+   
+    sizeofOfI4 = struct.calcsize("i")
+    sizeofOfF8 = struct.calcsize("d")
     
+    nxt = struct.unpack("i",c_file.read(sizeofOfI4))[0]
+    c_file.read(sizeofOfI4)
+    nyt= struct.unpack("i",c_file.read(sizeofOfI4))[0]
+    c_file.read(sizeofOfI4)
+    nzt = struct.unpack("i",c_file.read(sizeofOfI4))[0] 
+    c_file.read(sizeofOfI4)
+    tstep = struct.unpack("d",c_file.read(sizeofOfF8))[0]
+    
+    #3 ints plus padding plus tstep
+    sizeOfHeader =  sizeofOfI4*3 + sizeofOfI4*3 + sizeofOfF8
+    sizeOfData = struct.calcsize("d") * (nxt*nyt*nzt)
+    sizeOfRecord = sizeOfHeader + sizeOfData
+    
+    numrec = fsize/sizeOfRecord
+    
+    return int(numrec)
+
 def readAllSteps(fname, offset = 0, bestshape=None):
     fsize = os.path.getsize(fname)
  
@@ -652,7 +677,7 @@ def genATMapImage(fname, pdgFile, outFile):
         zgrid = np.transpose(nc_file.variables['ZS'][:, :])
         
         zgridres = (nc_file.variables['XHAT'][-1]-nc_file.variables['XHAT'][0])/(len(nc_file.variables['XHAT'][:])-1)
-        print(len(nc_file.variables['XHAT'][:]),zgridres)
+  
         ox = nc_file.variables['XHAT'][0]
         oy = nc_file.variables['YHAT'][0]
         
@@ -685,7 +710,7 @@ def genATMapImage(fname, pdgFile, outFile):
     
     X = np.arange(ox, ex+res, res, dtype='float64') 
     Y = np.arange(oy, ey+res, res, dtype='float64') 
-    print("AT Map Resolution ",res,zgridres, ex , ox , nx)
+    
     
     x = np.zeros(( nx+1 ,ny +1, nz )) 
     y = np.zeros(( nx +1,ny +1, nz )) 
@@ -817,10 +842,14 @@ def ffmnhFileToVtk(inpattern="", pgdFile="", outPath="", cleanFile=False, lidarI
     scals["points"] = tuple(scals["points"])
 
     # Affichage pour vérifier les variables détectées
-    print("Variables scalaires détectées :", scals["points"], f"{inpattern}.1.*")
+    #print("Variables scalaires détectées :", scals["points"], f"{inpattern}.1.*")
     Vects={}
     Vects["Wind"] =vect_vars
-    
+    if quitAfterCompute:
+        navail = numberOfFields(f"{inpattern}.1.{vect_vars[0]}")
+        print(navail)
+        return navail
+     
     appendedSteps=None;
     
     domains=list(range(1,2)) 
@@ -845,12 +874,19 @@ def ffmnhFileToVtk(inpattern="", pgdFile="", outPath="", cleanFile=False, lidarI
     appendedSteps=readAllSteps("%s.1.%s"%(inpattern,varsDataIn[0]))
     tsteps = list(appendedSteps.keys())
     stepzgrid = tsteps[0]
+    
+    if quitAfterCompute:
+        print(len(appendedSteps))
+        return len(appendedSteps)
+    
     print(len(appendedSteps), "step found")
     
     Allsteps = np.sort(tsteps)
     
     
     steps = []
+    
+    
     gf = VtkGroup("%s/%sgroupsfields"%(outPath,fprefix))
     for stepV in Allsteps[:]:
         outname = "%s/%s.full.%d.vts"%(outPath,fprefix,stepV) 
@@ -865,12 +901,15 @@ def ffmnhFileToVtk(inpattern="", pgdFile="", outPath="", cleanFile=False, lidarI
                 #os.system(delCmd)
             
         if ((norecompute or cleanFile) and os.path.isfile(outname)):
-            
-            print(outname,"%d, "%stepV, end = '') 
+            print(outname,"at %d, "%stepV, end = '') 
             gf.addFile(filepath = "%s"%outname, sim_time = stepV)
             
         else:
-            steps.append(stepV) 
+            if not os.path.isfile(outname):
+                steps.append(stepV)
+            else:
+                print("Step %d already post-processed"%stepV)
+                gf.addFile(filepath = "%s"%outname, sim_time = stepV)
         
     gf.save()
     
@@ -1148,15 +1187,15 @@ def main():
                 "    python pMNHFF2VTK.py -atmap ForeFire/Outputs/ForeFire.0.nc PGD_D80mA.nested.nc vtkmap",
     formatter_class=argparse.RawTextHelpFormatter
     )
-    parser.add_argument('-fields', nargs=3, help='Input : file pattern for multi procs MNH runs. with PGD physiographic file for the model, Output path for VTK files ')
+    parser.add_argument('-fields', nargs=3, help='Input : mnhdump file pattern. PGD nc file, VTK Output directory ')
     parser.add_argument('-clean', action='store_true', help='Enable this flag to clean the output files before processing.')
-    parser.add_argument('-lidar', nargs=2, help='Lidar emulator input and output files. Provide two file paths.')
-    parser.add_argument('-steps', nargs=2, type=int, help='Start and end generation steps for processing. Provide two integers.')
-    parser.add_argument('-norecompute', action='store_true', help='Enable this flag to skip recompute phase.')
-    parser.add_argument('-quit', action='store_true', help='Enable this flag to quit after computation without further processing.')
+    parser.add_argument('-lidar', nargs=2, help='Lidar emulator input and output files. Provide two file paths, in and out csv.')
+    parser.add_argument('-steps', nargs=2, type=int, help='Start and end generation steps for processing. Provide two integers, start and end')
+    parser.add_argument('-norecompute', action='store_true', help='Enable this flag to skip recompute phase but make the index vtk file')
+    parser.add_argument('-quit', action='store_true', help='Enable this flag to quit after computation without further processing but display number of steps in data')
     parser.add_argument('-cdf', help='Provide a prefix for CDF output (one file per step). Example: "CDFOUT/step"')
-    parser.add_argument('-front', nargs=2, help='Input and output patterns for front processing. Provide two file paths.')
-    parser.add_argument('-atmap', nargs=3, help='ATMap input file, pgd file, and output file. Provide three file paths.')
+    parser.add_argument('-front', nargs=2, help='Input and output patterns for front processing. Provide two file paths, input ff front file pattern and VTK output directory.')
+    parser.add_argument('-atmap', nargs=3, help='ATMap input file, pgd file, and output file. Provide three file paths, BMap nc file, PGD file and vtk file.')
 
     args = parser.parse_args()
     if len(sys.argv) == 1:

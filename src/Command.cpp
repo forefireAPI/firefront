@@ -941,7 +941,7 @@ int Command::loadData(const string& arg, size_t& numTabs){
         cout << "LoadData Warning : expecting 1 or 2 arguments" << endl;
 		return error;
     }
-    cout<<" Loading data "<<args.size()<<endl;
+
     SimulationParameters *simParam = SimulationParameters::GetInstance();
     string path = simParam->GetPath(args[0]);
 
@@ -986,12 +986,12 @@ int Command::loadData(const string& arg, size_t& numTabs){
 
 #else
   simParam->setParameter("NetCDFfile", args[0]);
-  cout<<" Loading data "<<args[0]<<endl;
+ 
   try
    {
 	NcFile dataFile(path.c_str(), NcFile::read);
 	 	if (!dataFile.isNull()) {
-			cout<<" NC0 data "<<endl;
+			 
 			NcVar domVar = dataFile.getVar("domain");
 			if (!domVar.isNull()) {
 				  map<string,NcVarAtt> attributeList = domVar.getAtts();
@@ -1038,11 +1038,12 @@ int Command::loadData(const string& arg, size_t& numTabs){
         int year, yday;
         if (simParam->ISODateDecomposition(args[1], secs, year, yday))
         {
-			cout<<"loading at time "<<args[1]<<endl;
+			
             simParam->setInt("refYear", year);
             simParam->setInt("refDay", yday);
             simParam->setInt("refTime", secs);
             simParam->setParameter("ISOdate", args[1]);
+			
         }
 
 		string com = "FireDomain[sw=("+simParam->getParameter("SWx")+".,"+simParam->getParameter("SWy")+".,"+simParam->getParameter("SWz")+".);ne=(";

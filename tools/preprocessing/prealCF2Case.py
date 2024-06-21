@@ -83,7 +83,7 @@ def FiretoNC(filename, domainProperties, parametersProperties, fuelModelMap, ele
 
  
         if (fuelModelMap is not None):
-            addFieldToNcFile(ncfile, fuelModelMap, 'fuel', 'fuel', 'i2')
+            addFieldToNcFile(ncfile, fuelModelMap, 'fuel', 'fuel', 'i4')
             
         if (elevation is not None):
             addFieldToNcFile(ncfile, elevation, 'altitude', 'data', 'f4')
@@ -110,12 +110,12 @@ def FiretoNC(filename, domainProperties, parametersProperties, fuelModelMap, ele
                 numOfModels += len(fMap["table"])
             
             for fMap in fluxModelMap:  
-                fVar = addFieldToNcFile(ncfile, fMap["data"], fMap["name"], 'flux', 'i2')
+                fVar = addFieldToNcFile(ncfile, fMap["data"], fMap["name"], 'flux', 'i4')
                 #ncfile.createVariable(fMap["name"], 'i4', ('DIMT', 'DIMZ', 'DIMY', 'DIMX'))
                 #fVar.type = "flux" ;
                 for entry in fMap["table"].keys():
                     setattr(fVar, "model%dname"%fMap["table"][entry], entry)
-                fVar.indices = np.array(list(fMap["table"].values()),dtype=('i2'))
+                fVar.indices = np.array(list(fMap["table"].values()),dtype=('i4'))
                 #fVar[0,0,:,:] = fMap["data"]
 
         
