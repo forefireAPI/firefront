@@ -36,7 +36,7 @@ apt-get update
 
 apt install build-essential -y
 
-apt install libnetcdf-dev libnetcdf-cxx-legacy-dev -y
+apt install libnetcdf-c++4-dev 
 
 apt install cmake -y
 ```
@@ -116,7 +116,7 @@ python coord_to_ff.py --lat 41.6 --lon 9.1
 The GeoJSON of geometry type Polygon will be saved in the `/examples/aullene` folder
 
 ## 4. Building python Lib
-The `/swig` folder contains and `Sconstruct` file for python bindings.
+see pyForeFire lib https://github.com/forefireAPI/pyForeFire
 
 Requires numpy (and numpy.i), swig, and matplotlib for testing. 
 
