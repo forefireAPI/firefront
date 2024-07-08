@@ -629,7 +629,6 @@ void DataBroker::readTableFromAsciiFile(string filename,
 		vals.clear();
 	}
 	file.close();
-
 }
 
 void DataBroker::tokenize(const string& str, vector<string>& tokens,

@@ -986,12 +986,12 @@ int Command::loadData(const string& arg, size_t& numTabs){
 
 #else
   simParam->setParameter("NetCDFfile", args[0]);
- 
+  cout<<" Loading data "<<args[0]<<endl;
   try
    {
 	NcFile dataFile(path.c_str(), NcFile::read);
 	 	if (!dataFile.isNull()) {
-			 
+			cout<<" NC0 data "<<endl;
 			NcVar domVar = dataFile.getVar("domain");
 			if (!domVar.isNull()) {
 				  map<string,NcVarAtt> attributeList = domVar.getAtts();
@@ -1043,7 +1043,7 @@ int Command::loadData(const string& arg, size_t& numTabs){
             simParam->setInt("refDay", yday);
             simParam->setInt("refTime", secs);
             simParam->setParameter("ISOdate", args[1]);
-			
+			cout<<"loading at time "<<args[1]<<" " <<"yday"<<endl;
         }
 
 		string com = "FireDomain[sw=("+simParam->getParameter("SWx")+".,"+simParam->getParameter("SWy")+".,"+simParam->getParameter("SWz")+".);ne=(";
