@@ -829,7 +829,7 @@ def ffmnhFileToVtk(inpattern = "", pgdFile = "", outPath = "",cleanFile = False,
     appendedSteps=readAllSteps("%s.1.%s"%(inpattern,varsDataIn[0]))
     tsteps = list(appendedSteps.keys())
     stepzgrid = tsteps[0]
- 
+    print(len(appendedSteps), "step found")
     
     Allsteps = np.sort(tsteps)
     
@@ -863,7 +863,7 @@ def ffmnhFileToVtk(inpattern = "", pgdFile = "", outPath = "",cleanFile = False,
     	return
     if len(steps) < 1:
         print("nothing more to be done")
-        sys.exit(0)
+        return
         
     
     
@@ -1167,5 +1167,5 @@ if(len(sys.argv)>4):
         quitAfterCompute=True
 
 if(len(sys.argv)>2):      
-    ffmnhFileToVtk(inpattern = inpattern,inFFpattern=inFFpattern,outPath = outPath,cleanFile = cleanFile,lidarIn = lidarIn,lidarOut = lidarOut,startStep = startStep,endStep = endStep,genDomainOrigin = genDomainOrigin,genDomainExtent = genDomainExtent,norecompute=norecompute,quitAfterCompute=quitAfterCompute,xcfdName = xcfdName, vect_vars = ("U","V","W") ,scal_vars = ("T","P","BRatio","moist", "TKE"))
+    ffmnhFileToVtk(inpattern = inpattern,outPath = outPath,cleanFile = cleanFile,lidarIn = lidarIn,lidarOut = lidarOut,startStep = startStep,endStep = endStep,genDomainOrigin = genDomainOrigin,genDomainExtent = genDomainExtent,norecompute=norecompute,quitAfterCompute=quitAfterCompute,xcfdName = xcfdName, vect_vars = ("U","V","W") ,scal_vars = ("T","P","BRatio","moist", "TKE"))
     

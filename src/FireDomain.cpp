@@ -4812,8 +4812,6 @@ cout << "Reading >"<<oss.str()<<"<"<<endl;
 		<<params->getParameter("fireOutputDirectory")<<'/'
 		<<params->getParameter("experiment")<<"."<<getDomainID()<<".nc";
 
-        cout << "Creating netCDF file: " << oss.str().c_str() << endl;
-
 		size_t   FSPACE_DIM1 		= globalBMapSizeX;	// Nb De lignes au total
 		size_t   FSPACE_DIM2 		= globalBMapSizeY;	// 	Nb De colonnes au total
 		size_t   CELLSPACE1_DIM1 	= atmoNX;  // Nb de lignes de cells
@@ -4821,6 +4819,11 @@ cout << "Reading >"<<oss.str()<<"<"<<endl;
 
 		size_t   INCELLSPACE1_DIM1 = FSPACE_DIM1/CELLSPACE1_DIM1;  // Nb de lignes ds chaque a_t cell
 		size_t   INCELLSPACE1_DIM2 = FSPACE_DIM2/CELLSPACE1_DIM2;   // Nb de colonnes ds chaque a_t cell
+		if( (FSPACE_DIM2 > 4000) || (FSPACE_DIM1 > 4000) ){
+			cout << "Dimensions: " << FSPACE_DIM2 << " x " << FSPACE_DIM1 << " too wide for standard HDF, sorry" << endl;
+			throw std::runtime_error("Dimensions exceed standard HDF limits");
+		}
+        cout << "Creating netCDF bmap file, size "<<FSPACE_DIM1<<"x"<<FSPACE_DIM2<<": " << oss.str().c_str() << endl;
 
         NcFile dataFile ( oss.str().c_str(), NcFile::replace );
 		NcDim xDim = dataFile.addDim("DIMY", FSPACE_DIM2);
@@ -4828,19 +4831,28 @@ cout << "Reading >"<<oss.str()<<"<"<<endl;
 		      vector<NcDim> dims;
         dims.push_back(xDim);
         dims.push_back(yDim);
+
+
 		NcVar atime = dataFile.addVar("arrival_time_of_front", ncDouble, dims);
- 
-		double allDataAtime[FSPACE_DIM2][FSPACE_DIM1];
+		std::vector<size_t> chunkDims = {CELLSPACE1_DIM2, CELLSPACE1_DIM1};
+		atime.setChunking(NcVar::nc_CHUNKED, chunkDims);
+		int compressionLevel = 5;
+		atime.setCompression(true, true, compressionLevel);
+
+
+		double* allDataBlock = new double[FSPACE_DIM2 * FSPACE_DIM1];
+		double** allDataAtime = new double*[FSPACE_DIM2];
+		for (int i = 0; i < FSPACE_DIM2; ++i) {
+			allDataAtime[i] = &allDataBlock[i * FSPACE_DIM1];
+		}
 
 		for (i = 0; i < FSPACE_DIM2 ; i++){
 			for (j = 0; j < FSPACE_DIM1 ; j++){
 				allDataAtime[i][j] = -9999;
 			}
 		}
-		
 		int  cellActive[CELLSPACE1_DIM2][CELLSPACE1_DIM1];
 
-	
 		
 		for (i = 0; i < CELLSPACE1_DIM1 ; i++){
 			for (j = 0; j < CELLSPACE1_DIM2 ; j++){
@@ -4860,7 +4872,7 @@ cout << "Reading >"<<oss.str()<<"<"<<endl;
 
 			}
 		}
-		atime.putVar(allDataAtime);
+		atime.putVar(allDataAtime); 
 		NcDim cxDim = dataFile.addDim("C_DIMY", CELLSPACE1_DIM2);
 		NcDim cyDim = dataFile.addDim("C_DIMX", CELLSPACE1_DIM1);
 		vector<NcDim> dimsC;
@@ -4884,9 +4896,10 @@ cout << "Reading >"<<oss.str()<<"<"<<endl;
 	    dom.putAtt("refYear",NC_INT, int(refYear));
 	    dom.putAtt("refDay",NC_INT, int(refDay));
 
-
 	
 		dataFile.close();
+		delete[] allDataBlock;
+		delete[] allDataAtime;
 		
 
     

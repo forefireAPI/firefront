@@ -66,7 +66,3 @@ def pgds_to_KML(fnames, fout):
     with open(fout, "w") as text_file:
         text_file.write(kmlString)
 
-
-pgd1 = netCDF4.Dataset("/Users/filippi_j/Volumes/orsu/firecaster/2023/toulouse20190814/001_pgd/PGD_D2000mA.nc",'r')
-pgd2 = netCDF4.Dataset("/Users/filippi_j/Volumes/orsu/firecaster/2023/toulouse20190814/001_pgd/PGD_D400mA.nc",'r')
-pgd3 = netCDF4.Dataset("/Users/filippi_j/Volumes/orsu/firecaster/2023/toulouse20190814/001_pgd/PGD_D80mA.nc",'r')

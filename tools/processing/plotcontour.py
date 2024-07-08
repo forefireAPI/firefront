@@ -225,6 +225,7 @@ def printToPathe(linePrinted):
 
 
 basePath="/Users/filippi_j/soft/MNH-V5-5-1/MY_RUN/KTEST/016_PEDROGAO/002_mesonh/"
+basePath="//Users/filippi_j/soft/MNH-V5-6-0/MY_RUN/KTEST/016_PEDROGAO/002_mesonh/"
 inistep =0
 NumDomains =1
 for nid in range(1000):
@@ -355,6 +356,7 @@ while(oneshot):
         if domainID == 0:
             if os.path.isfile(fname):
                 f= open(fname,'r') 
+                print(fname)
                 newPathes= printToPathe(f.read())
                 pathes += newPathes
                 f.close()
@@ -389,7 +391,7 @@ while(oneshot):
     
     
     plt.pause(1)
-    oneshot = False    
+    #oneshot = False    
 
  
 
