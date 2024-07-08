@@ -37,7 +37,7 @@ def compute_normal(gy, gx):
     # 4) Contours of turbolent energy above 1.5 m2 s-2 above 1.5 m2s-2 in the first ~1000 m above the ground
     # 5) Upward_air_velocity above 3 m s-1 in the first ~1000 m above the ground displayed with crosses in colorcode 
 #------------------------------------------------------------------------------
-def Plot_surfaceWind_TKE(timestep,boundarypoints,dsfile,fontitle=22,savefig=True,savepath="",dpi=200):
+def Plot_surfaceWind_TKE(timestep,boundarypoints,dsfile,fontitle=22,provider=ctx.providers.CartoDB.Voyager,savefig=True,savepath="",dpi=200):
     """
     Routine to create .png plots displaying:
     
@@ -52,7 +52,8 @@ def Plot_surfaceWind_TKE(timestep,boundarypoints,dsfile,fontitle=22,savefig=True
     ----------
     boundarypoints : a list of points in  Web Mercator (epsg:3857) coordinates
         DESCRIPTION. The default are set up on the basis of the last simulation timestep where the plotted region is bigger.
-    dsfile : Xarray DataSet created from the wildfire netCDF file using xr.load_dataset(filebmap,engine="netcdf4")      
+    dsfile : Xarray DataSet created from the wildfire netCDF file using xr.load_dataset(filebmap,engine="netcdf4")   
+    provider=contextily provider for basemap
     savefig : flag to save the plot
     savepath : path where plots are saved
     fontitle : fontsize of plot title
@@ -102,7 +103,9 @@ def Plot_surfaceWind_TKE(timestep,boundarypoints,dsfile,fontitle=22,savefig=True
     #------------------------------------------------------------------------------
     # Choose the map background(here with contextily)
     # ctx.add_basemap(ax,source=ctx.providers.CartoDB.Positron)
-    ctx.add_basemap(ax,source=ctx.providers.GeoportailFrance.plan)
+    # ctx.add_basemap(ax,source=ctx.providers.OpenStreetMap.Mapnik)
+    ctx.add_basemap(ax,source=provider)
+    # ctx.add_basemap(ax,source=ctx.providers.GeoportailFrance.plan)
     #------------------------------------------------------------------------------
     # Calculate the module of the surface wind:
     u = dsfile["Wind_U"][timestep,:,:].values
@@ -221,7 +224,6 @@ def Plot_surfaceWind_TKE(timestep,boundarypoints,dsfile,fontitle=22,savefig=True
     cax1 = fig.add_subplot(gs[2, 0])
     cbarw = plt.colorbar(sc,location="bottom", cax=cax1,fraction=0.015,aspect=30, pad=0.04)
     cbarw.set_label('Vertical wind ms-1',fontsize=0.9*fontitle)
-    
     # # Show the map
     if savefig:
         plt.savefig(savepath+"plot_SurfaceWind_Turbolence_"+str(timestep)+"_"+str(Namefire)[:5]+"_"+str(datetime_str_form)[:-6].replace(" ", "_")+"_UTC.png", dpi=dpi)
@@ -235,7 +237,7 @@ def Plot_surfaceWind_TKE(timestep,boundarypoints,dsfile,fontitle=22,savefig=True
 #wind field, smoke concentration at the ground and fire fronts
 #------------------------------------------------------------------------------
 
-def Plot_GroundSmokeConcentration(timestep,boundarypoints,dsfile,fontitle=22,savefig=True,savepath="",dpi=200):
+def Plot_GroundSmokeConcentration(timestep,boundarypoints,dsfile,fontitle=22,provider=ctx.providers.CartoDB.Voyager,savefig=True,savepath="",dpi=200):
     """
     Routine to create .png plots displaying:
     
@@ -250,6 +252,7 @@ def Plot_GroundSmokeConcentration(timestep,boundarypoints,dsfile,fontitle=22,sav
     boundarypoints : a list of points in  Web Mercator (epsg:3857) coordinates
         DESCRIPTION. The default are set up on the basis of the last simulation timestep where the plotted region is bigger.
     dsfile : Xarray DataSet created from the wildfire netCDF file using xr.load_dataset(filebmap,engine="netcdf4")      
+    provider: contextily object for basemap
     savefig : flag to save the plot
     savepath : path where plots are saved
     fontitle : fontsize of plot title
@@ -296,8 +299,10 @@ def Plot_GroundSmokeConcentration(timestep,boundarypoints,dsfile,fontitle=22,sav
     #------------------------------------------------------------------------------
     # Choose the map background(here with contextily)
     # ctx.add_basemap(ax,source=ctx.providers.CartoDB.Positron)
+    # ctx.add_basemap(ax,source=ctx.providers.OpenStreetMap.Mapnik)
+    ctx.add_basemap(ax,source=provider)
     # ctx.add_basemap(ax)
-    ctx.add_basemap(ax,source=ctx.providers.GeoportailFrance.plan)
+    # ctx.add_basemap(ax,source=ctx.providers.GeoportailFrance.plan)
     #------------------------------------------------------------------------------
     # Calculate the module of the surface wind:
     u = dsfile["Wind_U"][timestep,:,:].values
@@ -429,7 +434,7 @@ def Plot_GroundSmokeConcentration(timestep,boundarypoints,dsfile,fontitle=22,sav
 #     Plot the bottom of the plume
 #------------------------------------------------------------------------------
 #Altitude of smoke
-def Plot_LargeScale_Plume(timestep,boundarypoints,dsfile,fontitle=22,savefig=True,savepath="",dpi=200):
+def Plot_LargeScale_Plume(timestep,boundarypoints,dsfile,fontitle=22,provider=ctx.providers.CartoDB.Voyager,savefig=True,savepath="",dpi=200):
     #------------------------------------------------------------------------------
     # Coordinates necessary for plotting
     #------------------------------------------------------------------------------
@@ -475,7 +480,7 @@ def Plot_LargeScale_Plume(timestep,boundarypoints,dsfile,fontitle=22,savefig=Tru
     
     fontitle =25
     
-    fig,ax= plt.subplots(2,1, figsize=(15,15),constrained_layout=True)
+    fig,ax= plt.subplots(2,1, figsize=(12,20),constrained_layout=True)
     # gs = fig.add_gridspec(2, 2, height_ratios=[1,1], width_ratios=[1, 0.05])
 
     
@@ -486,9 +491,7 @@ def Plot_LargeScale_Plume(timestep,boundarypoints,dsfile,fontitle=22,savefig=Tru
     #Set plot boundaries
     
     #------------------------------------------------------------------------------
-    # Choose the map background(here with contextily)
-    # ctx.add_basemap(ax,source=ctx.providers.CartoDB.Positron)
-    # ctx.add_basemap(ax)
+
     #------------------------------------------------------------------------------
     #Recovering the Smoke at the ground
     smokeground = np.where(dsfile["Z_FirePlumeBottom"][timestep].values==0.1,dsfile["Z_FirePlumeBottom"][timestep].values,-1)
@@ -500,7 +503,12 @@ def Plot_LargeScale_Plume(timestep,boundarypoints,dsfile,fontitle=22,savefig=Tru
     # ax = fig.add_subplot(gs[0, :1])
     #Set subplot boundaries
     ax[0].axis([np.amin(lon_Large_web_mercator),np.amax(lon_Large_web_mercator),np.min(lat_Large_web_mercator),np.amax(lat_Large_web_mercator)])
-    ctx.add_basemap(ax[0],source=ctx.providers.GeoportailFrance.plan)    
+    # ctx.add_basemap(ax[0],source=ctx.providers.GeoportailFrance.plan)    
+    # ctx.add_basemap(ax[0],source=ctx.providers.CartoDB.Positron)
+    # ctx.add_basemap(ax[0],source=ctx.providers.OpenStreetMap.Mapnik)
+    ctx.add_basemap(ax[0],source=provider)
+
+
     z_plumetop_flat = dsfile["Z_FirePlumeTop"][timestep].values
 
     plumetop_flat_masked=np.ma.masked_equal(z_plumetop_flat ,np.min(z_plumetop_flat))
@@ -520,8 +528,11 @@ def Plot_LargeScale_Plume(timestep,boundarypoints,dsfile,fontitle=22,savefig=Tru
     # ax2 = fig.add_subplot(gs[1:2, :1])
     #Set subplot boundaries
     ax[1].axis([np.amin(lon_Large_web_mercator),np.amax(lon_Large_web_mercator),np.min(lat_Large_web_mercator),np.amax(lat_Large_web_mercator)])
-    ctx.add_basemap(ax[1],source=ctx.providers.GeoportailFrance.plan)
-    
+    # ctx.add_basemap(ax[1],source=ctx.providers.GeoportailFrance.plan)
+    # ctx.add_basemap(ax[1],source=ctx.providers.CartoDB.Positron)
+    # ctx.add_basemap(ax[1],source=ctx.providers.OpenStreetMap.Mapnik)
+    ctx.add_basemap(ax[1],source=provider)
+
     z_plumebottom_flat = dsfile["Z_FirePlumeBottom"][timestep].values
     # z_plumebottom_flat = z_plumebottom_flat[~np.isnan(z_plumebottom_flat)]
     # plumebottom_flat_masked=np.ma.masked_equal(z_plumebottom_flat ,np.min(z_plumebottom_flat))  
@@ -547,8 +558,7 @@ def Plot_LargeScale_Plume(timestep,boundarypoints,dsfile,fontitle=22,savefig=Tru
     # #                   Plot the fire perimeter for reference
     #------------------------------------------------------------------------------
     # firef=ax[1].scatter(lon_web_mercator_points,lat_web_mercator_points,s=1,color="White",label="fire front")
-    ax[1].legend()
-    plt.legend()
+    # ax.tight_layout()
     #Save the Plot:
     if savefig:
         plt.savefig(savepath+"plot_largeScalePlume_"+str(timestep)+"_"+str(Namefire)[:5]+"_"+str(datetime_str_form)[:-6].replace(" ", "_")+"_UTC.png", dpi=dpi)
@@ -562,12 +572,27 @@ def Plot_LargeScale_Plume(timestep,boundarypoints,dsfile,fontitle=22,savefig=Tru
 #------------------------------------------------------------------------------
 # Read the netcdf file
 #------------------------------------------------------------------------------
-filepath = "/Users/baggio_r/Documents/DocUbuntu/FIRERES/reports/Aquitaine/LaTeste/"
+#filepath = "/Users/baggio_r/Documents/DocUbuntu/FIRERES/reports/Aquitaine/LaTeste/"
+filepath = "/scratch/baggio_r/fcouto/KDATABASE/Valleseco_20190817/2NEST/RESULTS/" 
+# filepath = "/Users/baggio_r/Documents/DocUbuntu/FIRERES/reports/Canaries/" 
+
+# filepath = "/scratch/baggio_r/fcouto/KDATABASE/TesteDeBuch_20220712/2NEST/RESULTS/" 
+# filepath = "/scratch/baggio_r/fcouto/KDATABASE/Valleseco_20190817/2NEST/RESULTS/" 
+# filepath = "/scratch/baggio_r/fcouto/KDATABASE/SaoJoao_20200710/2NEST/RESULTS/"
+
+# filepath ="/Users/baggio_r/Documents/DocUbuntu/FIRERES/reports/Canaries/"
+
 savedirectory=filepath+"plots/"
 # namef="TESTE_hour_010"
-namef="TESTE.nc"
-filebmap = filepath+namef
-ds=xr.load_dataset(filebmap,engine="netcdf4")
+# namef="TESTE.nc"
+# namef="SAOJA.nc"
+
+
+#namef="TESTEv2.nc"
+namef="VALLE.nc"
+
+filenc = filepath+namef
+ds=xr.load_dataset(filenc,engine="netcdf4")
 print(ds.data_vars)
 saveflag=True
 #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -595,11 +620,12 @@ lon_web_mercator_fine, lat_web_mercator_fine = transform(proj_wgs84, proj_web_me
 
 #------------------------------------------------------------------------------
 #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-factor=0.4 #sets up the distance of boundaries from the fire front
-lon_min = lon_fine[slices_all[0]].min() - factor*abs( lon_fine[slices_all[0]].max() -lon_fine[slices_all[0]].min())
-lon_max = lon_fine[slices_all[0]].max() + factor*abs( lon_fine[slices_all[0]].max() -lon_fine[slices_all[0]].min())
-lat_min = lat_fine[slices_all[0]].min() - factor*abs( lat_fine[slices_all[0]].max() -lat_fine[slices_all[0]].min())
-lat_max = lat_fine[slices_all[0]].max() + factor*abs( lat_fine[slices_all[0]].max() -lat_fine[slices_all[0]].min())
+factorlon=0.3 #sets up the distance of boundaries from the fire front
+factorlat=0.5 #sets up the distance of boundaries from the fire front
+lon_min = lon_fine[slices_all[0]].min() - factorlon*abs( lon_fine[slices_all[0]].max() -lon_fine[slices_all[0]].min())
+lon_max = lon_fine[slices_all[0]].max() + factorlon*abs( lon_fine[slices_all[0]].max() -lon_fine[slices_all[0]].min())
+lat_min = lat_fine[slices_all[0]].min() - factorlat*abs( lat_fine[slices_all[0]].max() -lat_fine[slices_all[0]].min())
+lat_max = lat_fine[slices_all[0]].max() + factorlat*abs( lat_fine[slices_all[0]].max() -lat_fine[slices_all[0]].min())
 
 SW_boundary_point =  transform(proj_wgs84, proj_web_mercator,lon_min, lat_min)
 NW_boundary_point =  transform(proj_wgs84, proj_web_mercator,lon_min, lat_max)
@@ -612,9 +638,17 @@ plotboundaries=[SW_boundary_point[0],SE_boundary_point[0],SW_boundary_point[1], 
 
 
 timesteps=ds.Time.coords['timestep'].values
+#------------------------------------------------------------------------------
+provider1=ctx.providers.CartoDB.Voyager
+provider2=ctx.providers.CartoDB.Voyager
+provider3=ctx.providers.CartoDB.Voyager
 
+# provider1=ctx.providers.GeoportailFrance.plan
+# provider2=ctx.providers.GeoportailFrance.plan
+# provider3=ctx.providers.GeoportailFrance.plan
+#------------------------------------------------------------------------------
 for timestep in timesteps:
-# for timestep in timesteps[10:11]:
-    Plot_surfaceWind_TKE(timestep=timestep,boundarypoints=plotboundaries,dsfile=ds,fontitle=22,savefig=saveflag,savepath=savedirectory,dpi=100)
-    Plot_GroundSmokeConcentration(timestep=timestep,boundarypoints=plotboundaries,dsfile=ds,fontitle=22,savefig=saveflag,savepath=savedirectory,dpi=100)
-    Plot_LargeScale_Plume(timestep=timestep,boundarypoints=plotboundaries,dsfile=ds,fontitle=22,savefig=saveflag,savepath=savedirectory,dpi=100)
+# for timestep in timesteps[20:21]:
+    Plot_surfaceWind_TKE(timestep=timestep,boundarypoints=plotboundaries,dsfile=ds,fontitle=22,provider=provider1,savefig=saveflag,savepath=savedirectory,dpi=150)
+    Plot_GroundSmokeConcentration(timestep=timestep,boundarypoints=plotboundaries,dsfile=ds,fontitle=22,provider=provider2,savefig=saveflag,savepath=savedirectory,dpi=150)
+    Plot_LargeScale_Plume(timestep=timestep,boundarypoints=plotboundaries,dsfile=ds,fontitle=22,provider=provider3,savefig=saveflag,savepath=savedirectory,dpi=150)
