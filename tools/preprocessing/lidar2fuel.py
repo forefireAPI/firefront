@@ -22,7 +22,7 @@ from shapely.geometry import box
 from rasterio import Affine
 from pyproj import Proj, Transformer, transform
 import rasterio
- 
+import requests
 
 from rasterio.warp import reproject, Resampling
 import matplotlib.pyplot as plt
@@ -87,9 +87,52 @@ def gen_density_altitude_and_filter(in_points):
     
     return filtered_points
 
-
-
 def filter_las_files_with_attributes(file_paths, left, bottom, right, top):
+    # Initialize the dictionary with specific structures for coordinates and any known attributes
+    all_filtered_points = {
+        'coords': np.array([]).reshape(0, 3),
+        'color': np.array([]).reshape(0, 3)
+    }
+
+    for file_path in file_paths:
+        inFile = laspy.read(file_path)
+
+        # Calculate the mask for the bounding box
+        points = np.vstack((inFile.x, inFile.y, inFile.z)).transpose()
+        mask = (points[:, 0] >= left) & (points[:, 0] <= right) & (points[:, 1] >= bottom) & (points[:, 1] <= top)
+        print("Got ", np.sum(mask), " from file ", file_path)
+
+        # Handle coordinates, intensity, and color specifically
+        filtered_points = points[mask]
+        all_filtered_points['coords'] = np.vstack((all_filtered_points['coords'], filtered_points))
+
+        filtered_intensity = inFile.intensity[mask]
+        all_filtered_points['intensity'].extend(filtered_intensity)
+
+        if hasattr(inFile, 'red') and hasattr(inFile, 'green') and hasattr(inFile, 'blue'):
+            # Assuming color data is available and stored in 'red', 'green', 'blue'
+            filtered_color = np.vstack((inFile.red[mask], inFile.green[mask], inFile.blue[mask])).transpose()
+            all_filtered_points['color'] = np.vstack((all_filtered_points['color'], filtered_color))
+
+        # Dynamically handle other attributes
+        for attribute in inFile.point_format.dimension_names:
+            if attribute not in ['x', 'y', 'z', 'intensity', 'red', 'green', 'blue']:  # Exclude already handled
+                if attribute not in all_filtered_points:
+                    all_filtered_points[attribute] = []
+
+                filtered_attribute = getattr(inFile, attribute)[mask]
+                all_filtered_points[attribute].extend(filtered_attribute)
+
+    # Convert lists to numpy arrays for numeric data types
+    for key in all_filtered_points:
+        print(key, " attribute found in filtered laz file")
+        if isinstance(all_filtered_points[key], list):  # Convert lists to numpy arrays
+            all_filtered_points[key] = np.array(all_filtered_points[key])
+
+    print("Filtered bounding box ", left, bottom, right, top, " from files ", file_paths)
+    return all_filtered_points
+
+def filter_las_files_with_single_attributes(file_paths, left, bottom, right, top):
     all_filtered_points = {'coords': np.array([]).reshape(0, 3), 'intensity': [], 'color': np.array([]).reshape(0, 3)}
 
     for file_path in file_paths:
@@ -120,17 +163,63 @@ def filter_las_files_with_attributes(file_paths, left, bottom, right, top):
     print("filtered box ", left, bottom, right, top," from files ", file_paths)
     return all_filtered_points
 
-def save_filtered_las(all_filtered_points, output_file_path):
-    outFile = laspy.create()
+def save_filtered_las_color_classification_and_coords(all_filtered_points, output_file_path):
+    # Set up LAS file with a point format that supports RGB colors and extended classification
+    header = laspy.LasHeader(version="1.4", point_format=7)  # Point format 7 supports RGB and extended classification
+    outFile = laspy.LasData(header)
+    
     outFile.x = all_filtered_points['coords'][:, 0]
     outFile.y = all_filtered_points['coords'][:, 1]
     outFile.z = all_filtered_points['coords'][:, 2]
     outFile.intensity = all_filtered_points['intensity']
-    outFile.red = all_filtered_points['color'][:, 0]
-    outFile.green = all_filtered_points['color'][:, 1]
-    outFile.blue = all_filtered_points['color'][:, 2]
+    
+    # Set classification; make sure it is compatible with extended values
+    outFile.classification = all_filtered_points['classification'].astype(np.uint8)
+    
+    # Set RGB colors; scale colors to 16-bit if necessary
+    if np.max(all_filtered_points['color']) <= 255:
+        scaleFactor = 65535 / 255
+        outFile.red = (all_filtered_points['color'][:, 0] * scaleFactor).astype(np.uint16)
+        outFile.green = (all_filtered_points['color'][:, 1] * scaleFactor).astype(np.uint16)
+        outFile.blue = (all_filtered_points['color'][:, 2] * scaleFactor).astype(np.uint16)
+    else:
+        outFile.red = all_filtered_points['color'][:, 0].astype(np.uint16)
+        outFile.green = all_filtered_points['color'][:, 1].astype(np.uint16)
+        outFile.blue = all_filtered_points['color'][:, 2].astype(np.uint16)
+
     outFile.write(output_file_path)
-    print("saved LAS as ", output_file_path)
+    print("Saved LAS as ", output_file_path)
+
+def save_filtered_las(all_filtered_points, output_file_path):
+    # Create a new LAS file with appropriate header setup
+    header = laspy.LasHeader(point_format=2, version="1.2")  # Assuming point format 2 for RGB color
+    outFile = laspy.LasData(header)
+    
+    # Set x, y, z coordinates
+    outFile.x = all_filtered_points['coords'][:, 0]
+    outFile.y = all_filtered_points['coords'][:, 1]
+    outFile.z = all_filtered_points['coords'][:, 2]
+    
+    # Remove 'coords' key as it's already processed
+    del all_filtered_points['coords']
+    
+    # Set colors if available
+    if 'color' in all_filtered_points:
+        outFile.red = all_filtered_points['color'][:, 0]
+        outFile.green = all_filtered_points['color'][:, 1]
+        outFile.blue = all_filtered_points['color'][:, 2]
+        del all_filtered_points['color']  # Remove 'color' key as it's already processed
+
+    # Dynamically set other attributes
+    for attribute, values in all_filtered_points.items():
+        print("handling ",attribute)
+        if hasattr(outFile, attribute):  # Check if the attribute exists in the LAS file structure
+            setattr(outFile, attribute, np.array(values))
+
+    # Write the file to disk
+    outFile.write(output_file_path)
+    print("Saved LAS as ", output_file_path)
+
     
 def convert_LASCRS_to_latlon(filtered_points, lidarCRS = 2154):
     # Initialiser le transformateur pour convertir de Lambert-93 (EPSG:2154) à WGS84 (EPSG:4326)
@@ -273,46 +362,57 @@ def plot_colored_points_3d(points, dpi=300, filename="3D_colored_points.png", z_
     # Sauvegarder la figure en PNG avec une résolution spécifique (dpi)
     plt.savefig(filename, dpi=dpi)
     print("Plotted points in ", filename)
+import vtk
+import numpy as np
 
 def save_points_to_vtk(points, filename='points.vtk'):
-    # Créer un objet vtkPoints pour stocker les coordonnées
+    # Create a vtkPoints object to store the coordinates
     vtk_points = vtk.vtkPoints()
-    tb = np.min(points['coords'][:,1])
-    tl = np.min(points['coords'][:,0])
-    
+    tb = np.min(points['coords'][:, 1])
+    tl = np.min(points['coords'][:, 0])
+
     for coord in points['coords']:
-        ncoord = coord - [tl,tb,0]
+        ncoord = coord - [tl, tb, 0]
         vtk_points.InsertNextPoint(ncoord)
-    
-    # Créer un objet vtkCellArray pour stocker la connectivité des points
+
+    # Create a vtkCellArray to store the connectivity of the points
     vertices = vtk.vtkCellArray()
     vertices.InsertNextCell(len(points['coords']))
-    
     for i in range(len(points['coords'])):
         vertices.InsertCellPoint(i)
-    
-    # Créer un objet vtkPolyData pour stocker les points et leur connectivité
+
+    # Create a vtkPolyData object to store the points and their connectivity
     polydata = vtk.vtkPolyData()
     polydata.SetPoints(vtk_points)
     polydata.SetVerts(vertices)
-    
-    # Créer un objet vtkUnsignedCharArray pour stocker les couleurs
+
+    # Create a vtkUnsignedCharArray to store the colors
     colors = vtk.vtkUnsignedCharArray()
     colors.SetNumberOfComponents(3)
     colors.SetName("Colors")
-    
     for color in points['color']:
         colors.InsertNextTuple3(*color)
     
-    # Ajouter les couleurs au polydata
+    # Add the colors to the polydata
     polydata.GetPointData().SetScalars(colors)
+
+    # Create a vtkUnsignedCharArray for the classification
+    classif = vtk.vtkUnsignedCharArray()
+    classif.SetNumberOfComponents(1)
+    classif.SetName("Classification")
+    for kindOf in points['classification']:
+        classif.InsertNextValue(kindOf)
     
-    # Écrire les données dans un fichier VTK
+    # Add the classification to the polydata as an additional array
+    polydata.GetPointData().AddArray(classif)
+
+    # Write the data to a VTK file
     writer = vtk.vtkPolyDataWriter()
     writer.SetFileName(filename)
     writer.SetInputData(polydata)
     writer.Write()
     print("Saved vtk file points in ", filename)
+
 
  
 
@@ -441,11 +541,80 @@ las5 = "/Users/filippi_j/data/2023/prunelli/LIDARHD_1-0_LAZ_VT-1226_6123-2021/Se
 las6 = "/Users/filippi_j/data/2023/prunelli/LIDARHD_1-0_LAZ_VT-1226_6123-2021/Semis_2021_1226_6123_LA93_IGN78.laz"
 lidarHDIndex = "/Users/filippi_j/data/2023/lidargrid/TA_diff_pkk_lidarhd.shp"
 
+# List of URLs to download
+prunellieasturls = [
+    "https://storage.sbg.cloud.ovh.net/v1/AUTH_63234f509d6048bca3c9fd7928720ca1/ppk-lidar/VT/LHD_FXX_1224_6122_PTS_O_LAMB93_IGN69.copc.laz",
+    "https://storage.sbg.cloud.ovh.net/v1/AUTH_63234f509d6048bca3c9fd7928720ca1/ppk-lidar/VT/LHD_FXX_1224_6123_PTS_O_LAMB93_IGN69.copc.laz",
+    "https://storage.sbg.cloud.ovh.net/v1/AUTH_63234f509d6048bca3c9fd7928720ca1/ppk-lidar/VT/LHD_FXX_1225_6122_PTS_O_LAMB93_IGN69.copc.laz",
+    "https://storage.sbg.cloud.ovh.net/v1/AUTH_63234f509d6048bca3c9fd7928720ca1/ppk-lidar/VT/LHD_FXX_1225_6123_PTS_O_LAMB93_IGN69.copc.laz"
+]
 
+# Function to download a file
+def download_file(url,basepath=""):
+    local_filename = basepath+url.split('/')[-1]
+    with requests.get(url, stream=True) as r:
+        r.raise_for_status()
+        with open(local_filename, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=8192):
+                f.write(chunk)
+    return local_filename
+
+def download_urs_set(urls):
+    for url in urls:
+        print(f"Downloading {url}")
+        download_file(url,basepath="/Users/filippi_j/data/2024/prunelli/lidarHD/")
+        print(f"Finished downloading {url.split('/')[-1]}")
+ 
+    
+def analyze_las_file(file_path):
+    # Define classification descriptions
+    classifications_description = {
+        0: "Jamais classé",
+        1: "Non attribuée",
+        2: "Sol",
+        3: "Végétation basse",
+        4: "Moyenne végétation",
+        5: "Haute végétation",
+        6: "Bâtiment",
+        7: "Point bas",
+        8: "Réservé",
+        9: "Eau",
+        10: "Ferroviaire",
+        11: "Surface routière",
+        12: "Réservé",
+        13: "Fil métallique (protection)",
+        14: "Conducteur métallique (Phase)",
+        15: "Tour de transmission",
+        16: "Connecteur de structure métallique (Isolant)",
+        17: "Tablier de pont",
+        18: "Niveau sonore élevé"
+    }
+
+    # Open the LAS file
+    inFile = laspy.read(file_path)
+    
+    # Total number of points
+    total_points = inFile.header.point_count
+    print("Total number of points:", total_points)
+    
+    # Get classifications and count occurrences
+    classifications = inFile.classification
+    unique, counts = np.unique(classifications, return_counts=True)
+    
+    # Display counts for each classification
+    classification_counts = dict(zip(unique, counts))
+    print("Counts by classification:")
+    for classification, count in classification_counts.items():
+        description = classifications_description.get(classification, "Unknown classification")
+        print(f"Classification {classification} ({description}): {count} points")
+
+    return total_points, classification_counts
 
 #bbox de Yolanda
 lat_sw, lon_sw = 42.0063067 , 9.3263082
 lat_ne, lon_ne = 42.0104249 ,  9.3327945
+
+
 #bbox réduite
 #lat_sw, lon_sw = 42.007884 , 9.327366
 #lat_ne, lon_ne = 42.008428 ,  9.328064
@@ -455,12 +624,18 @@ lat_ne, lon_ne = 42.0104249 ,  9.3327945
 #lat_ne, lon_ne = 42.6049 ,8.9216
 
 #bbox de monze
-lat_sw, lon_sw = 43.1289 , 2.3986
-lat_ne, lon_ne = 43.187127, 2.5797
+#lat_sw, lon_sw = 43.1289 , 2.3986
+#lat_ne, lon_ne = 43.187127, 2.5797
 
-dirout = "/Users/filippi_j/data/2023/prunelli/6731213101-2/sub/"
-lidarDir = "/Users/filippi_j/data/2023/corbara20230727/lidar/"
-dirout = "/Users/filippi_j/data/2023/corbara20230727/out/"
+#bbox de Prunelli smaller
+lat_sw, lon_sw = 42.0076 , 9.3269
+lat_ne, lon_ne = 42.0094 ,  9.3310
+
+
+
+dirout = "/Users/filippi_j/data/2024/prunelli/"
+lidarDir = "/Users/filippi_j/data/2024/prunelli/lidarHD"
+dirout = "/Users/filippi_j/data/2024/prunelli/tmp/"
 
 subsetFDS = "%ssubsetFDS.TIF"%dirout
 subsetFDSLamb = "%ssubsetFDSLAMBERT.TIF"%dirout
@@ -472,25 +647,35 @@ orthoTIFLamb = "%sorthoLambert.tif"%dirout
 
 west, south, east, north = lon_sw,lat_sw, lon_ne,lat_ne
 
-#findfileToDownload(west, south, east, north)
-filter_shapefile_by_coordinates(west, south, east, north, lidarHDIndex)
-
-#webMapsToTif(west, south, east, north, orthoTIF, zoomLevel=18)
-
-lidarCRS=2154
-
-#reprojectTif(subsetFDS,subsetFDSLamb,lidarCRS)
-#reprojectTif(orthoTIF,orthoTIFLamb,lidarCRS)
-
-#left,right,bottom,top = getLeftRightBottomTop(orthoTIFLamb)  
-#all_filtered_points = filter_las_files_with_attributes(  list_laz_files(lidarDir), left, bottom, right, top )
-
-#all_filtered_points_colored = assign_colors_from_tif(all_filtered_points, orthoTIFLamb)
-#save_points_to_vtk(all_filtered_points_colored, filename=lidarVTKout)
-
-#save_filtered_las(all_filtered_points_colored, outLAS)
 
 
+get_orthophoto = False
+# downloading ultraHD zoom18 image of orthophoto
+if get_orthophoto:
+    webMapsToTif(west, south, east, north, orthoTIF, zoomLevel=18)
+
+
+# reprojection using lambert 2154 to match crs in corsica of lidar
+project_orthophoto = False
+if project_orthophoto:
+    reprojectTif(orthoTIF,orthoTIFLamb,destCRS=2154)
+
+
+# filter las points from a BBOX that corresponds to those found in the ortho tiff file and from files that are contained in a directory
+# save it as vtk and las file
+filter_las_points = False
+if filter_las_points:
+    left,right,bottom,top = getLeftRightBottomTop(orthoTIFLamb)  
+    all_filtered_points = filter_las_files_with_attributes(  list_laz_files(lidarDir), left, bottom, right, top )
+
+    all_filtered_points_colored = assign_colors_from_tif(all_filtered_points, orthoTIFLamb)
+    save_points_to_vtk(all_filtered_points_colored, filename=lidarVTKout)
+    save_filtered_las_color_classification_and_coords(all_filtered_points_colored, outLAS)
+
+# gives some info
+info_colored_las= True
+if info_colored_las:
+    analyze_las_file(outLAS)
 #plot_colored_points_3d(all_filtered_points_colored, filename=lidplot)
 #print("plotted")
 #all_filtered_points_latlon = convert_LASCRS_to_latlon(all_filtered_points_colored)
