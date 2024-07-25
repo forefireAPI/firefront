@@ -18,9 +18,48 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 
 */
 
-#include "LavaPropagationModel.h"
+
+#include "PropagationModel.h"
+#include "FireDomain.h"
 
 namespace libforefire {
+
+class LavaPropagationModel : public PropagationModel {
+
+	/*! name the model */
+	static const string name;
+
+	/*! boolean for initialization */
+	static int isInitialized;
+
+	/*! properties needed by the model */
+	size_t effectiveSlope;
+	size_t viscosity;
+	size_t flowSpeed;
+	size_t rugosity;
+	size_t curvature;
+	size_t fastInSection;
+
+	/*! coefficients needed by the model */
+	double slowFactor;
+	int lavaviscosity;
+	double lavadensity;
+	int lavayield;
+	/*! local variables */
+
+	/*! result of the model */
+	double getSpeed(double*);
+
+public:
+
+	LavaPropagationModel(const int& = 0, DataBroker* db=0);
+	virtual ~LavaPropagationModel();
+
+	string getName();
+
+};
+
+PropagationModel* getLavaPropagationModel(const int& = 0, DataBroker* db=0);
 
 /* name of the model */
 const string LavaPropagationModel::name = "LavaPropagationModel";

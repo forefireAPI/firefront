@@ -18,11 +18,50 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 
 */
 
-#include "LavaSO2FluxModel.h"
+ 
 
+
+
+#include "FluxModel.h"
+#include "FireDomain.h"
+#include "include/Futils.h"
 using namespace std;
-
 namespace libforefire {
+
+class LavaSO2FluxModel: public FluxModel {
+
+	/*! name the model */
+	static const string name;
+
+	/*! boolean for initialization */
+	static int isInitialized;
+
+	/*! properties needed by the model */
+
+	/*! coefficients needed by the model */
+	double eruptionTime;
+	double lavaArea;
+	vector<double> refHours;
+	vector<double> refFlows;
+	double emissionRatio;
+
+	/*! local variables */
+	double convert;
+
+	/*! result of the model */
+	double getValue(double*, const double&
+			, const double&, const double&);
+
+public:
+
+	LavaSO2FluxModel(const int& = 0, DataBroker* = 0);
+	virtual ~LavaSO2FluxModel();
+
+	string getName();
+};
+
+FluxModel* getLavaSO2FluxModel(const int& = 0, DataBroker* = 0);
+
 
 /* name of the model */
 const string LavaSO2FluxModel::name = "LavaSO2Flux";

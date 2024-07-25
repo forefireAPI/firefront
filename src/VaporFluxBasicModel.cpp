@@ -1,6 +1,6 @@
 /*
 
-Copyright (C) 2012 ForeFire Team, SPE, UniversitŽ de Corse.
+Copyright (C) 2012 ForeFire Team, SPE, Universitï¿½ de Corse.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -18,9 +18,42 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 
 */
 
-#include "VaporFluxBasicModel.h"
+
+#include "FluxModel.h"
+#include "FireDomain.h"
+
+using namespace std;
 
 namespace libforefire {
+
+class VaporFluxBasicModel: public FluxModel {
+
+	/*! name the model */
+	static const string name;
+
+	/*! boolean for initialization */
+	static int isInitialized;
+
+	/*! properties needed by the model */
+
+	/*! coefficients needed by the model */
+	double burningDuration;
+	double nominalVaporFlux;
+
+	/*! local variables */
+
+	/*! result of the model */
+	double getValue(double*, const double&
+			, const double&, const double&);
+
+public:
+	VaporFluxBasicModel(const int& = 0, DataBroker* = 0);
+	virtual ~VaporFluxBasicModel();
+
+	string getName();
+};
+
+FluxModel* getVaporFluxBasicModel(const int& = 0, DataBroker* = 0);
 
 /* name of the model */
 const string VaporFluxBasicModel::name = "vaporFluxBasic";

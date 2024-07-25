@@ -62,7 +62,7 @@ class FireFront: public ForeFireAtom, Visitable {
 	/*!  \brief local variables in case of spline interpolation */
 	size_t nspl;
 	double *h, *x, *y, *a, *b, *c, *rx, *ry, *d2x, *d2y, *u, *z, *gamma;
-
+    size_t max_inner_front_nodes_filter;
 	static int frontNum;
 
 	/*!  \brief common initailization for all constructors */

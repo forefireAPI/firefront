@@ -17,12 +17,49 @@ License along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 
 */
+ 
 
-#include "FactorChemFluxModel.h"
+#include "FluxModel.h"
+#include "FireDomain.h"
+#include "include/Futils.h"
 
 using namespace std;
 
 namespace libforefire {
+
+class FactorChemFluxModel: public FluxModel {
+
+	/*! name the model */
+	static const string name;
+
+	/*! boolean for initialization */
+	static int isInitialized;
+
+	/*! properties needed by the model */
+
+	/*! coefficients needed by the model */
+	double eruptionTime;
+	double lavaArea;
+	vector<double> refHours;
+	vector<double> refFlows;
+	double emissionRatio;
+
+	/*! local variables */
+	double convert;
+
+	/*! result of the model */
+	double getValue(double*, const double&
+			, const double&, const double&);
+
+public:
+
+	FactorChemFluxModel(const int& = 0, DataBroker* = 0);
+	virtual ~FactorChemFluxModel();
+
+	string getName();
+};
+
+FluxModel* getFactorChemFluxModel(const int& = 0, DataBroker* = 0);
 
 /* name of the model */
 const string FactorChemFluxModel::name = "factorChemFlux";

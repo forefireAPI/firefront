@@ -20,11 +20,71 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 // Balbi et. al. IJWF 2020 A convective–radiative propagation model for wildland fires 10.1071/WF19103
 
 */
-
-#include "Balbi2020.h"
+ 
 #include <algorithm> 
 
+#include "PropagationModel.h"
+#include "FireDomain.h"
+
+using namespace std;
+
 namespace libforefire {
+
+class Balbi2020 : public PropagationModel {
+
+	/*! name the model */
+	static const string name;
+
+	/*! boolean for initialization */
+	static int isInitialized;
+
+	/*! properties needed by the model */
+	size_t slope; 
+	size_t normalWind;
+	size_t moisture;
+	size_t temperature;
+	size_t Rhod;
+	size_t Rhol;
+	size_t Md;
+	size_t Ml;
+	size_t sd;
+	size_t sl;
+	size_t e;
+	size_t Sigmad;
+	size_t Sigmal;
+	size_t stoch;
+	size_t RhoA;
+	size_t Ta;
+	size_t Tau0;
+	size_t Deltah;
+	size_t DeltaH;
+	size_t Cp;
+	size_t Ti;
+	size_t X0;
+	size_t r00;
+	size_t Blai;
+
+	/*! coefficients needed by the model */
+	double cooling;
+	double Cpa;
+
+	/*! local variables */
+
+	/*! result of the model */
+	double getSpeed(double*);
+
+public:
+
+	Balbi2020(const int& = 0, DataBroker* db=0);
+	virtual ~Balbi2020();
+
+	string getName();
+
+};
+
+PropagationModel* getBalbi2020Model(const int& = 0, DataBroker* db=0);
+
+ 
 
 /* name of the model */
 const string Balbi2020::name = "Balbi2020";

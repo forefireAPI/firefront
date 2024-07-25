@@ -18,9 +18,42 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 
 */
 
-#include "HeatFluxBasicModel.h"
+
+#include "FluxModel.h"
+#include "FireDomain.h"
+
+using namespace std;
 
 namespace libforefire {
+
+class HeatFluxBasicModel: public FluxModel {
+
+	/*! name the model */
+	static const string name;
+
+	/*! boolean for initialization */
+	static int isInitialized;
+
+	/*! properties needed by the model */
+
+	/*! coefficients needed by the model */
+	double burningDuration;
+	double nominalHeatFlux;
+
+	/*! local variables */
+
+	/*! result of the model */
+	double getValue(double*, const double&
+			, const double&, const double&);
+
+public:
+	HeatFluxBasicModel(const int& = 0, DataBroker* = 0);
+	virtual ~HeatFluxBasicModel();
+
+	string getName();
+};
+
+FluxModel* getHeatFluxBasicModel(const int& = 0, DataBroker* = 0);
 
 /* name of the model */
 const string HeatFluxBasicModel::name = "heatFluxBasic";

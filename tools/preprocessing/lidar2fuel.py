@@ -7,33 +7,28 @@ Created on Thu Sep 21 17:45:24 2023
 """
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.path as mpath
-import matplotlib.patches as mpatches
-import matplotlib.colors as mcolors
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-import xarray as xr
-import matplotlib.image as mpimg
+ 
 import os.path
 import struct
 import laspy 
 import geopandas as gpd
 from fiona.crs import from_epsg
 from shapely.geometry import box
-from rasterio import Affine
-from pyproj import Proj, Transformer, transform
+ 
 import rasterio
 import requests
 
 from rasterio.warp import reproject, Resampling
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
+ 
 import vtk
 from PIL import Image
 # Convertir le point SW
 import contextily as cx
 import json
 from rasterio.mask import mask
-import pycrs
+import pycrs 
+import zipfile
+import io
 
 
 def gen_density_altitude_and_filter(in_points):
@@ -595,39 +590,6 @@ def filter_shapefile_by_coordinates(west, south, east, north, filename,lidarCRS=
     # Print filtered records
     for record in filtered_records:
         print(f"Nom PKK: {record['nom_pkk']}, URL: {record['url_telech']}")
-
-
-las1 = "/Users/filippi_j/data/2023/prunelli/LIDARHD_1-0_LAZ_VT-1224_6123-2021/Semis_2021_1224_6122_LA93_IGN78.laz"
-las2 = "/Users/filippi_j/data/2023/prunelli/LIDARHD_1-0_LAZ_VT-1224_6123-2021/Semis_2021_1224_6123_LA93_IGN78.laz"
-las3 = "/Users/filippi_j/data/2023/prunelli/LIDARHD_1-0_LAZ_VT-1224_6123-2021/Semis_2021_1225_6122_LA93_IGN78.laz"
-las4 = "/Users/filippi_j/data/2023/prunelli/LIDARHD_1-0_LAZ_VT-1224_6123-2021/Semis_2021_1225_6123_LA93_IGN78.laz"
-las5 = "/Users/filippi_j/data/2023/prunelli/LIDARHD_1-0_LAZ_VT-1226_6123-2021/Semis_2021_1226_6122_LA93_IGN78.laz"
-las6 = "/Users/filippi_j/data/2023/prunelli/LIDARHD_1-0_LAZ_VT-1226_6123-2021/Semis_2021_1226_6123_LA93_IGN78.laz"
-lidarHDIndex = "/Users/filippi_j/data/2023/lidargrid/TA_diff_pkk_lidarhd.shp"
-
-# List of URLs to download
-prunellieasturls = [
-    "https://storage.sbg.cloud.ovh.net/v1/AUTH_63234f509d6048bca3c9fd7928720ca1/ppk-lidar/VT/LHD_FXX_1224_6122_PTS_O_LAMB93_IGN69.copc.laz",
-    "https://storage.sbg.cloud.ovh.net/v1/AUTH_63234f509d6048bca3c9fd7928720ca1/ppk-lidar/VT/LHD_FXX_1224_6123_PTS_O_LAMB93_IGN69.copc.laz",
-    "https://storage.sbg.cloud.ovh.net/v1/AUTH_63234f509d6048bca3c9fd7928720ca1/ppk-lidar/VT/LHD_FXX_1225_6122_PTS_O_LAMB93_IGN69.copc.laz",
-    "https://storage.sbg.cloud.ovh.net/v1/AUTH_63234f509d6048bca3c9fd7928720ca1/ppk-lidar/VT/LHD_FXX_1225_6123_PTS_O_LAMB93_IGN69.copc.laz"
-]
-
-# Function to download a file
-def download_file(url,basepath=""):
-    local_filename = basepath+url.split('/')[-1]
-    with requests.get(url, stream=True) as r:
-        r.raise_for_status()
-        with open(local_filename, 'wb') as f:
-            for chunk in r.iter_content(chunk_size=8192):
-                f.write(chunk)
-    return local_filename
-
-def download_urs_set(urls):
-    for url in urls:
-        print(f"Downloading {url}")
-        download_file(url,basepath="/Users/filippi_j/data/2024/prunelli/lidarHD/")
-        print(f"Finished downloading {url.split('/')[-1]}")
  
     
 def analyze_las_file(file_path):
@@ -674,9 +636,6 @@ def analyze_las_file(file_path):
 
     return total_points, classification_counts
 
-import struct
-import zipfile
-import io
 
 def las_to_compressed_bin2(file_path, output_filename='output.bin'):
     # Open the LAS file
@@ -738,6 +697,46 @@ def las_to_compressed_bin(file_path, output_filename='output.zip'):
 
     print(f"Data saved to {output_filename}")
 
+# Function to download a file
+def download_file(url,basepath=""):
+    local_filename = basepath+url.split('/')[-1]
+    with requests.get(url, stream=True) as r:
+        r.raise_for_status()
+        with open(local_filename, 'wb') as f:
+            print("downloading ",local_filename)
+            for chunk in r.iter_content(chunk_size=8192):
+                f.write(chunk)
+    return local_filename
+
+def download_urs_set(urls,basepath):
+    for url in urls:
+        print(f"Downloading {url}")
+        download_file(url,basepath)
+        print(f"Finished downloading {url.split('/')[-1]}")
+
+
+las1 = "/Users/filippi_j/data/2023/prunelli/LIDARHD_1-0_LAZ_VT-1224_6123-2021/Semis_2021_1224_6122_LA93_IGN78.laz"
+las2 = "/Users/filippi_j/data/2023/prunelli/LIDARHD_1-0_LAZ_VT-1224_6123-2021/Semis_2021_1224_6123_LA93_IGN78.laz"
+las3 = "/Users/filippi_j/data/2023/prunelli/LIDARHD_1-0_LAZ_VT-1224_6123-2021/Semis_2021_1225_6122_LA93_IGN78.laz"
+las4 = "/Users/filippi_j/data/2023/prunelli/LIDARHD_1-0_LAZ_VT-1224_6123-2021/Semis_2021_1225_6123_LA93_IGN78.laz"
+las5 = "/Users/filippi_j/data/2023/prunelli/LIDARHD_1-0_LAZ_VT-1226_6123-2021/Semis_2021_1226_6122_LA93_IGN78.laz"
+las6 = "/Users/filippi_j/data/2023/prunelli/LIDARHD_1-0_LAZ_VT-1226_6123-2021/Semis_2021_1226_6123_LA93_IGN78.laz"
+lidarHDIndex = "/Users/filippi_j/data/2023/lidargrid/TA_diff_pkk_lidarhd.shp"
+
+# List of URLs to download you must select that first
+prunellieasturls = [
+    "https://storage.sbg.cloud.ovh.net/v1/AUTH_63234f509d6048bca3c9fd7928720ca1/ppk-lidar/VT/LHD_FXX_1224_6122_PTS_O_LAMB93_IGN69.copc.laz",
+    "https://storage.sbg.cloud.ovh.net/v1/AUTH_63234f509d6048bca3c9fd7928720ca1/ppk-lidar/VT/LHD_FXX_1224_6123_PTS_O_LAMB93_IGN69.copc.laz",
+    "https://storage.sbg.cloud.ovh.net/v1/AUTH_63234f509d6048bca3c9fd7928720ca1/ppk-lidar/VT/LHD_FXX_1225_6122_PTS_O_LAMB93_IGN69.copc.laz",
+    "https://storage.sbg.cloud.ovh.net/v1/AUTH_63234f509d6048bca3c9fd7928720ca1/ppk-lidar/VT/LHD_FXX_1225_6123_PTS_O_LAMB93_IGN69.copc.laz"
+]
+pieraggiurls = [
+    "https://storage.sbg.cloud.ovh.net/v1/AUTH_63234f509d6048bca3c9fd7928720ca1/ppk-lidar/VT/LHD_FXX_1226_6132_PTS_O_LAMB93_IGN69.copc.laz",
+    "https://storage.sbg.cloud.ovh.net/v1/AUTH_63234f509d6048bca3c9fd7928720ca1/ppk-lidar/VT/LHD_FXX_1227_6132_PTS_O_LAMB93_IGN69.copc.laz",
+    "https://storage.sbg.cloud.ovh.net/v1/AUTH_63234f509d6048bca3c9fd7928720ca1/ppk-lidar/VT/LHD_FXX_1227_6133_PTS_O_LAMB93_IGN69.copc.laz",
+    "https://storage.sbg.cloud.ovh.net/v1/AUTH_63234f509d6048bca3c9fd7928720ca1/ppk-lidar/VT/LHD_FXX_1226_6133_PTS_O_LAMB93_IGN69.copc.laz"
+]
+
 
 #bbox de Yolanda
 lat_sw, lon_sw = 42.0063067 , 9.3263082
@@ -757,46 +756,50 @@ lat_ne, lon_ne = 42.0104249 ,  9.3327945
 #lat_ne, lon_ne = 43.187127, 2.5797
 
 #bbox de Prunelli smaller
-lat_sw, lon_sw = 42.0076 , 9.3269
-lat_ne, lon_ne = 42.0094 ,  9.3310
-
-
 #bbox de Prunelli tiny
 lat_sw, lon_sw = 42.0075 , 9.3270
 lat_ne, lon_ne = 42.0085 ,  9.3280
 
-llPoint = [42.299244, 9.153428]
+llPoint = [42.094471,   9.362104]
 #bbox de Prunelli tiny
 lat_sw, lon_sw = llPoint[0]-0.0005 , llPoint[1]-0.0005
 lat_ne, lon_ne = llPoint[0]+0.0005 ,  llPoint[1]+0.0005
 
 
-dirout = "/Users/filippi_j/data/2024/prunelli/"
-lidarDir = "/Users/filippi_j/data/2024/corte/lidarHD"
+lat_sw, lon_sw =  42.091867 , 9.359683
+lat_ne, lon_ne =  42.098067,    9.365923
+
+dirout = "/Users/filippi_j/data/2024/prunelli/pieraggi/"
+lidarDir = "/Users/filippi_j/data/2024/prunelli/pieraggi/lidarHD/"
 dirout = "/Users/filippi_j/data/2024/prunelli/tmp/"
 
 subsetFDS = "%ssubsetFDS.TIF"%dirout
 subsetFDSLamb = "%ssubsetFDSLAMBERT.TIF"%dirout
 lidplot = "%sslidarColor.png"%dirout
-outLAS = "%sslidarArea.laz"%dirout
+outLAS = "%sslidarAreaS.laz"%dirout
 lidarVTKout = "%sslidarArea.vtk"%dirout
 orthoTIF = "%sortho.tif"%dirout
 orthoTIFLamb = "%sorthoLambert.tif"%dirout
 
-compressedBin = "%scorte.zip"%dirout
+compressedBin = "%spieraggiS.zip"%dirout
+
+selectedLidarHDURLS = pieraggiurls
 
 west, south, east, north = lon_sw,lat_sw, lon_ne,lat_ne
 
+download_lidar_files = False
+# downloading ultraHD zoom18 image of orthophoto
+if download_lidar_files:
+    download_urs_set(selectedLidarHDURLS,lidarDir)
 
-
-get_orthophoto = True
+get_orthophoto = False
 # downloading ultraHD zoom18 image of orthophoto
 if get_orthophoto:
-    webMapsToTif(west, south, east, north, orthoTIF, zoomLevel=18)
+    webMapsToTif(west, south, east, north, orthoTIF, zoomLevel=19)
 
 
 # reprojection using lambert 2154 to match crs in corsica of lidar
-project_orthophoto = True
+project_orthophoto = False
 if project_orthophoto:
     reprojectTif(orthoTIF,orthoTIFLamb,destCRS=2154)
 
@@ -806,7 +809,7 @@ if project_orthophoto:
 filter_las_points = True
 if filter_las_points:
     left,right,bottom,top = getLeftRightBottomTop(orthoTIFLamb)  
-    all_filtered_points = filter_las_files_with_attributes(  list_laz_files(lidarDir), left, bottom, right, top,remove_ratio=0 )
+    all_filtered_points = filter_las_files_with_attributes(  list_laz_files(lidarDir), left, bottom, right, top,remove_ratio=0.9 )
 
     all_filtered_points_colored = assign_colors_from_tif(all_filtered_points, orthoTIFLamb)
     save_filtered_las_color_classification_and_coords(all_filtered_points_colored, outLAS)

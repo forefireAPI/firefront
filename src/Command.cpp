@@ -1029,7 +1029,7 @@ int Command::loadData(const string& arg, size_t& numTabs){
 	}catch(NcException& e)
 	{
 		e.what();
-		cout<<"cannot load landscape file"<<endl;
+	//	cout<<"cannot load landscape file"<<endl;
 	
 	}
 #endif

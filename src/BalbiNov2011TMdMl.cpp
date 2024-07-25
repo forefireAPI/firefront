@@ -18,9 +18,70 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 
 */
 
-#include "BalbiNov2011TMdMl.h"
+#include "PropagationModel.h"
+#include "FireDomain.h"
+
+using namespace std;
 
 namespace libforefire {
+
+class BalbiNov2011TMdMl : public PropagationModel {
+
+	/*! name the model */
+	static const string name;
+
+	/*! boolean for initialization */
+	static int isInitialized;
+
+	/*! properties needed by the model */
+	size_t slope;
+	size_t normalWind;
+	size_t Rhod;
+	size_t Rhol;
+	size_t Md;
+	size_t Ml;
+	size_t sd;
+	size_t sl;
+	size_t e;
+	size_t Sigmad;
+	size_t Sigmal;
+	size_t stoch;
+	size_t RhoA;
+	size_t Ta;
+	size_t temperature;
+	size_t liveMoisture;
+	size_t deadMoisture;
+	size_t Tau0;
+	size_t Deltah;
+	size_t DeltaH;
+	size_t Cp;
+	size_t Ti;
+	size_t X0;
+	size_t r00;
+	size_t Blai;
+
+	/*! coefficients needed by the model */
+	double Cpa;
+	double cooling;
+	double adjustementSlope;
+	double adjustementWind;
+
+	/*! local variables */
+
+	/*! result of the model */
+	double getSpeed(double*);
+
+public:
+
+	BalbiNov2011TMdMl(const int& = 0, DataBroker* db=0);
+	virtual ~BalbiNov2011TMdMl();
+
+	string getName();
+
+};
+
+PropagationModel* getBalbiNov2011TMdMlModel(const int& = 0, DataBroker* db=0);
+
 
 /* name of the model */
 const string BalbiNov2011TMdMl::name = "BalbiNov2011TMdMl";

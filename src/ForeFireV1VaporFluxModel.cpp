@@ -18,9 +18,58 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 
 */
 
-#include "ForeFireV1VaporFluxModel.h"
+
+#include "FluxModel.h"
+#include "FireDomain.h"
+#include <math.h>
+
+using namespace std;
 
 namespace libforefire {
+
+class ForeFireV1VaporFluxModel: public FluxModel {
+
+	/*! name the model */
+	static const string name;
+
+	/*! boolean for initialization */
+	static int isInitialized;
+
+	/*! properties needed by the model */
+	size_t sd;
+	size_t md;
+	size_t sigmad;
+	size_t ml;
+	size_t sigmal;
+	size_t lai;
+	size_t m_e;
+
+	/*! coefficients needed by the model */
+	double BurrowsCst;
+	double liveTimeScaleRatio;
+	double timeScalesRatio;
+	vector<double> LAICoeffs;
+	vector<double> mCoeffs;
+	double chi_b;
+
+	/*! local variables */
+
+	/*! local functions */
+	double texp(double&, double&);
+	double tauexp(double&, double&);
+
+	/*! result of the model */
+	double getValue(double*, const double&
+			, const double&, const double&);
+
+public:
+	ForeFireV1VaporFluxModel(const int& = 0, DataBroker* = 0);
+	virtual ~ForeFireV1VaporFluxModel();
+
+	string getName();
+};
+
+FluxModel* getForeFireV1VaporFluxModel(const int& = 0, DataBroker* = 0);
 
 /* name of the model */
 const string ForeFireV1VaporFluxModel::name = "ForeFireV1VaporFlux";

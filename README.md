@@ -43,7 +43,7 @@ apt install cmake -y
 
 To install
 - The C++ compiler
-- [NetCDF Library](https://www.unidata.ucar.edu/software/netcdf/) and [NetCDF-C++ legacy](https://www.unidata.ucar.edu/downloads/netcdf/netcdf-cxx/index.jsp)
+- [NetCDF Library](https://www.unidata.ucar.edu/software/netcdf/) and [NetCDF-C++ ](https://www.unidata.ucar.edu/downloads/netcdf/netcdf-cxx/index.jsp)
 - [Cmake](https://cmake.org/) build tool
 
 ## 2. Build
@@ -95,30 +95,8 @@ The simulation result will be outputed in JSON format
 
 
 ### 4. Running with python
-
-Installing requirements
-```
-cd py3_tools
-pip install -r requirements.txt
-```
-
-You can use the script `coord_to_ff.py` to run the simulation in a default location
-
-```
-python coord_to_ff.py
-```
-
-For running in a chosen location, the script accepts latitude and longitude in epsg:4326 projection as inputs. It reprojects the coordinates into epsg:32632 projection, used in aullene's landscape.
-```
-python coord_to_ff.py --lat 41.6 --lon 9.1
-```
-
-The GeoJSON of geometry type Polygon will be saved in the `/examples/aullene` folder
-
-## 4. Building python Lib
-The `/swig` folder contains and `Sconstruct` file for python bindings.
-
-Requires numpy (and numpy.i), swig, and matplotlib for testing. 
+Go and check [pyForeFire](https://github.com/forefireAPI/pyForeFire)
+It may be included directly in this repo in futire releases
 
 ## 5. Building with Docker
 A sample Dockerfile can allow to build a Docker image with

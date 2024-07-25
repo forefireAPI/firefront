@@ -283,7 +283,7 @@ void DataBroker::registerLayer(string name, DataLayer<double>* layer) {
 	if (ilayer != layersMap.end()) {
 
 		if (params->getParameter("runmode") == "standalone") {
-			cout << "Redefining layer for variable " << name << " !" << endl;
+			//cout << "Redefining layer for variable " << name << " !" << endl;
 			DataLayer<double>* oldlayer = ilayer->second;
 			layersMap.erase(name);
 			layers.remove(oldlayer);
@@ -449,11 +449,11 @@ void DataBroker::insureLayersExistence() {
 					cout<<"looking for  "<<neededProperties.back()<<endl;
 					if (windULayer != 0)
 						cout<<"windULayer is  "<<windULayer->getKey()<<endl;
-					}*/
+					}
 				if (windULayer == 0 or windVLayer == 0)
 					cout<<windULayer << "layer for normal wind doesn't rely on existing"
 							<< " windU and windV layers, creating them if needed"
-							<< endl;
+							<< endl;*/
 				/* special treatment for normal wind */
 				if (windULayer == 0) {
 					double val = 0.;
@@ -1700,7 +1700,7 @@ void DataBroker::loadFromNCFile(string filename) {
 	}catch(NcException& e)
 		{
 		e.what();
-		cout<<"cannot read landscape file"<<endl;
+		//cout<<"cannot read landscape file"<<endl;
 	
 		}
 
@@ -2185,7 +2185,7 @@ void DataBroker::initializePropagativeLayer(string filename) {
 	}catch(NcException& e)
 	{
 		e.what();
-		cout<<"cannot read landscape file in initialisation of prop layer"<<endl;
+		//cout<<"cannot read landscape file in initialisation of prop layer"<<endl;
 	}
 }
 void DataBroker::initializeFluxLayers(string filename) {
@@ -2216,7 +2216,7 @@ void DataBroker::initializeFluxLayers(string filename) {
 	}catch(NcException& e)
 	{
 		e.what();
-		cout<<"Problem reading landscape file in initialisation of flux layer"<<endl;
+		// cout<<"Problem reading landscape file in initialisation of flux layer"<<endl;
 	}
 
 }

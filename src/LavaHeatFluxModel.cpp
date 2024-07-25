@@ -17,12 +17,54 @@ License along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 
 */
+ 
 
-#include "LavaHeatFluxModel.h"
 
+#include "FluxModel.h"
+#include "FireDomain.h"
+#include "include/Futils.h"
 using namespace std;
 
 namespace libforefire {
+
+class LavaHeatFluxModel: public FluxModel {
+
+	/*! name the model */
+	static const string name;
+
+	/*! boolean for initialization */
+	static int isInitialized;
+
+	/*! properties needed by the model */
+	size_t windU;
+	size_t windV;
+
+	/*! coefficients needed by the model */
+	double eruptionTime;
+	double heatflux;
+	double crustTemperature;
+	double lavaTemperature;
+	vector<double> refHours;
+	vector<double> crustFractions;
+	vector<double> windValues;
+	vector<double> A;
+	vector<double> B;
+
+	/*! local variables */
+
+	/*! result of the model */
+	double getValue(double*, const double&
+			, const double&, const double&);
+
+public:
+
+	LavaHeatFluxModel(const int& = 0, DataBroker* = 0);
+	virtual ~LavaHeatFluxModel();
+
+	string getName();
+};
+
+FluxModel* getLavaHeatFluxModel(const int& = 0, DataBroker* = 0);
 
 /* name of the model */
 const string LavaHeatFluxModel::name = "LavaHeatFluxModel";

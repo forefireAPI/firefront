@@ -107,6 +107,7 @@ void FireFront::commonInitialization(){
 	vertx = 0;
 	verty = 0;
 	nvert = 0;
+	max_inner_front_nodes_filter = 	SimulationParameters::GetInstance()->getInt("max_inner_front_nodes_filter");
 }
 
 FireDomain* FireFront::getDomain(){
@@ -786,7 +787,7 @@ void FireFront::merge(FireNode* fna, FireNode* fnb){
 			fnC = fnC->getNext();
 		}
 		/* If I have not enough nodes in the inner front I need to trash it */
-		if ( tmpFront->getNumFN() < 500 ){
+		if ( tmpFront->getNumFN() < max_inner_front_nodes_filter ){
 			if (outputs) cout<<getDomainID()
 					<<": trashing inner front "<<tmpFront->toString()<<" because of lack of nodes ("
 					<<tmpFront->getNumFN()<<" nodes in the front)"<<endl;

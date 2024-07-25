@@ -17,12 +17,48 @@ License along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 
 */
+ 
 
-#include "LavaLazeFluxModel.h"
+
+#include "FluxModel.h"
+#include "FireDomain.h"
+#include "include/Futils.h"
 
 using namespace std;
-
 namespace libforefire {
+
+class LavaLazeFluxModel: public FluxModel {
+
+	/*! name the model */
+	static const string name;
+
+	/*! boolean for initialization */
+	static int isInitialized;
+
+	/*! properties needed by the model */
+
+	/*! coefficients needed by the model */
+	double arrivalTime;
+	vector<double> refHours;
+	vector<double> refFlows;
+	double exchangeArea;
+	
+	/*! local variables */
+	double convert;
+
+	/*! result of the model */
+	double getValue(double*, const double&
+			, const double&, const double&);
+
+public:
+
+	LavaLazeFluxModel(const int& = 0, DataBroker* = 0);
+	virtual ~LavaLazeFluxModel();
+
+	string getName();
+};
+
+FluxModel* getLavaLazeFluxModel(const int& = 0, DataBroker* = 0);
 
 /* name of the model */
 const string LavaLazeFluxModel::name = "LavaLazeFlux";

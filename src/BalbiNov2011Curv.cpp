@@ -1,6 +1,6 @@
 /*
 
-Copyright (C) 2012 ForeFire Team, SPE, UniversitŽ de Corse.
+Copyright (C) 2012 ForeFire Team, SPE, Universitï¿½ de Corse.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -18,9 +18,68 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 
 */
 
-#include "BalbiNov2011Curv.h"
+
+#include "PropagationModel.h"
+#include "FireDomain.h"
+
+using namespace std;
 
 namespace libforefire {
+
+class BalbiNov2011Curv : public PropagationModel {
+
+	/*! name the model */
+	static const string name;
+
+	/*! boolean for initialization */
+	static int isInitialized;
+
+	/*! properties needed by the model */
+	size_t slope;
+	size_t normalWind;
+	size_t curvature;
+	size_t Rhod;
+	size_t Rhol;
+	size_t Md;
+	size_t Ml;
+	size_t sd;
+	size_t sl;
+	size_t e;
+	size_t Sigmad;
+	size_t Sigmal;
+	size_t stoch;
+	size_t RhoA;
+	size_t Ta;
+	size_t Tau0;
+	size_t Deltah;
+	size_t DeltaH;
+	size_t Cp;
+	size_t Ti;
+	size_t X0;
+	size_t r00;
+	size_t Blai;
+
+	/*! coefficients needed by the model */
+	double Cpa;
+	double cooling;
+	double gravity;
+
+	/*! local variables */
+
+	/*! result of the model */
+	double getSpeed(double*);
+
+public:
+
+	BalbiNov2011Curv(const int& = 0, DataBroker* db=0);
+	virtual ~BalbiNov2011Curv();
+
+	string getName();
+
+};
+
+PropagationModel* getBalbiNov2011CurvModel(const int& = 0, DataBroker* db=0);
+
 
 /* name of the model */
 const string BalbiNov2011Curv::name = "BalbiNov2011Curv";

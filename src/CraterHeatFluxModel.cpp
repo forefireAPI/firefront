@@ -1,6 +1,6 @@
 /*
 
-Copyright (C) 2012 ForeFire Team, SPE, UniversitŽ de Corse.
+Copyright (C) 2012 ForeFire Team, SPE, Universitï¿½ de Corse.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -17,12 +17,53 @@ License along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 
 */
+ 
 
-#include "CraterHeatFluxModel.h"
 
+#include "FluxModel.h"
+#include "FireDomain.h"
+#include "include/Futils.h"
 using namespace std;
-
 namespace libforefire {
+
+class CraterHeatFluxModel: public libforefire::FluxModel {
+
+	/*! name the model */
+	static const string name;
+
+	/*! boolean for initialization */
+	static int isInitialized;
+
+	/*! properties needed by the model */
+	size_t windU;
+	size_t windV;
+
+	/*! coefficients needed by the model */
+	double eruptionTime;
+	double crustTemperature;
+	double lavaTemperature;
+	vector<double> refHours;
+	vector<double> crustFractions;
+	vector<double> windValues;
+	vector<double> A;
+	vector<double> B;
+	vector<double> heatCorrections;
+
+	/*! local variables */
+
+	/*! result of the model */
+	double getValue(double*, const double&
+			, const double&, const double&);
+
+public:
+
+	CraterHeatFluxModel(const int& = 0, DataBroker* = 0);
+	virtual ~CraterHeatFluxModel();
+
+	string getName();
+};
+
+FluxModel* getCraterHeatFluxModel(const int& = 0, DataBroker* = 0);
 
 /* name of the model */
 const string CraterHeatFluxModel::name = "CraterHeatFluxModel";

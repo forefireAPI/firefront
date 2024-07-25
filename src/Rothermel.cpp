@@ -17,12 +17,64 @@ License along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 
  */
+ 
 
-#include "Rothermel.h"
 
+#include "PropagationModel.h"
+#include "FireDomain.h"
+#include <math.h>
 using namespace std;
-
 namespace libforefire {
+
+class Rothermel: public PropagationModel {
+
+	/*! name the model */
+	static const string name;
+
+	/*! boolean for initialization */
+	static int isInitialized;
+	double windReductionFactor;
+	/*! properties needed by the model */
+	size_t slope;
+	size_t normalWind;
+	size_t Rhod;
+	size_t Rhol;
+	size_t Md;
+	size_t Ml;
+	size_t sd;
+	size_t sl;
+	size_t e;
+	size_t Sigmad;
+	size_t Sigmal;
+	size_t stoch;
+	size_t RhoA;
+	size_t Ta;
+	size_t Tau0;
+	size_t Deltah;
+	size_t DeltaH;
+	size_t Cp;
+	size_t Ti;
+	size_t X0;
+	size_t r00;
+	size_t Blai;
+
+	/*! coefficients needed by the model */
+
+	/*! local variables */
+
+	/*! result of the model */
+	double getSpeed(double*);
+
+public:
+	Rothermel(const int& = 0, DataBroker* db=0);
+	virtual ~Rothermel();
+
+	string getName();
+
+};
+
+PropagationModel* getRothermelModel(const int& = 0, DataBroker* db=0);
+
 
 /* name of the model */
 const string Rothermel::name = "Rothermel";
