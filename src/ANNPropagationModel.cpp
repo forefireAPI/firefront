@@ -20,11 +20,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 
 #include "PropagationModel.h"
 #include "FireDomain.h"
-#include "ANN.h"  // Include the ANN definitions
 #include <vector>
 #include <cmath>
 #include <iostream>
 #include <fstream>
+
+#include "ANN.h"  // Include the ANN definitions
 
 namespace libforefire {
 

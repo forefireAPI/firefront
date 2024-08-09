@@ -164,7 +164,7 @@ void StringRepresentation::visit(FireNode* fn) {
                 outputstr << ' ';
 
             outputstr.precision(3);
-            outputstr << fixed << fn->getX() << ',' << fn->getY() << ',' << fn->getZ();
+            outputstr << fixed << fn->getX() << ',' << fn->getY() << ',' << fn->getSpeed();
             lastLevel = 2;
         }
         return;

@@ -32,20 +32,21 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 #include <stdexcept>
 
 // Activation functions
-float sigmoid(float x) {
+inline float sigmoid(float x) {
+    
     return 1.0f / (1.0f + std::exp(-x));
 }
 
-float relu(float x) {
+inline float relu(float x) {
     return std::max(0.0f, x);
 }
 
-float linear(float x) {
+inline float linear(float x) {
     return x;
 }
 
 // Activation function lookup
-float (*getActivationFunction(const std::string& name))(float) {
+inline float (*getActivationFunction(const std::string& name))(float) {
     if (name == "RELU") return relu;
     if (name == "SIGM") return sigmoid;
     if (name == "LINE") return linear;
@@ -146,15 +147,6 @@ struct Network {
             layers.push_back(layer);
             inputSize = height;
         }
-        // Read names and their lengths
-   /* int input_names_length, output_names_length;
-    file.read(reinterpret_cast<char*>(&input_names_length), sizeof(int));
-    std::string input_names(input_names_length, '\0');
-    file.read(&input_names[0], input_names_length);
-    
-    file.read(reinterpret_cast<char*>(&output_names_length), sizeof(int));
-    std::string output_names(output_names_length, '\0');
-    file.read(&output_names[0], output_names_length);*/
 
     int input_names_length, output_names_length;
     std::string nameBuffer;
@@ -169,17 +161,13 @@ struct Network {
     outputNames = splitNames(nameBuffer);
 
     std::cout << "name sizes : " << input_names_length <<  "  " << output_names_length << std::endl;
-
-
-        printLayerInfo();
-    
+        printLayerInfo();    
     }
     void printLayerInfo() {
         for (const auto& layer : layers) {
             std::cout << "Layer: Input Size = " << layer.weights[0].size() 
                     << ", Output Size = " << layer.neurons.size()
                     << ", Activation Function = ";
-
             if (layer.activation == relu) {
                 std::cout << "ReLU";
             } else if (layer.activation == sigmoid) {
@@ -187,7 +175,6 @@ struct Network {
             } else {
                 std::cout << "Linear";
             }
-
             std::cout << std::endl;  // End the line after printing each layer's details
         }
     }

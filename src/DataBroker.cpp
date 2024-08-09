@@ -302,6 +302,12 @@ void DataBroker::registerLayer(string name, DataLayer<double>* layer) {
 				params->getDouble("spatialIncrement"));
 		registerLayer("slope", slopeLayer);
 	}
+	if (name.find("arrival_time_of_front") != string::npos) {
+		// if added
+		//ForcedROSLayer = ;
+		registerLayer("ForcedROSLayer", new GradientDataLayer<double>("ForcedROSLayer", layer,
+				params->getDouble("spatialIncrement")));
+	}
 	if (name.find("moisture") != string::npos){
 		moistureLayer = layer;
 	}
