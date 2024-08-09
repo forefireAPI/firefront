@@ -354,7 +354,7 @@ template<typename T> void TwoTimeArrayLayer<T>::loadMultiWindBin(string filePatt
 //	string windFileName(params->getParameter("caseDirectory")+'/'+params->getParameter("fireOutputDirectory")+'/'+params->getParameter("outputFiles")+".");
     struct stat buffer;  
 
-	for (int i = 0; i < numberOfDomains; ++i) {
+	for (size_t i = 0; i < numberOfDomains; ++i) {
 		string domInName(filePattern+to_string(i+1)+"."+this->getKey());	 
         if(stat(domInName.c_str(), &buffer) == 0){
 			ifstream FileIn(domInName.c_str(), ios_base::binary);

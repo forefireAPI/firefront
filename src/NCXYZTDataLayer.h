@@ -65,8 +65,8 @@ template<typename T> class XYZTDataLayer : public DataLayer<T> {
 	double dz; /*!< increment in the Z direction */
 	double dt; /*!< increment in the T direction */
 
-	int interDirID0 ;
-	int interDirID1;
+	size_t interDirID0 ;
+	size_t interDirID1;
 	double interDirRatio ;
 	double interDirScaler ;
 	string nameOf;

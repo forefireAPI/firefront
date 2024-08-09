@@ -194,12 +194,15 @@ void StringRepresentation::visit(FireNode* fn) {
 
 string StringRepresentation::dumpStringRepresentation() {
     
-    if (SimulationParameters::GetInstance()->getParameter("dumpMode") == "json")
+    if (SimulationParameters::GetInstance()->getParameter("dumpMode") == "json"){
         dumpMode = JSON_MODE;
-    else if (SimulationParameters::GetInstance()->getParameter("dumpMode") == "ff")
+        }
+    if (SimulationParameters::GetInstance()->getParameter("dumpMode") == "ff"){
         dumpMode = FF_MODE;
-    else if (SimulationParameters::GetInstance()->getParameter("dumpMode") == "geojson")
+        }
+    if (SimulationParameters::GetInstance()->getParameter("dumpMode") == "geojson"){
         dumpMode = GEOJSON_MODE;
+        }
     
 	currentLevel = 0;
     lastLevel = -1;
@@ -219,15 +222,17 @@ string StringRepresentation::dumpStringRepresentation() {
 
     if (dumpMode == GEOJSON_MODE)
     {
-        if (lastLevel >= 1)
-            // remove last ',' inserted
-            outputstr.seekp(-1, std::ios_base::end);
+        if (lastLevel >= 1){
+                outputstr.seekp(-1, std::ios_base::end);
+            }
             
             outputstr << ']' << endl;
             outputstr << '\t' << '\t' << '\t' << '\t' << ']' << endl;
             outputstr << '\t' << '\t' << '\t' << '}' << endl;
-        if (lastLevel >= 0)
-            outputstr << '\t' << '\t' << '}' << endl ;
+            
+        if (lastLevel >= 0){
+                outputstr << '\t' << '\t' << '}' << endl ;
+            }
             outputstr << '\t' << ']' << endl ;
             outputstr << '}' << endl;
     }

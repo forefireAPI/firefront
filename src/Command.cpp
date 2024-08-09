@@ -723,7 +723,7 @@ int Command::printSimulation(const string& arg, size_t& numTabs){
 
         int partToEval = (arg.at(0) == '*') ? 0 : 1;
 
-        for (int i = 0; i < parts.size(); i++) {
+        for (auto i = 0u; i < parts.size(); i++) {
             finalStr += (i % 2 == partToEval) ? simParam->getParameter(parts[i]) : parts[i];
         }
     }
@@ -752,7 +752,7 @@ int Command::systemExec(const string& arg, size_t& numTabs){
 
         int partToEval = (arg.at(0) == '*') ? 0 : 1;
 
-        for (int i = 0; i < parts.size(); i++) {
+        for (auto i = 0u; i < parts.size(); i++) {
             finalStr += (i % 2 == partToEval) ? simParam->getParameter(parts[i]) : parts[i];
         }
     }

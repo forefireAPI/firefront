@@ -3,6 +3,7 @@
 #include <vector>
 #include <random>
 #include <chrono>
+#include <algorithm> 
 
 int main() {
     Network network;

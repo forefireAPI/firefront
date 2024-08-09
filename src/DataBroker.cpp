@@ -1968,7 +1968,7 @@ int* DataBroker::readAndTransposeIntFortranProjectedField(NcVar* val,const size_
 			
 		}
 	}
-	free(tmp);
+	delete[] tmp;
 	return data;
 
 
@@ -2031,7 +2031,7 @@ double* DataBroker::readAndTransposeFortranProjectedField(NcVar* val,const size_
 			
 		}
 	}
-	free(tmp);
+	delete[] tmp;
 	return data;
 
 
