@@ -721,7 +721,7 @@ int Command::printSimulation(const string& arg, size_t& numTabs){
         vector<string> parts;
         tokenize(arg, parts, "*");
 
-        int partToEval = (arg.at(0) == '*') ? 0 : 1;
+        unsigned int partToEval = (arg.at(0) == '*') ? 0 : 1;
 
         for (auto i = 0u; i < parts.size(); i++) {
             finalStr += (i % 2 == partToEval) ? simParam->getParameter(parts[i]) : parts[i];
@@ -750,7 +750,7 @@ int Command::systemExec(const string& arg, size_t& numTabs){
         vector<string> parts;
         tokenize(arg, parts, "*");
 
-        int partToEval = (arg.at(0) == '*') ? 0 : 1;
+        unsigned int partToEval = (arg.at(0) == '*') ? 0 : 1;
 
         for (auto i = 0u; i < parts.size(); i++) {
             finalStr += (i % 2 == partToEval) ? simParam->getParameter(parts[i]) : parts[i];
