@@ -433,6 +433,9 @@ public:
 	double& getMaxTimeStep();
 	double getArrivalTime(FFPoint&);
 	double getArrivalTime(const size_t&, const size_t&);
+	double getMaxSpeed(FFPoint&);
+	double getMaxSpeed(const size_t&, const size_t&);
+	
 	FFPoint& getSWCorner();
 	FFPoint& getNECorner();
 	int getNumIterationAtmoModel();
@@ -655,6 +658,9 @@ public:
 	/*! \brief scanning a region with respect to all fire fronts */
 	void areaBurningScan(FFPoint&, FFPoint&, double);
 
+    /*! \brief retrun a diag matrix */
+	std::vector<std::vector<double>> getDataMatrix(const std::string& ) ;
+	
 	/*! \brief checking the burning status of a given location */
 	bool checkForBurningStatus(FFPoint&);
 

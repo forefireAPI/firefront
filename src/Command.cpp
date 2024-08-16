@@ -18,6 +18,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 
 */
 #include "Command.h"
+#include "colormap.h"
+
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
+
 using namespace std;
 
 namespace libforefire {
@@ -763,10 +768,73 @@ int Command::systemExec(const string& arg, size_t& numTabs){
 	return std::system(finalStr.c_str());;
 }
 
-int Command::saveSimulation(const string& arg, size_t& numTabs){
-	if ( getDomain() == 0 ) return normal;
-	getDomain()->saveSimulation();
-	return normal;
+int Command::saveSimulation(const std::string& arg, size_t& numTabs) {
+    if (getDomain() == nullptr) return normal;
+
+    if (!arg.empty()) {
+        std::map<std::string, std::string> argMap;
+        std::string temp = arg;
+        size_t pos = 0;
+        std::string token;
+        const char delim = ';';
+        const char assign = '=';
+
+        // Parse the argument string
+        while ((pos = temp.find(delim)) != std::string::npos) {
+            token = temp.substr(0, pos);
+            size_t eq_pos = token.find(assign);
+            if (eq_pos != std::string::npos) {
+                std::string key = token.substr(0, eq_pos);
+                std::string value = token.substr(eq_pos + 1);
+                // Directly store the value without removing quotes
+                argMap[key] = value;
+            }
+            temp.erase(0, pos + 1);
+        }
+
+        // Handle the last part after the final semicolon
+        size_t eq_pos = temp.find(assign);
+        if (eq_pos != std::string::npos) {
+            std::string key = temp.substr(0, eq_pos);
+            std::string value = temp.substr(eq_pos + 1);
+            argMap[key] = value;
+        }
+
+        // Extracted values
+        std::string filename = argMap["filename"];
+        std::string parameter = argMap["parameter"];
+        std::string colormap = argMap["cmap"];
+        double minVal = std::numeric_limits<double>::infinity();
+        double maxVal = -std::numeric_limits<double>::infinity();
+
+        // Range parsing if provided
+        if (argMap.find("range") != argMap.end()) {
+            std::string range = argMap["range"];
+            size_t mid = range.find(',');
+            if (mid != std::string::npos) {
+                minVal = std::stod(range.substr(1, mid - 1));
+                maxVal = std::stod(range.substr(mid + 1, range.length() - mid - 2));
+            }
+        }
+		
+        if (!filename.empty()) {
+            auto matrix = getDomain()->getDataMatrix(parameter); // Retrieve data matrix
+            if (!matrix.empty()) {
+                writeImage(filename.c_str(), matrix, minVal, maxVal, colormap); // Write the matrix to an image file
+				if (argMap.find("histogram") != argMap.end()) {
+        		   writeHistogram(filename.c_str(), matrix,100); // Write the matrix to an image file
+       			 }
+            } else {
+                std::cerr << "Error: No data available for the parameter '" << parameter << "'." << std::endl;
+            }
+        } else {
+            std::cerr << "Error: Filename not provided in the argument." << std::endl;
+        }
+    } else {
+        getDomain()->saveSimulation(); // Default save operation if no arguments provided
+    }
+
+    return normal;
 }
 
 int Command::setParameters(const string& arg, size_t& numTabs){
@@ -869,16 +937,15 @@ int Command::triggerValue(const string& arg, size_t& numTabs){
 				FFPoint loc = getPoint("loc", arg);
 				int fvalue = getInt("fuelType",arg);
 			//	double oldval = currentSession.fd->getDataBroker()->getLayer("fuel")->getValueAt(loc,0);
-
-				//cout <<"at "<< loc.x<< "we have fuel "<< oldval<<endl;
+			//  cout <<"at "<< loc.x<< "we have fuel "<< oldval<<endl;
 			//	cout <<"setting to "<< fvalue <<endl;
 
 				getDomain()->getDataBroker()->getLayer("fuel")->setValueAt(loc,0.0,fvalue);
 			//	double newval = currentSession.fd->getDataBroker()->getLayer("fuel")->getValueAt(loc,0);
 			//	cout <<"at "<< loc.x<< " we have now fuel "<< fvalue <<endl;
+
 				return normal;
 			}
-
 	}
     return error;
 
@@ -892,8 +959,8 @@ int Command::include(const string& arg, size_t& numTabs){
 		string line;
 		//size_t numLine = 0;
 		while ( getline( instream, line ) ) {
-			//    while ( getline( cin, line ) ) {
-			//numLine++;
+			// while ( getline( cin, line ) ) {
+			// numLine++;
 			// checking for comments or newline
 			if((line[0] == '#')||(line[0] == '*')||(line[0] == '\n'))
 				continue;
@@ -951,6 +1018,7 @@ int Command::loadData(const string& arg, size_t& numTabs){
 		cout << "File "<< path<<" doesn't exist or no longer available" << endl;
 		return error;
 	}
+	
 #ifdef NETCDF_LEGACY 
 	NcFile* ncFile = new NcFile(path.c_str(), NcFile::ReadOnly);
 
@@ -1372,5 +1440,138 @@ string Command::dumpString(){
 	return currentSession.outStrRep->outputstr.str();
 	return 0;
 }
+
+void Command::parseColorMap(const std::string& map, std::vector<std::array<unsigned char, 4>>& colorMap) {
+        std::istringstream iss(map);
+        std::string segment;
+        double value;
+        unsigned r, g, b, a;
+
+        while (std::getline(iss, segment, '[')) {
+            std::istringstream segmentStream(segment);
+            if (std::sscanf(segment.c_str(), "%lf/%u,%u,%u,%u]", &value, &r, &g, &b, &a) == 5) {
+                int index = std::min(255, std::max(0, static_cast<int>(value * 255)));
+                colorMap[index] = {static_cast<unsigned char>(r), static_cast<unsigned char>(g),
+                                   static_cast<unsigned char>(b), static_cast<unsigned char>(a)};
+            }
+        }
+    }
+
+
+void Command::writeImage(const char* filename, const std::vector<std::vector<double>>& matrix,
+                         double forced_min_val, double forced_max_val,
+                         const std::string& colormapName) {
+    int width = matrix.size();    // Transposed width (original matrix height)
+    int height = matrix[0].size(); // Transposed height (original matrix width)
+    std::vector<unsigned char> image(width * height * 4, 0); // *4 for RGBA
+
+   // double minVal = std::isnan(forced_min_val) ? std::numeric_limits<double>::infinity() : forced_min_val;
+   // double maxVal = std::isnan(forced_max_val) ? -std::numeric_limits<double>::infinity() : forced_max_val;
+	
+    double minVal = forced_min_val;
+    double maxVal = forced_max_val;
+
+    // Calculate dynamic min/max if needed
+    if (std::isinf(minVal) && std::isinf(maxVal)) {
+        minVal = std::numeric_limits<double>::max();
+        maxVal = std::numeric_limits<double>::lowest();
+        for (const auto& row : matrix) {
+            for (double val : row) {
+                if (val != std::numeric_limits<double>::infinity()) {
+                    if (val < minVal) minVal = val;
+                    if (val > maxVal) maxVal = val;
+                }
+            }
+        }
+    }
+
+    // Use the predefined colormaps or default to grayscale
+     // Retrieve colormap from map
+    auto it = colormapMap.find(colormapName);
+    const ColorEntry* colorMap = it != colormapMap.end() ? it->second : greyColormap;
+    int mapSize = colormapSize; // Assuming all colormaps have the same size
+
+    // Apply color mapping with corrected indices and flipping vertically
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            // Flip vertically by accessing matrix from the bottom up
+            double val = matrix[x][height - 1 - y];  // Adjusted for vertical flip
+            int index = (y * width + x) * 4;
+            if (val == std::numeric_limits<double>::infinity()) {
+                image[index + 3] = 0; // Transparent
+            } else {
+                int colorIndex = static_cast<int>((val - minVal) / (maxVal - minVal) * (mapSize - 1));
+                colorIndex = std::max(0, std::min(colorIndex, mapSize - 1));
+                const auto& color = colorMap[colorIndex];
+                image[index] = color[1];
+                image[index + 1] = color[2];
+                image[index + 2] = color[3];
+                image[index + 3] = color[4]; // Assume last byte is alpha
+            }
+        }
+    }
+    std::string filenameStr(filename);
+    if (filenameStr.substr(filenameStr.length() - 4) == ".jpg") {
+        // Save as JPEG
+        stbi_write_jpg(filename, width, height, 4, image.data(), 95); // Quality 95
+    } else {
+        // Save as PNG by default
+        stbi_write_png(filename, width, height, 4, image.data(), width * 4);
+    }
+}
+
+void Command::writeHistogram(const char* filename, const std::vector<std::vector<double>>& matrix, int bins) {
+ 
+    int width = 600;
+    int height = 600;
+    std::vector<unsigned char> histogram(width * height * 4, 255); // Initialize to white
+
+    double minVal = std::numeric_limits<double>::infinity();
+    double maxVal = -std::numeric_limits<double>::infinity();
+
+    // Calculate min and max, ignoring infinity
+    for (const auto& row : matrix) {
+        for (double val : row) {
+            if (val != std::numeric_limits<double>::infinity()) {
+                if (val < minVal) minVal = val;
+                if (val > maxVal) maxVal = val;
+            }
+        }
+    }
+    maxVal = 5;
+    std::vector<int> bin_counts(bins, 0);
+    double bin_width = (maxVal - minVal) / bins;
+
+    // Populate bins
+    for (const auto& row : matrix) {
+        for (double val : row) {
+            if (val < maxVal){//!= std::numeric_limits<double>::infinity()) {
+                int bin = std::min(bins - 1, static_cast<int>((val - minVal) / bin_width));
+                bin_counts[bin]++;
+            }
+        }
+    }
+
+    // Find max count for normalization
+    int max_count = *std::max_element(bin_counts.begin(), bin_counts.end());
+
+    // Draw histogram
+    for (int i = 0; i < bins; ++i) {
+        int bar_height = static_cast<int>((static_cast<double>(bin_counts[i]) / max_count) * height);
+        for (int y = height - 1; y > height - bar_height - 1; --y) {
+            for (int x = i * width / bins; x < (i + 1) * width / bins; ++x) {
+                int index = (y * width + x) * 4;
+                histogram[index] = histogram[index + 1] = histogram[index + 2] = 0; // Black bar
+                histogram[index + 3] = 255; // Full opacity
+            }
+        }
+    }
+
+    // Append 'spectrum' to filename
+    std::string hist_filename = "spectrum";
+    hist_filename += filename;
+    stbi_write_png(hist_filename.c_str(), width, height, 4, histogram.data(), width * 4);
+}
+
 
 }

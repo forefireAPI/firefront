@@ -32,6 +32,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 #include "FireNode.h"
 #include "include/Futils.h"
 #include "EventCommand.h"
+#include <vector>
+#include <algorithm>
 
 #ifndef COMMAND_DEBUG
 #define COMMAND_DEBUG 1<<8
@@ -249,6 +251,14 @@ class Command {
 	/*! \brief remove the tabs in the commands */
 	static string removeTabs(string);
 
+    static void writeImage(const char* filename, const std::vector<std::vector<double>>& matrix,
+                           double forced_min_val = std::numeric_limits<double>::quiet_NaN(),
+                           double forced_max_val = std::numeric_limits<double>::quiet_NaN(),
+                           const std::string& colormap = "grayscale"); // Default to grayscale if no colormap is specified.
+
+
+    static void writeHistogram(const char* , const std::vector<std::vector<double>>& , int ) ;
+    static void parseColorMap(const std::string& , std::vector<std::array<unsigned char, 4>>& ) ;
 
 	static const string stringError;
 	static const FFPoint pointError;
@@ -315,7 +325,7 @@ public:
 
 	/*! \brief backup of the simulation */
 	static string dumpString();
-
+	
 	
 
 };
