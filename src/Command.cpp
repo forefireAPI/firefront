@@ -761,6 +761,7 @@ int Command::systemExec(const string& arg, size_t& numTabs){
             finalStr += (i % 2 == partToEval) ? simParam->getParameter(parts[i]) : parts[i];
         }
     }
+	
 
     replace(finalStr.begin(), finalStr.end(), ':', '-');
 
@@ -822,7 +823,7 @@ int Command::saveSimulation(const std::string& arg, size_t& numTabs) {
             if (!matrix.empty()) {
                 writeImage(filename.c_str(), matrix, minVal, maxVal, colormap); // Write the matrix to an image file
 				if (argMap.find("histogram") != argMap.end()) {
-        		   writeHistogram(filename.c_str(), matrix,100); // Write the matrix to an image file
+        		   writeHistogram(filename.c_str(), matrix,21,minVal, maxVal,colormap); // Write the matrix to an image file
        			 }
             } else {
                 std::cerr << "Error: No data available for the parameter '" << parameter << "'." << std::endl;
@@ -1484,8 +1485,7 @@ void Command::writeImage(const char* filename, const std::vector<std::vector<dou
             }
         }
     }
-
-    // Use the predefined colormaps or default to grayscale
+	// Use the predefined colormaps or default to grayscale
      // Retrieve colormap from map
     auto it = colormapMap.find(colormapName);
     const ColorEntry* colorMap = it != colormapMap.end() ? it->second : greyColormap;
@@ -1503,10 +1503,10 @@ void Command::writeImage(const char* filename, const std::vector<std::vector<dou
                 int colorIndex = static_cast<int>((val - minVal) / (maxVal - minVal) * (mapSize - 1));
                 colorIndex = std::max(0, std::min(colorIndex, mapSize - 1));
                 const auto& color = colorMap[colorIndex];
-                image[index] = color[1];
-                image[index + 1] = color[2];
-                image[index + 2] = color[3];
-                image[index + 3] = color[4]; // Assume last byte is alpha
+                image[index] = color[0];
+                image[index + 1] = color[1];
+                image[index + 2] = color[2];
+                image[index + 3] = color[3]; // Assume last byte is alpha
             }
         }
     }
@@ -1519,33 +1519,39 @@ void Command::writeImage(const char* filename, const std::vector<std::vector<dou
         stbi_write_png(filename, width, height, 4, image.data(), width * 4);
     }
 }
-
-void Command::writeHistogram(const char* filename, const std::vector<std::vector<double>>& matrix, int bins) {
- 
+void Command::writeHistogram(const char* filename, const std::vector<std::vector<double>>& matrix, int bins,
+                             double forced_min_val, double forced_max_val,
+                             const std::string& colormapName) {
     int width = 600;
     int height = 600;
     std::vector<unsigned char> histogram(width * height * 4, 255); // Initialize to white
 
-    double minVal = std::numeric_limits<double>::infinity();
-    double maxVal = -std::numeric_limits<double>::infinity();
+    double minVal = forced_min_val;
+    double maxVal = forced_max_val;
 
-    // Calculate min and max, ignoring infinity
-    for (const auto& row : matrix) {
-        for (double val : row) {
-            if (val != std::numeric_limits<double>::infinity()) {
-                if (val < minVal) minVal = val;
-                if (val > maxVal) maxVal = val;
+    // Calculate dynamic min/max if needed
+    if (std::isinf(minVal) && std::isinf(maxVal)) {
+        minVal = std::numeric_limits<double>::max();
+        maxVal = std::numeric_limits<double>::lowest();
+        for (const auto& row : matrix) {
+            for (double val : row) {
+                if (val != std::numeric_limits<double>::infinity()) {
+                    if (val < minVal) minVal = val;
+                    if (val > maxVal) maxVal = val;
+                }
             }
         }
     }
-    maxVal = 5;
+
+    
+
     std::vector<int> bin_counts(bins, 0);
     double bin_width = (maxVal - minVal) / bins;
 
     // Populate bins
     for (const auto& row : matrix) {
         for (double val : row) {
-            if (val < maxVal){//!= std::numeric_limits<double>::infinity()) {
+            if (val != std::numeric_limits<double>::infinity() && val < maxVal) {
                 int bin = std::min(bins - 1, static_cast<int>((val - minVal) / bin_width));
                 bin_counts[bin]++;
             }
@@ -1555,14 +1561,25 @@ void Command::writeHistogram(const char* filename, const std::vector<std::vector
     // Find max count for normalization
     int max_count = *std::max_element(bin_counts.begin(), bin_counts.end());
 
-    // Draw histogram
+    // Retrieve colormap from map
+    auto it = colormapMap.find(colormapName);
+    const ColorEntry* colorMap = it != colormapMap.end() ? it->second : greyColormap;
+    int mapSize = colormapSize; // Assuming all colormaps have the same size
+
+    // Draw histogram using colormap
     for (int i = 0; i < bins; ++i) {
         int bar_height = static_cast<int>((static_cast<double>(bin_counts[i]) / max_count) * height);
+        int colorIndex = static_cast<int>((static_cast<double>(i) / bins) * (mapSize ));
+        colorIndex = std::max(0, std::min(colorIndex, mapSize - 1)); // Ensure color index is within bounds
+        const auto& color = colorMap[colorIndex];
+		//cout<<((static_cast<double>(i))/(static_cast<double>(bins-1)))* maxVal - minVal<< " : "<<bin_counts[i]<<"   "<<i<<" : "<<bins<<endl;
         for (int y = height - 1; y > height - bar_height - 1; --y) {
             for (int x = i * width / bins; x < (i + 1) * width / bins; ++x) {
                 int index = (y * width + x) * 4;
-                histogram[index] = histogram[index + 1] = histogram[index + 2] = 0; // Black bar
-                histogram[index + 3] = 255; // Full opacity
+                histogram[index] = color[0]; // Red component
+                histogram[index + 1] = color[1]; // Green component
+                histogram[index + 2] = color[2]; // Blue component
+                histogram[index + 3] = 255; // Alpha component (full opacity)
             }
         }
     }
@@ -1572,6 +1589,9 @@ void Command::writeHistogram(const char* filename, const std::vector<std::vector
     hist_filename += filename;
     stbi_write_png(hist_filename.c_str(), width, height, 4, histogram.data(), width * 4);
 }
+
+
+
 
 
 }

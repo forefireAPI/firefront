@@ -915,40 +915,35 @@ void FireDomain::readMultiDomainMetadata(){
 	}
 
 	double FireDomain::getMaxSpeed(const size_t& ii, const size_t& jj) {
-    // Check for out-of-bounds access
-    if (ii >= globalBMapSizeX || jj >= globalBMapSizeY) return std::numeric_limits<double>::infinity();
+			if (ii >= globalBMapSizeX || jj >= globalBMapSizeY) return std::numeric_limits<double>::infinity();
+			double current_time = getArrivalTime(ii, jj);
+			if (current_time == std::numeric_limits<double>::infinity()) return std::numeric_limits<double>::infinity();
 
-    double current_time = getArrivalTime(ii, jj);
-    // If no data is available for this cell, return infinity
-    if (current_time == std::numeric_limits<double>::infinity()) return std::numeric_limits<double>::infinity();
+			double resolution = params->getDouble("bmapResolution");
+			double grad_x = 0.0, grad_y = 0.0;
 
-    double max_speed = 0.0;
+			if (ii > 0 && ii < globalBMapSizeX - 1) {
+				double time_left = getArrivalTime(ii - 1, jj);
+				double time_right = getArrivalTime(ii + 1, jj);
+				if (time_left != std::numeric_limits<double>::infinity() && time_right != std::numeric_limits<double>::infinity()) {
+					grad_x = (time_right - time_left);
+				}
+			}
+			if (jj > 0 && jj < globalBMapSizeY - 1) {
+				double time_down = getArrivalTime(ii, jj - 1);
+				double time_up = getArrivalTime(ii, jj + 1);
+				if (time_down != std::numeric_limits<double>::infinity() && time_up != std::numeric_limits<double>::infinity()) {
+					grad_y = (time_up - time_down);
+				}
+			}
 
-    // Iterate over all neighbors
-    for (int dx = -1; dx <= 1; ++dx) {
-        for (int dy = -1; dy <= 1; ++dy) {
-            if (dx == 0 && dy == 0) continue; // Skip the current cell
+			double grad_squared = grad_x * grad_x + grad_y * grad_y;
+			if (grad_squared == 0.0) return std::numeric_limits<double>::infinity(); // Safe division check
+			double grad_mag = (2 * resolution) / sqrt(grad_squared);
+			
+			return grad_mag;
+		}
 
-            size_t neighbor_x = ii + dx;
-            size_t neighbor_y = jj + dy;
-
-            // Check if neighbor is within bounds
-            if (neighbor_x >= globalBMapSizeX || neighbor_y >= globalBMapSizeY) continue;
-
-            double neighbor_time = getArrivalTime(neighbor_x, neighbor_y);
-
-            if (neighbor_time != std::numeric_limits<double>::infinity()) {
-                double distance = (dx != 0 && dy != 0) ? std::sqrt(2.0) : 1.0;
-                double time_difference = std::abs(neighbor_time - current_time);
-                double speed = time_difference / distance;
-                max_speed = std::max(max_speed, speed);
-            }
-        }
-    }
-
-    // Return the maximum speed found among all valid neighbors
-    return max_speed == 0.0 ? std::numeric_limits<double>::infinity() : max_speed;
-}
 	void FireDomain::setArrivalTime(const size_t& ii, const size_t& jj, const double& t){
 		// getting the cell where to pixel to set to burning lies
 
@@ -4828,7 +4823,7 @@ void FireDomain::loadWindDataInBinary(double refTime){
         std::vector<std::vector<double>> matrix(globalBMapSizeX, std::vector<double>(globalBMapSizeY, -9999)); // -9999 could signify uninitialized or no data
         
         if (name == "speed") {
-            for (size_t i = 0; i < globalBMapSizeX; i++) {
+			for (size_t i = 0; i < globalBMapSizeX; i++) {
                 for (size_t j = 0; j < globalBMapSizeY; j++) {
                     matrix[i][j] = getMaxSpeed(i, j); // Assuming getMaxSpeed(i, j) is defined to return speed values
                 }

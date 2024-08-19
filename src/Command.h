@@ -257,7 +257,12 @@ class Command {
                            const std::string& colormap = "grayscale"); // Default to grayscale if no colormap is specified.
 
 
-    static void writeHistogram(const char* , const std::vector<std::vector<double>>& , int ) ;
+    static void writeHistogram(const char* filename, const std::vector<std::vector<double>>& matrix,   int bins = 100,                        
+							double forced_min_val = std::numeric_limits<double>::quiet_NaN(),
+                            double forced_max_val = std::numeric_limits<double>::quiet_NaN(),
+							
+							const std::string& colormap = "grayscale") ;
+
     static void parseColorMap(const std::string& , std::vector<std::array<unsigned char, 4>>& ) ;
 
 	static const string stringError;
