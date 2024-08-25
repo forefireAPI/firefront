@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 
 #include "DataLayer.h"
 #include "GradientDataLayer.h"
+#include "TimeGradientDataLayer.h"
 #include "NCXYZTDataLayer.h"
 #include "FuelDataLayer.h"
 #include "ArrayDataLayer.h"
@@ -34,13 +35,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 #include "AtmosphericData.h"
 #include "ParallelData.h"
 #include "SimulationParameters.h"
-#ifdef NETCDF_LEGACY
-#include <netcdfcpp.h>
-#else
 #include <netcdf>
 using namespace netCDF;
 using namespace netCDF::exceptions;
-#endif
 
 using namespace std;
 
@@ -90,6 +87,8 @@ class DataBroker {
 	static DataLayer<double>* fuelLayer; /*!< predefined layer for fuel parameters */
 	static DataLayer<double>* dummyLayer; /*!< predefined layer for a dummy variable (optimization) */
 	static DataLayer<double>* altitudeLayer; /*!< predefined layer for the altitude (optimization) */
+
+	static DataLayer<double>* forcedArrivalTimeLayer;
 	static DataLayer<double>* slopeLayer; /*!< predefined layer for the slope (optimization) */
 	static DataLayer<double>* moistureLayer; /*!< predefined layer for moisture (optimization) */
 	static DataLayer<double>* temperatureLayer; /*!< predefined layer for temperature (optimization) */
@@ -109,6 +108,7 @@ class DataBroker {
 		propGetterMap pgM;
 		pgM["fieldSpeed"] = &getDummy;
 		pgM["altitude"] = &getAltitude;
+		pgM["arrival_time_gradient"] = &getArrival_time_gradient;
 		pgM["slope"] = &getSlope;
 		pgM["windU"] = &getWindU;
 		pgM["windV"] = &getWindV;
@@ -166,6 +166,8 @@ class DataBroker {
 
 	/*! \brief predefined function for getting the altitude for given firenode */
 	static int getAltitude(FireNode*, PropagationModel*, int);
+
+	static int getArrival_time_gradient(FireNode*, PropagationModel*, int);
 	/*! \brief predefined function for getting the slope for given firenode */
 	static int getSlope(FireNode*, PropagationModel*, int);
 	/*! \brief predefined function for getting the longitudinal wind for given firenode */

@@ -619,7 +619,9 @@ public:
 	list<FireNode*> getPhysicalDomainNodesWithin(FireNodeData*, const double&, bool = true);
 
 	/*! \brief saving the simulation */
-	void saveSimulation();
+	void saveArrivalTimeNC();
+	/*! \brief loading the simulation */
+	void loadArrivalTimeNC(string);
 
 	/*! \brief dumping the map of arrival times for debugging */
 	void dumpBurningMatrixAsBinary();

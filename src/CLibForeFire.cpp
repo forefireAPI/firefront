@@ -301,131 +301,13 @@ void FFDumpDoubleArray(size_t nmodel, size_t nip, const char* mname, double t
 
 }
 
-#ifdef NETCDF_LEGACY
 
-void saveNcRecord(int rec){
-		size_t i = 0;
-		size_t j = 0;
-		size_t k = 0;
-        ostringstream oss;
-
-        oss<<session->params->getParameter("caseDirectory")<<'/'
-        	<<session->params->getParameter("fireOutputDirectory")<<'/'
-        	<<"data.nc";
-
-		size_t   nx 	= 20;  // Nb de lignes de cells
-		size_t   ny 	= 30;   // Nb de colonnes de cell
-		size_t   nz 	= 40;   // Nb de colonnes de cell
-
-		cout << "reopening "<< oss.str()<< endl;
-
-		NcFile dataFile(oss.str().c_str(), NcFile::Write);
-		 cout << "file opened Select"<< endl;
-	   if (!dataFile.is_valid())
-	   {
-	      cout << "Couldn't open file!"<< endl;
-	   }
-
-		NcVar *cell_active = dataFile.get_var("values");
-
-		NcDim* ctDim = dataFile.get_dim("time");
-		  double  value[nz][ny][nx];
-
-		   cout << "***  dumping record " <<oss.str()<< endl;
-
-	//   cell_active->put(&value[0][0][0], nz, ny,nx);
-       for (i = 0; i < nx ; i++){	for (j = 0; j < ny ; j++){for (k = 0; k < nz ; k++){value[k][j][i] = k;}}}
-       cell_active->put_rec(ctDim,&value[0][0][0],0);
-	   for (i = 0; i < nx ; i++){	for (j = 0; j < ny ; j++){for (k = 0; k < nz ; k++){value[k][j][i] = i;}}}
-	   cell_active->put_rec(ctDim,&value[0][0][0],1);
-	   for (i = 0; i < nx ; i++){	for (j = 0; j < ny ; j++){for (k = 0; k < nz ; k++){value[k][j][i] = j*i;}}}
-	   cell_active->put_rec(ctDim,&value[0][0][0],2);
-	   for (i = 0; i < nx ; i++){	for (j = 0; j < ny ; j++){for (k = 0; k < nz ; k++){value[k][j][i] = j;}}}
-	   cell_active->put_rec(ctDim,&value[0][0][0],3);
-	   for (i = 0; i < nx ; i++){	for (j = 0; j < ny ; j++){for (k = 0; k < nz ; k++){value[k][j][i] = 5;}}}
-	   cell_active->put_rec(ctDim,&value[0][0][0],4);
-
-
-	   cout << "*** SUCCESS dumping record " <<oss.str()<< endl;
-	   dataFile.close();
-}
-
-
-void createNcFile(string filename
-		, const int& consted_ni, const int& consted_nj, const int& consted_nk
-		, const double* meshx, const double* meshy, const double* zgrid){
-	ostringstream oss;
-
-	size_t   ndim 	= 3;   // Nb de dimension
-
-	// TODO transpose zgrid
-
-	size_t i = 0;
-	size_t j = 0;
-	size_t k = 0;
-
-	NcFile dataFile(filename.c_str(), NcFile::Replace, NULL, 0, NcFile::Netcdf4);
-
-	if (!dataFile.is_valid())
-	{
-		cout << "Couldn't open file for creation"<< endl;
-	}
-
-	NcVar *cell_geom = NULL;
-
-	size_t ni = (size_t)consted_ni;
-	size_t nj = (size_t)consted_nj;
-	size_t nk = (size_t)consted_nk;
-
-	NcDim* cxDim = dataFile.add_dim("ni", ni);
-	NcDim* cyDim = dataFile.add_dim("nj", nj);
-	NcDim* czDim = dataFile.add_dim("nk", nk);
-	NcDim* cxyzDim = dataFile.add_dim("xyz", ndim);
-
-	NcDim* ctDim = dataFile.add_dim("time");
-	cout << "*** dims added " <<oss.str()<< endl;
-
-	double  rv[nk][nj][ni][ndim];
-	cout << "*** in Heap " <<oss.str()<< endl;
-
-	for (i = 0; i < ni ; i++){
-		for (j = 0; j < nj ; j++){
-			for (k = 0; k < nk ; k++){
-				rv[k][j][i][0] = meshx[i];
-				rv[k][j][i][1] = meshy[j];
-				rv[k][j][i][2] = zgrid[i + j*ni + k*ni*nj];
-			}
-		}
-	}
-
-	cout << "*** Geom " <<oss.str()<< endl;
-
-	cell_geom = dataFile.add_var("grid_geometry", ncDouble, czDim, cyDim,cxDim,cxyzDim);
-	cell_geom->put(&rv[0][0][0][0], nk, nj, ni, ndim);
-
-	NcVar *cell_active = NULL;
-	if ( !SimulationParameters::GetInstance()->isValued("outputs.variables") )
-		cout<<"ERROR: vector of parameters outputs.variables should be valued"<<endl;
-	vector<string> variables = SimulationParameters::GetInstance()->getParameterArray("outputs.variables");
-	vector<string>::iterator variable;
-	for ( variable = variables.begin(); variable != variables.end(); ++variable ){
-		cell_active = dataFile.add_var(variable->c_str(), ncDouble,  ctDim,czDim, cyDim,cxDim);
-	}
-
-	cout << "*** SUCCESS creating " <<oss.str()<< endl;
-
-	dataFile.close();
-}
-#else
 void saveNcRecord(int rec){cout << "CLibforefire:: saveNcRecord " << " newCDF Not Implemented" << endl;}
 void createNcFile(string filename
 		, const int& consted_ni, const int& consted_nj, const int& consted_nk
 		, const double* meshx, const double* meshy, const double* zgrid){
 			cout << "CLibforefire:: createNcFile " << " newCDF Not Implemented" << endl;
 		}
-
-#endif
-
 
 
 }

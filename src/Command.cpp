@@ -96,10 +96,12 @@ Command::CmdDictEntry Command::cmdDict[] =	{
 		,CmdDictEntry("trigger[...]","set a value at a certain date to change model ")
 		,CmdDictEntry("include[...]","includes commands from a file")
 		,CmdDictEntry("print[...]","prints the state of the simulation")
-		,CmdDictEntry("save[]","saves the simulation in hdf format")
+		,CmdDictEntry("save[]","saves the simulation arrival_times in netcdf format")
+		,CmdDictEntry("load[...]","loads the simulation arrival_times in netcdf format")
+		,CmdDictEntry("plot[...]","generates a png or jpg of the simulation")
 		,CmdDictEntry("help","displays messages about the usage of commands")
 		,CmdDictEntry("man[command]","displays the man page of the desired 'command'")
-		,CmdDictEntry("loadData[...]","load a NC data file")
+		,CmdDictEntry("loadData[...]","load a NC landscape data file")
 		,CmdDictEntry("systemExec[...]","runs a system command")
 		,CmdDictEntry("clear[]","clears the simulation")
 		,CmdDictEntry("quit","terminates the simulation")
@@ -630,7 +632,7 @@ int Command::goTo(const string& arg, size_t& numTabs){
 			/* burning map outputs */
 			if ( bmapOutputUpdate > 0 ){
 				if ( (int) ((endTime-refTime)/bmapOutputUpdate) > numBmapOutputs ){
-					getDomain()->saveSimulation();
+					getDomain()->saveArrivalTimeNC();
 					numBmapOutputs++;
 				}
 			}
@@ -643,7 +645,7 @@ int Command::goTo(const string& arg, size_t& numTabs){
 			/* saving simulation if needed */
 			/* *************************** */
 			if ( getDomain()->getNumIterationAtmoModel() == numAtmoIterations )
-				getDomain()->saveSimulation();
+				getDomain()->saveArrivalTimeNC();
 
 		} catch ( TopologicalException& e ) {
 			cout<<getDomain()->getDomainID()<<": "<<e.what()<<endl;
@@ -688,7 +690,7 @@ int Command::goTo(const string& arg, size_t& numTabs){
 				/* burning map outputs */
 				if ( bmapOutputUpdate > 0 ){
 					if ( (int) ((endTime-refTime)/bmapOutputUpdate) > numBmapOutputs ){
-						getDomain()->saveSimulation();
+						getDomain()->saveArrivalTimeNC();
 						numBmapOutputs++;
 					}
 				}
@@ -701,7 +703,7 @@ int Command::goTo(const string& arg, size_t& numTabs){
 				/* saving simulation if needed */
 				/* *************************** */
 				if ( getDomain()->getNumIterationAtmoModel() == numAtmoIterations )
-					getDomain()->saveSimulation();
+					getDomain()->saveArrivalTimeNC();
 			} catch (...) {
 				if ( getDomain()->commandOutputs ){
 					cout<<getDomain()->getDomainID()<<": "
@@ -769,7 +771,7 @@ int Command::systemExec(const string& arg, size_t& numTabs){
 	return std::system(finalStr.c_str());;
 }
 
-int Command::saveSimulation(const std::string& arg, size_t& numTabs) {
+int Command::plotSimulation(const std::string& arg, size_t& numTabs) {
     if (getDomain() == nullptr) return normal;
 
     if (!arg.empty()) {
@@ -831,8 +833,23 @@ int Command::saveSimulation(const std::string& arg, size_t& numTabs) {
         } else {
             std::cerr << "Error: Filename not provided in the argument." << std::endl;
         }
+    } 
+
+    return normal;
+}
+int Command::loadSimulation(const std::string& arg, size_t& numTabs) {
+	if (getDomain() == nullptr) return normal;
+	string ncfilePath = getString("arrival_time_of_front",arg);
+	cout << "loading "<<ncfilePath<<endl;
+ 	getDomain()->loadArrivalTimeNC(ncfilePath); // Default save operation if no arguments provided
+	return normal;
+}
+
+int Command::saveSimulation(const std::string& arg, size_t& numTabs) {
+    if (!arg.empty()) {
+        return plotSimulation(arg,numTabs);
     } else {
-        getDomain()->saveSimulation(); // Default save operation if no arguments provided
+        getDomain()->saveArrivalTimeNC(); // Default save operation if no arguments provided
     }
 
     return normal;
@@ -1019,95 +1036,59 @@ int Command::loadData(const string& arg, size_t& numTabs){
 		cout << "File "<< path<<" doesn't exist or no longer available" << endl;
 		return error;
 	}
-	
-#ifdef NETCDF_LEGACY 
-	NcFile* ncFile = new NcFile(path.c_str(), NcFile::ReadOnly);
+	if (args.size() == 2){
 
-	if (!ncFile->is_valid())
+	simParam->setParameter("NetCDFfile", args[0]);
+	cout<<" Loading data "<<args[0]<<endl;
+	try
 	{
-		cout << "File is not a valid NetCDF file" << endl;
-		return error;
-	}
-    
-    simParam->setParameter("NetCDFfile", args[0]);
-
-	for (int layer = 0; layer < ncFile->num_vars(); layer++)
-	{
-		string varName(ncFile->get_var(layer)->name());
-
-		if (varName == "domain")
-		{
-
-			NcVar* ncparams = ncFile->get_var(varName.c_str());
-			int numParams = (size_t) ncparams->num_atts();
-			NcAtt* ncparam;
-
-			for (int i = 0; i < numParams; i++)
-			{
-				ncparam = ncparams->get_att(i);
-				simParam->setParameter(ncparam->name(), ncparam->as_string(0));
-			}
-
-			if (ncparam != 0)
-				delete ncparam;
-		}
-	}
-
-#else
-  simParam->setParameter("NetCDFfile", args[0]);
-  cout<<" Loading data "<<args[0]<<endl;
-  try
-   {
-	NcFile dataFile(path.c_str(), NcFile::read);
-	 	if (!dataFile.isNull()) {
-			cout<<" NC0 data "<<endl;
-			NcVar domVar = dataFile.getVar("domain");
-			if (!domVar.isNull()) {
-				  map<string,NcVarAtt> attributeList = domVar.getAtts();
-				  map<string,NcVarAtt>::iterator myIter; 
-					for(myIter=attributeList.begin();myIter !=attributeList.end();++myIter)
-					{
-					NcVarAtt att = myIter->second;
-					NcType attValType = att.getType();
-					string attsVal;
-					int attiVal;
-					float attfVal;
-					switch ((int)attValType.getTypeClass()) {
-							case NC_CHAR:
-								
-								att.getValues(attsVal); 
-								simParam->setParameter(myIter->first, attsVal);
-								break;
-							case NC_INT:
-								
-								att.getValues(&attiVal); 
-								simParam->setParameter(myIter->first, std::to_string(attiVal));
-								break;
-							case NC_FLOAT:
-								 
-								att.getValues(&attfVal); 
-								simParam->setParameter(myIter->first, std::to_string(attfVal));
-								break;
-							default:
-								std::cout << myIter->first << " attribute of unhandled type " <<attValType.getName() << endl;
-								break;
+		NcFile dataFile(path.c_str(), NcFile::read);
+			if (!dataFile.isNull()) {
+				cout<<" NC0 data "<<endl;
+				NcVar domVar = dataFile.getVar("domain");
+				if (!domVar.isNull()) {
+					map<string,NcVarAtt> attributeList = domVar.getAtts();
+					map<string,NcVarAtt>::iterator myIter; 
+						for(myIter=attributeList.begin();myIter !=attributeList.end();++myIter)
+						{
+						NcVarAtt att = myIter->second;
+						NcType attValType = att.getType();
+						string attsVal;
+						int attiVal;
+						float attfVal;
+						switch ((int)attValType.getTypeClass()) {
+								case NC_CHAR:
+									
+									att.getValues(attsVal); 
+									simParam->setParameter(myIter->first, attsVal);
+									break;
+								case NC_INT:
+									
+									att.getValues(&attiVal); 
+									simParam->setParameter(myIter->first, std::to_string(attiVal));
+									break;
+								case NC_FLOAT:
+									
+									att.getValues(&attfVal); 
+									simParam->setParameter(myIter->first, std::to_string(attfVal));
+									break;
+								default:
+									std::cout << myIter->first << " attribute of unhandled type " <<attValType.getName() << endl;
+									break;
+							}
 						}
-					}
+				}
 			}
+		}catch(NcException& e)
+		{
+			e.what();
 		}
-	}catch(NcException& e)
-	{
-		e.what();
-	//	cout<<"cannot load landscape file"<<endl;
-	
-	}
-#endif
-    if (args.size() == 2){
+
+    
         double secs;
         int year, yday;
         if (simParam->ISODateDecomposition(args[1], secs, year, yday))
         {
-			
             simParam->setInt("refYear", year);
             simParam->setInt("refDay", yday);
             simParam->setInt("refTime", secs);
@@ -1128,14 +1109,11 @@ int Command::loadData(const string& arg, size_t& numTabs){
 		}
 		
 		ExecuteCommand(com);
-		
-
     }
 	if (args.size() == 1){
 			if ( currentSession.fd != 0 ){
 				currentSession.fd->getDataBroker()->loadFromNCFile(path.c_str());
 			}
-
 	}
 
 

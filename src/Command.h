@@ -83,7 +83,7 @@ class Command {
 	// Definition of the command map alias
 	typedef int (*cmd)(const string&, size_t&);
 	typedef map<string,cmd> commandMap;  /*!< map of aliases between strings and functions to be called */
-	static const int numberCommands = 18; /*!< number of possible commands */
+	static const int numberCommands = 20; /*!< number of possible commands */
 	static commandMap makeCmds(){
 		// Construction of the command translator
 		commandMap trans;
@@ -95,6 +95,8 @@ class Command {
 		trans["goTo"] = &goTo;
 		trans["print"] = &printSimulation;
 		trans["save"] = &saveSimulation;
+		trans["plot"] = &plotSimulation;
+		trans["load"] = &loadSimulation;
 		trans["setParameter"] = &setParameter;
 		trans["setParameters"] = &setParameters;
 		trans["getParameter"] = &getParameter;
@@ -136,6 +138,8 @@ class Command {
 		cman["goTo"] = "goTo[t]\n - 't' is the desired time till which the simulation will run ('t=56.2')\n";
 		cman["print[output]"] = "print\n prints a representation of the simulation in the file 'output'\n";
 		cman["save"] = "save\n saves the simulation in hdf format\n";
+		cman["load"] = "loads the simulation arrival_times in netcdf format";
+		cman["plot"] = "generates a png or jpg of the simulation \n parameter=speed or arrival_time_of_front;filename=outfname.png/jpg;opt:range=(0,0.1);opt:cmap=viridis;opt:histogram=true";
 		cman["setParameter[param=value]"] = "setParameter\n - sets parameter 'param' to the given 'value'";
 		cman["setParameters[param1=val1;param2=val2;...;paramn=valn]"] = "setParameters\n - sets a given list of parameters to the desired values";
 		cman["getParameter[key=value]"] = "gets parameter 'key' ";
@@ -209,6 +213,10 @@ class Command {
 	static int printSimulation(const string&, size_t&);
 	/*! \brief command to save in print format the simulation */
 	static int saveSimulation(const string&, size_t&);
+	/*! \brief command to load in print format the simulation */
+	static int loadSimulation(const string&, size_t&);
+	/*! \brief command to plot in png/jpg format the simulation */
+	static int plotSimulation(const string&, size_t&);
 	/*! \brief command to set a given parameter */
 	static int setParameter(const string&, size_t&);
 	/*! \brief command to set a given list of parameters */
