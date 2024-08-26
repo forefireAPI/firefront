@@ -307,8 +307,8 @@ void DataBroker::registerLayer(string name, DataLayer<double>* layer) {
 		// if added
 		//ForcedROSLayer = ;
 		forcedArrivalTimeLayer = new TimeGradientDataLayer<double>("arrival_time_gradient", layer,
-				params->getDouble("spatialIncrement"));
-		cout<<"forced ROS"<<endl;
+				params->getDouble("LookAheadDistanceForeTimeGradientDataLayer"));
+		 
 		registerLayer("arrival_time_gradient", forcedArrivalTimeLayer);
 	}
 	if (name.find("moisture") != string::npos){

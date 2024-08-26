@@ -75,42 +75,13 @@ int ANNPropagationModel::isInitialized =
 /* constructor */
 ANNPropagationModel::ANNPropagationModel(const int & mindex, DataBroker* db)
 : PropagationModel(mindex, db) {
-    windReductionFactor = params->getDouble("windReductionFactor");
-
-   /* slope = registerProperty("slope");
-    normalWind = registerProperty("normalWind");
-    Rhod = registerProperty("fuel.Rhod");
-    sd = registerProperty("fuel.sd");
-	Ta = registerProperty("fuel.Ta");		
-	std::cout << slope<<" "<< normalWind<<" "<< Rhod<<" "<< sd<<" "<< Ta<<endl;
-    if (numProperties > 0) properties = new double[numProperties];
-
     std::string annPath = params->getParameter("FFANNPropagationModelPath");
-    loadNetwork(annPath); // Load the ANN model from file
-
-    dataBroker->registerPropagationModel(this);*/
-
-
-    windReductionFactor = params->getDouble("windReductionFactor");
-
-    // Load network first to access names
-    std::string annPath = params->getParameter("FFANNPropagationModelPath");
-
     annNetwork.loadFromFile(annPath.c_str());
-
-
-
-    // Dynamically register properties based on network input names
     properties = new double[annNetwork.inputNames.size()];
     for (size_t i = 0; i < annNetwork.inputNames.size(); ++i) {
         registerProperty(annNetwork.inputNames[i]);
-        std::cout << "Registered property: " << annNetwork.inputNames[i] << std::endl;
     }
-
     dataBroker->registerPropagationModel(this);
-
-
-
 }
 
 
@@ -129,21 +100,7 @@ string ANNPropagationModel::getName(){
 
 double ANNPropagationModel::getSpeed(double* valueOf) {
     std::vector<float> inputs(numProperties);
-    /*std::cout << "firing Neurons in [";
-   
-    for (size_t i = 0; i < numProperties; ++i) {
-        inputs[i] = static_cast<float>(valueOf[i]);
-        std::cout << inputs[i];
-        if (i < numProperties - 1) std::cout << ", ";
-   
-    }*/
-
-    // Process the inputs through the network
     std::vector<float> outputs = annNetwork.processInput(inputs);
-
-   // std::cout << "] out: " << outputs[0] << std::endl;  // Only use endl here to flush the output
-
-    // Return the first output converted to double
     return static_cast<double>(abs(outputs[0]));
 }
 

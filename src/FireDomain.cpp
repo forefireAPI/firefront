@@ -705,6 +705,7 @@ void FireDomain::readMultiDomainMetadata(){
 		}
 	}
 
+
 	FluxModel* FireDomain::fluxModelInstanciation(const int& index, string modelname){
 		FluxModelMap::iterator fmodel;
 
@@ -723,6 +724,18 @@ void FireDomain::readMultiDomainMetadata(){
 	}
 
 	void FireDomain::registerPropagationModel(const int& index, PropagationModel* model){
+		    // Join all strings in the vector into a single string separated by semicolons
+    std::string properties = "";
+    for(const std::string& prop : model->wantedProperties) {
+        if(properties.empty()) {
+            properties = prop; // First element, add without semicolon
+        } else {
+            properties += ";" + prop; // Subsequent elements, add with semicolon
+        }
+    }
+    
+    // Set the parameter with the joined string
+    params->setParameter(model->getName() + ".keys", properties);
 		propModelsTable[index] = model;
 	}
 
@@ -1368,6 +1381,10 @@ void FireDomain::readMultiDomainMetadata(){
 		int modelIndex = propagativeLayer->getModelIndexAt(fn);
 
 		return propModelsTable[modelIndex]->getSpeedForNode(fn) * propagationSpeedAdjustmentFactor;
+	}
+		
+	vector<string> FireDomain::getFirstPropagationModelKeys() {
+		return propModelsTable[0]->wantedProperties;
 	}
 
 	// Computing the flux at a given location according to a given flux model
@@ -4695,19 +4712,27 @@ void FireDomain::loadWindDataInBinary(double refTime){
 								params->setInt("refDay", pday);
 
 								double max_time = params->getDouble("InitTime");
-								double allDataAtime[FSPACE_DIM2][FSPACE_DIM1];
+		// Dynamically allocate the matrix on the heap
+ 
+								double* allDataAtime = new double[globalBMapSizeY * globalBMapSizeX]; 
+								
 								atime.getVar(allDataAtime);
 
 								double tmpval = 0;    
 								for (size_t i = 0; i < globalBMapSizeX; i++) {
 									for (size_t j = 0; j < globalBMapSizeY; j++) {
-										tmpval = allDataAtime[j][i];
+										tmpval = allDataAtime[j * globalBMapSizeX + i]; 
 										if ((tmpval < max_time) && (tmpval > -9999)) {
 											this->setArrivalTime(i , j,tmpval );
 										}
 									}
 								}
 								dataFile.close();
+
+							 
+								delete[] allDataAtime;
+
+
 					}
 					catch (std::exception const & e)
 					{
@@ -4744,23 +4769,26 @@ void FireDomain::loadWindDataInBinary(double refTime){
         vector<NcDim> dims = {yDim, xDim}; // Order is important for visualization
         NcVar atime = dataFile.addVar("arrival_time_of_front", ncDouble, dims);
         atime.setCompression(true, true, 6);
+ 
 
-       
-		double matrix[globalBMapSizeY][globalBMapSizeX];
-    
+ 
+		double* matrix = new double[globalBMapSizeY * globalBMapSizeX];
+	 
+
 		for (size_t i = 0; i < globalBMapSizeX; i++) {
 			for (size_t j = 0; j < globalBMapSizeY; j++) {
+				 
 				double tmpval = this->getArrivalTime(i , j );
-				if (tmpval == numeric_limits<double>::infinity()) {
-					matrix[j][i] =  -9999 ;
+				if (std::isinf(tmpval)) { 
+					matrix[j * globalBMapSizeX + i] =  -9999 ;
 				}else{
-					matrix[j][i] =  tmpval; 
+					matrix[j * globalBMapSizeX + i] =  tmpval; 
 				}
 			}
 		}
         
         // Write the arrival time data
-        atime.putVar(&matrix[0][0]);
+        atime.putVar(&matrix[0]);
         // Add domain and reference attributes
         NcDim domdim = dataFile.addDim("domdim", 1);
         NcVar dom = dataFile.addVar("domain", ncChar, {domdim});
@@ -4773,6 +4801,11 @@ void FireDomain::loadWindDataInBinary(double refTime){
         dom.putAtt("refDay", NC_INT, int(refDay));
         // Close the file
         dataFile.close();
+
+	/*	for (size_t i = 0; i < globalBMapSizeY; i++) {
+			delete[] matrix[i];
+		}*/
+		delete[] matrix;
 
     } 
     catch (std::exception const & e)

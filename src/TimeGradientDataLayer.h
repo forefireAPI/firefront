@@ -77,12 +77,16 @@ public:
 
 template<typename T>
 T TimeGradientDataLayer<T>::getValueAt(FireNode* fn){
-	/* Computing the gradient between the next and present location */
-	T currentValue = fn->getTime();
-	T nextValue;
-	FFPoint nextLoc = fn->getLoc() + dx*(fn->getNormal().toPoint());
-	nextValue = parent->getValueAt(nextLoc,fn->getUpdateTime());
-	return (nextValue - currentValue)/dx;
+    /* Computing the gradient between the next and present location */
+    T currentValue = fn->getTime();
+    T nextValue;
+    FFPoint nextLoc = fn->getLoc() + dx*(fn->getNormal().toPoint());
+    nextValue = parent->getValueAt(nextLoc,fn->getUpdateTime());
+
+    // Debug print statement
+    //std::cout << "currentValue: " << currentValue << ", nextValue: " << nextValue << ", nextLoc: (" << nextLoc.x << ", " << nextLoc.y << "), dx: " << dx << std::endl;
+
+    return (nextValue - currentValue)/dx;
 }
 
 template<typename T>

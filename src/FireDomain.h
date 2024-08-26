@@ -345,6 +345,8 @@ public:
 	static int registerPropagationModelInstantiator(string, PropagationModelInstantiator);
 	void updateFuelTable( string , double );
 	PropagationModel* propModelInstanciation(const int&, string);
+	vector<string> getPropagationModelKeys(string modelname);
+
 	void registerPropagationModel(const int&, PropagationModel*);
 	bool addPropagativeLayer(string);
 	size_t getFreePropModelIndex();
@@ -564,7 +566,8 @@ public:
 
 	/*! \brief Computing the propagation speed of a given firenode */
 	double getPropagationSpeed(FireNode*);
-
+	vector<string> getFirstPropagationModelKeys() ;
+	
 	/*! \brief Computing the propagation speed of a given firenode */
 	double getModelValueAt(int&, FFPoint&, const double&, const double&, const double&);
 

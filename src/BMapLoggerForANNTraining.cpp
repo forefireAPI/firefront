@@ -72,13 +72,13 @@ BMapLoggerForANNTraining::BMapLoggerForANNTraining(const int & mindex, DataBroke
   
     
     annNetwork.loadFromFile(annPath.c_str());
-    csvfile.open(csvPath);
+    csvfile.open(csvPath); 
     properties = new double[annNetwork.inputNames.size() + 1];
     csvfile << "ROS";
     registerProperty("arrival_time_gradient");
     for (const auto& inputName : annNetwork.inputNames) {
         csvfile << ";"<< inputName ;
-        std::cout << "Registered property: " << inputName << std::endl;
+        
         registerProperty(inputName);
     }
     csvfile << std::endl;
@@ -102,7 +102,6 @@ string BMapLoggerForANNTraining::getName(){
 
 
 double BMapLoggerForANNTraining::getSpeed(double* valueOf) {
-
     double RosVal = 0.0;
     if (valueOf[0] > 0){
         RosVal = 1.0/valueOf[0]; 

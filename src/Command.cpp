@@ -1039,12 +1039,10 @@ int Command::loadData(const string& arg, size_t& numTabs){
 	if (args.size() == 2){
 
 	simParam->setParameter("NetCDFfile", args[0]);
-	cout<<" Loading data "<<args[0]<<endl;
 	try
 	{
 		NcFile dataFile(path.c_str(), NcFile::read);
 			if (!dataFile.isNull()) {
-				cout<<" NC0 data "<<endl;
 				NcVar domVar = dataFile.getVar("domain");
 				if (!domVar.isNull()) {
 					map<string,NcVarAtt> attributeList = domVar.getAtts();

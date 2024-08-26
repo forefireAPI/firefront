@@ -148,6 +148,8 @@ SimulationParameters::SimulationParameters(){
 	parameters.insert(make_pair("InitFile", "Init.ff"));
 	parameters.insert(make_pair("InitFiles", "output"));
 	parameters.insert(make_pair("InitTime", "99999999999999"));
+
+	parameters.insert(make_pair("LookAheadDistanceForeTimeGradientDataLayer", "40"));
 	parameters.insert(make_pair("BMapsFiles", "1234567890"));
 	parameters.insert(make_pair("SHIFT_ALL_POINT_ABSCISSA_BY", "0"));
 	parameters.insert(make_pair("SHIFT_ALL_POINT_ORDINATES_BY", "0"));
