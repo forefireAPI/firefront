@@ -34,14 +34,7 @@ class ANNPropagationModel: public PropagationModel {
     static const std::string name;
     /*! boolean for initialization */
     static int isInitialized;
-    /*! properties needed by the model */
-   /* size_t slope;
-    size_t normalWind;
-    size_t Rhod;
-    size_t sd;
-	size_t Ta;*/
-    /*! coefficients needed by the model */
-    double windReductionFactor;
+
     Network annNetwork; // Neural network instance for the model
 
 public:
@@ -97,12 +90,28 @@ string ANNPropagationModel::getName(){
     return name;
 }
 
-
 double ANNPropagationModel::getSpeed(double* valueOf) {
     std::vector<float> inputs(numProperties);
-    std::vector<float> outputs = annNetwork.processInput(inputs);
-    return static_cast<double>(abs(outputs[0]));
-}
+ 
+    for (size_t i = 0; i < numProperties; ++i) {
+        inputs[i] = static_cast<float>(valueOf[i]);
+    }
 
+    std::vector<float> outputs = annNetwork.processInput(inputs);
+    double result = static_cast<double>(std::abs(outputs[0]));
+
+    /* Print inputs followed by result
+    std::cout << "Inputs: ";
+    for (size_t i = 0; i < inputs.size(); ++i) {
+        std::cout << inputs[i];
+        if (i != inputs.size() - 1) {
+            std::cout << ", ";
+        }
+    }
+    std::cout << " = " << result << std::endl;
+    */
+
+    return result < 0 ? 0 : result;
+}
 
 }
