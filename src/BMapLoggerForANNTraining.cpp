@@ -40,7 +40,7 @@ public:
     virtual ~BMapLoggerForANNTraining();
     std::string getName();
     double getSpeed(double*);
-
+    double maxSpeed;
     void loadNetwork(const std::string& filename); // Method to load network configuration
 };
 
@@ -69,18 +69,22 @@ BMapLoggerForANNTraining::BMapLoggerForANNTraining(const int & mindex, DataBroke
     // Load network first to access names
     std::string annPath = params->getParameter("FFANNPropagationModelPath");
     std::string csvPath = params->getParameter("FFBMapLoggerCSVPath");
-  
+    maxSpeed = params->getDouble("maxSpeed");
     
     annNetwork.loadFromFile(annPath.c_str());
     csvfile.open(csvPath); 
     properties = new double[annNetwork.inputNames.size() + 1];
     csvfile << "ROS";
     registerProperty("arrival_time_gradient");
+
+    std::cout << "Props: ";
     for (const auto& inputName : annNetwork.inputNames) {
         csvfile << ";"<< inputName ;
-        
-        registerProperty(inputName);
+        size_t ni = registerProperty(inputName);
+        std::cout<<ni<<":"<< inputName<<" ;";
     }
+    std::cout << std::endl;
+    
     csvfile << std::endl;
     dataBroker->registerPropagationModel(this);
 }
@@ -105,13 +109,18 @@ double BMapLoggerForANNTraining::getSpeed(double* valueOf) {
     double RosVal = 0.0;
     if (valueOf[0] > 0){
         RosVal = 1.0/valueOf[0]; 
+    }else{
+        return 0;
+    }
+    if (RosVal > maxSpeed){
+       RosVal = maxSpeed;
     }
     csvfile << RosVal << ";";   
     for (size_t i = 0; i < annNetwork.inputNames.size()-1; ++i) {
-        csvfile << valueOf[i] << ";";
+        csvfile << valueOf[i+1] << ";";
     }
-    csvfile << valueOf[annNetwork.inputNames.size()] << std::endl;
-
+    csvfile<<valueOf[annNetwork.inputNames.size()] << std::endl;
+ 
     return RosVal;
 }
 

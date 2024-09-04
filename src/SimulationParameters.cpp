@@ -174,6 +174,7 @@ SimulationParameters::SimulationParameters(){
 	parameters.insert(make_pair("initialBurningDuration", "30"));
 	parameters.insert(make_pair("bmapLayer","0"));
 	parameters.insert(make_pair("minSpeed","0.005"));
+	parameters.insert(make_pair("maxSpeed","10"));
 	parameters.insert(make_pair("relax","0.5"));
 	parameters.insert(make_pair("smoothing","1"));
 	parameters.insert(make_pair("windReductionFactor","0.4"));

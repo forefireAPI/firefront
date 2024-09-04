@@ -25,9 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 #include <fstream>
 #include <vector>
 #include <cmath>
-#include <random>
-#include <chrono>
-#include <cstring>
+#include <memory> // For std::unique_ptr
 #include <sstream>
 #include <stdexcept>
 
@@ -54,28 +52,33 @@ inline float (*getActivationFunction(const std::string& name))(float) {
 }
 
 // Layer structure
-struct Layer {
+struct BaseLayer {
+    virtual ~BaseLayer() {}
+
+    // Pure virtual function for computing the output of the layer
+    virtual std::vector<float> feedforward(const std::vector<float>& inputs) = 0;
+};
+struct DenseLayer : public BaseLayer {
     std::vector<float> neurons;
     std::vector<std::vector<float>> weights;
     std::vector<float> biases;
     float (*activation)(float);
 
     // Constructor
-    Layer(int inputSize, int outputSize, float (*actFunc)(float))
-        : neurons(outputSize, 0.0f), weights(outputSize, std::vector<float>(inputSize)), biases(outputSize), activation(actFunc) {}
-
-
+    DenseLayer(int inputSize, int outputSize, float (*actFunc)(float))
+        : neurons(outputSize, 0.0f), weights(outputSize, std::vector<float>(inputSize)),
+          biases(outputSize), activation(actFunc) {}
 
     void loadWeightsAndBiases(const std::vector<float>& weightData, const std::vector<float>& biasData) {
         for (size_t i = 0; i < weights.size(); ++i) {
-            for (size_t j = 0; j < weights[0].size(); ++j) {
+            for (size_t j = 0; j < weights[i].size(); ++j) {
                 weights[i][j] = weightData[j * weights.size() + i];
             }
         }
         std::copy(biasData.begin(), biasData.end(), biases.begin());
     }
 
-    std::vector<float> feedforward(const std::vector<float>& inputs) {
+    std::vector<float> feedforward(const std::vector<float>& inputs) override {
         std::vector<float> output(neurons.size(), 0.0f);
         for (size_t i = 0; i < neurons.size(); ++i) {
             float neuronOutput = biases[i];
@@ -87,10 +90,25 @@ struct Layer {
         return output;
     }
 };
+struct NormalizationLayer : public BaseLayer {
+    std::vector<float> mean;
+    std::vector<float> variance;
 
+    // Constructor
+    NormalizationLayer(const std::vector<float>& meanData, const std::vector<float>& varianceData)
+        : mean(meanData), variance(varianceData) {}
+
+    std::vector<float> feedforward(const std::vector<float>& inputs) override {
+        std::vector<float> output(inputs.size());
+        for (size_t i = 0; i < inputs.size(); ++i) {
+            output[i] = (inputs[i] - mean[i]) / sqrt(variance[i] + 1e-10); // Safe division
+        }
+        return output;
+    }
+};
 // Network structure
 struct Network {
-    std::vector<Layer> layers;
+    std::vector<std::unique_ptr<BaseLayer>> layers; // Correct declaration
     std::vector<std::string> inputNames;
     std::vector<std::string> outputNames;
 
@@ -104,6 +122,7 @@ struct Network {
         return result;
     }
 
+   
     void loadFromFile(const char* filename) {
         std::ifstream file(filename, std::ios::binary);
         if (!file.is_open()) {
@@ -119,7 +138,8 @@ struct Network {
             throw std::runtime_error("Invalid file format.");
         }
 
-        int inputSize = 0;  // This will be set based on the first layer's weight matrix dimensions
+       // int inputSize = 0;  // This will be set based on the first layer's weight matrix dimensions
+        //std::vector<std::unique_ptr<BaseLayer>> layers;  // Vector to store layers polymorphically
 
         for (int i = 0; i < numLayers; ++i) {
             char activation[5] = {0};
@@ -127,98 +147,100 @@ struct Network {
             file.read(activation, 4);
             file.read(reinterpret_cast<char*>(&width), sizeof(int));
             file.read(reinterpret_cast<char*>(&height), sizeof(int));
+            std::cout << "layer "<<activation<<" "<<width<<" "<<height<<std::endl;
+      
+            if (strcmp(activation, "NORM") == 0) {
+                // Normalization layer
+                std::vector<float> meanData(width), varianceData(width);
+                file.read(reinterpret_cast<char*>(meanData.data()), width * sizeof(float));
+                file.read(reinterpret_cast<char*>(varianceData.data()), width * sizeof(float));
+                layers.push_back(std::make_unique<NormalizationLayer>(meanData, varianceData));
+            } else {
+                // Dense layer
+                float (*actFunc)(float) = getActivationFunction(std::string(activation));
+                if (!actFunc) {
+                    throw std::runtime_error("Unsupported activation function.");
+                }
+                DenseLayer *layer = new DenseLayer(width, height, actFunc);
+                std::vector<float> weightData(height * width);
+                std::vector<float> biasData(height);
+                file.read(reinterpret_cast<char*>(weightData.data()), height * width * sizeof(float));
+                file.read(reinterpret_cast<char*>(biasData.data()), height * sizeof(float));
 
-            if (i == 0) {
-                inputSize = width;
+                layer->loadWeightsAndBiases(weightData, biasData);
+                layers.push_back(std::unique_ptr<BaseLayer>(layer));
+                std::cout << "adding dense "<<std::endl;
+               // inputSize = height; // Update inputSize for next layer
             }
-
-            float (*actFunc)(float) = getActivationFunction(std::string(activation));
-            if (!actFunc) {
-                throw std::runtime_error("Unsupported activation function.");
-            }
-
-            Layer layer(inputSize, height, actFunc);
-            std::vector<float> weightData(height * width);
-            std::vector<float> biasData(height);
-            file.read(reinterpret_cast<char*>(weightData.data()), height * width * sizeof(float));
-            file.read(reinterpret_cast<char*>(biasData.data()), height * sizeof(float));
-
-            layer.loadWeightsAndBiases(weightData, biasData);
-            layers.push_back(layer);
-            inputSize = height;
         }
 
-    int input_names_length, output_names_length;
-    std::string nameBuffer;
-    file.read(reinterpret_cast<char*>(&input_names_length), sizeof(int));
-    nameBuffer.resize(input_names_length);
-    file.read(&nameBuffer[0], input_names_length);
-    inputNames = splitNames(nameBuffer);
+        // Reading input and output names
+        int input_names_length, output_names_length;
+        std::string nameBuffer;
+        file.read(reinterpret_cast<char*>(&input_names_length), sizeof(int));
+        nameBuffer.resize(input_names_length);
+        file.read(&nameBuffer[0], input_names_length);
+        inputNames = splitNames(nameBuffer);
 
-    file.read(reinterpret_cast<char*>(&output_names_length), sizeof(int));
-    nameBuffer.resize(output_names_length);
-    file.read(&nameBuffer[0], output_names_length);
-    outputNames = splitNames(nameBuffer);
+        file.read(reinterpret_cast<char*>(&output_names_length), sizeof(int));
+        nameBuffer.resize(output_names_length);
+        file.read(&nameBuffer[0], output_names_length);
+        outputNames = splitNames(nameBuffer);
 
-    std::cout << "name sizes : " << input_names_length <<  "  " << output_names_length << std::endl;
-        printLayerInfo();    
+        std::cout << "Network loaded successfully. Input layers: " << inputNames.size() 
+                << ", Output layers: " << outputNames.size() << std::endl;
+
+        printLayerInfo();
     }
     void printLayerInfo() {
-        for (const auto& layer : layers) {
-            std::cout << "Layer: Input Size = " << layer.weights[0].size() 
-                    << ", Output Size = " << layer.neurons.size()
-                    << ", Activation Function = ";
-            if (layer.activation == relu) {
-                std::cout << "ReLU";
-            } else if (layer.activation == sigmoid) {
-                std::cout << "Sigmoid";
-            } else {
-                std::cout << "Linear";
-            }
-            std::cout << std::endl;  // End the line after printing each layer's details
-        }
+        std::cout << toString() << std::endl;
     }
+
+    std::string toString() const {
+        std::ostringstream ss;
+        int layerCount = 0; // Track the number of layers
+
+        for (const auto& layer : layers) {
+            if (auto denseLayer = dynamic_cast<DenseLayer*>(layer.get())) { // Check if it's a DenseLayer
+                std::string act="None";
+                if (denseLayer->activation == relu) act = "ReLU";
+                if (denseLayer->activation == sigmoid) act = "Sigmoid";
+                if (denseLayer->activation == linear) act = "Linear";
+                ss << "Dense Layer: Input Size = " << denseLayer->weights[0].size()
+                << ", Output Size = " << denseLayer->neurons.size()
+                << ", Activation Function = " << act << "\n";
+            } else if (auto normLayer = dynamic_cast<NormalizationLayer*>(layer.get())) { // Check if it's a NormalizationLayer
+                ss << "Normalization Layer: Mean Size = " << normLayer->mean.size()
+                << ", Variance Size = " << normLayer->variance.size() << "\n";
+            } else {
+                ss << "Unknown Layer Type\n";
+            }
+
+            layerCount++;
+        }
+
+        ss << "Total layers: " << layerCount << "\n";
+        ss << "\nInputs:";
+        for (const auto& name : inputNames) {
+            ss << name << ";";
+        }
+        ss << "\nOutputs:";
+        for (const auto& name : outputNames) {
+            ss << name << "";
+        }
+        ss << "\n";
+        return ss.str();
+    }
+
     std::vector<float> processInput(const std::vector<float>& input) {
         std::vector<float> result = input;
         for (auto& layer : layers) {
-            result = layer.feedforward(result);
+            result = layer->feedforward(result);
         }
         return result;
     }
-    // Assuming this method processes only one input set and expects exactly one output
-    bool processDirectInput(const std::vector<double>& inputs, double& output) {
-        std::vector<float> currentOutput(inputs.begin(), inputs.end());
+   
 
-        for (auto& layer : layers) {
-            std::vector<float> nextOutput(layer.neurons.size(), 0.0f);
-
-            for (size_t i = 0; i < layer.neurons.size(); ++i) {
-                float neuronOutput = layer.biases[i];
-                for (size_t j = 0; j < currentOutput.size(); ++j) {
-                    neuronOutput += layer.weights[i][j] * currentOutput[j];
-                }
-                nextOutput[i] = layer.activation(neuronOutput);
-            }
-
-            currentOutput = std::move(nextOutput);
-        }
-
-        // Assumes the final layer has exactly one output
-        if (currentOutput.size() == 1) {
-            output = static_cast<double>(currentOutput[0]);
-            return true;
-        }
-        return false;
-    }
-    std::string toString() const {
-        std::ostringstream ss;
-        for (const auto& layer : layers) {
-            ss << "Layer: Input Size = " << layer.weights[0].size() << ", Output Size = " << layer.neurons.size()
-               << ", Activation Function = " << (layer.activation == relu ? "ReLU" :
-                                                layer.activation == sigmoid ? "Sigmoid" : "Linear") << "\n";
-        }
-        return ss.str();
-    }
 };
 
 #endif // ANN_H

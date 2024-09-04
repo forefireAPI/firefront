@@ -1,67 +1,84 @@
 #include "../src/ANN.h"
 #include <iostream>
 #include <vector>
-#include <random>
+#include <fstream>
+#include <sstream>
 #include <chrono>
-#include <algorithm> 
+#include <cmath>  // For std::pow
 
-int main() {
+int main(int argc, char** argv) {
+    if (argc < 3) {
+        std::cerr << "Usage: " << argv[0] << " <network_file> <data_file> [print_results]\n";
+        return 1;
+    }
+    bool printResults = (argc > 3);  // Check for the optional third argument
+
+
     Network network;
-    network.loadFromFile("mbase.ffann");  // Ensure this path is correct
+    network.loadFromFile(argv[1]);  // Load network configuration from the file
 
     std::cout << "Network Configuration:\n" << network.toString() << std::endl;
 
-    // Constants for testing
-    const size_t numInputs = 10000000;
-    const size_t inputSize = network.layers.front().weights[0].size();
-
-    // Initialize random number generation
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_real_distribution<float> dis(0.0, 1.0);
-
-    // Prepare inputs
-    std::vector<std::vector<float>> inputs(numInputs, std::vector<float>(inputSize));
-    for (auto& inp : inputs) {
-        std::generate(inp.begin(), inp.end(), [&]() { return dis(gen); });
+    std::ifstream file(argv[2]);
+    if (!file.is_open()) {
+        std::cerr << "Failed to open file: " << argv[2] << std::endl;
+        return 1;
     }
 
-    // Prepare to store results
-    std::vector<float> results;
-    results.reserve(numInputs);
+    std::string line;
+    std::getline(file, line);  // Skip header
+
+    std::vector<std::vector<float>> inputs;
+    std::vector<float> expectedOutputs;
+
+    while (std::getline(file, line)) {
+        std::stringstream ss(line);
+        std::string cell;
+        std::vector<float> inputRow;
+        float ros;
+        bool firstColumn = true;
+
+        while (getline(ss, cell, ';')) {
+            if (firstColumn) {
+                ros = std::stof(cell);
+                expectedOutputs.push_back(ros);
+                firstColumn = false;
+            } else {
+                inputRow.push_back(std::stof(cell));
+            }
+        }
+        inputs.push_back(inputRow);
+    }
+    file.close();
+
+    double totalLoss = 0.0;
 
     // Timing the feedforward process
     auto start = std::chrono::high_resolution_clock::now();
 
-    // Process each input through the network
-    for (const auto& input : inputs) {
-        results.push_back(network.processInput(input)[0]);
+    // Process each test input through the network and print the results
+    for (size_t i = 0; i < inputs.size(); ++i) {
+        auto outputs = network.processInput(inputs[i]);
+        if (printResults) {
+            std::cout << "[";
+            for (auto val : inputs[i]) std::cout << val << " ";
+            std::cout << "] result: " << outputs[0] << " observed " << expectedOutputs[i] << std::endl;
+        }
+
+        double loss = std::pow(outputs[0] - expectedOutputs[i], 2);
+        totalLoss += loss;
     }
 
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = end - start;
 
-    // Output timing results
-    std::cout << "Time taken for processing " << numInputs << " inputs: " << elapsed.count() << " seconds\n";
+    // Compute Root Mean Squared Error
+    double rmse = std::sqrt(totalLoss / inputs.size());
 
-    // Specific inputs for verification
-    std::vector<std::vector<float>> testInputs = {
-        {1, 1, 1, 0, 0},
-        {1, 0, 0, 0, 0},
-        {0, 1, 0, 0, 0},
-        {0, 0, 1, 0, 0},
-        {0, 0, 0, 1, 0},
-        {0, 0, 0, 0, 1},
-        {1, 1, 0, 1, 1}
-    };
+    // Output timing and error results
+    std::cout << "Time taken for processing " << inputs.size() << " inputs: " << elapsed.count() << " seconds\n";
+    std::cout << "Total Root Mean Squared Error: " << rmse << std::endl;
 
-    // Process each test input through the network and print the results
-    for (const auto& input : testInputs) {
-        auto outputs = network.processInput(input);
-        std::cout << "[";
-        for (auto i : input) std::cout << i << " ";
-        std::cout << "] result: " << outputs[0] << std::endl;
-    }
 
     return 0;
 }

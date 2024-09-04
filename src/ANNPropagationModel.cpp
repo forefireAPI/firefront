@@ -71,9 +71,14 @@ ANNPropagationModel::ANNPropagationModel(const int & mindex, DataBroker* db)
     std::string annPath = params->getParameter("FFANNPropagationModelPath");
     annNetwork.loadFromFile(annPath.c_str());
     properties = new double[annNetwork.inputNames.size()];
+     std::cout << "Props: ";
+
     for (size_t i = 0; i < annNetwork.inputNames.size(); ++i) {
-        registerProperty(annNetwork.inputNames[i]);
+        
+       size_t ni =   registerProperty(annNetwork.inputNames[i]);
+        std::cout<<ni<<":"<< annNetwork.inputNames[i]<<" ;";
     }
+    std::cout << endl;
     dataBroker->registerPropagationModel(this);
 }
 
@@ -98,20 +103,20 @@ double ANNPropagationModel::getSpeed(double* valueOf) {
     }
 
     std::vector<float> outputs = annNetwork.processInput(inputs);
-    double result = static_cast<double>(std::abs(outputs[0]));
+    double result = static_cast<double>(outputs[0]);
 
     /* Print inputs followed by result
-    std::cout << "Inputs: ";
+    
     for (size_t i = 0; i < inputs.size(); ++i) {
         std::cout << inputs[i];
         if (i != inputs.size() - 1) {
             std::cout << ", ";
         }
     }
-    std::cout << " = " << result << std::endl;
-    */
-
+    std::cout << " = " << outputs[0] << std::endl;*/
     return result < 0 ? 0 : result;
+
+   
 }
 
 }
