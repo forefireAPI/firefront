@@ -26,6 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 #include <vector>
 #include <cmath>
 #include <memory> // For std::unique_ptr
+#include <cstring>
 #include <sstream>
 #include <stdexcept>
 
