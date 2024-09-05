@@ -43,9 +43,9 @@ class RothermelAndrews2018: public PropagationModel {
 	size_t mf_;
 	size_t pp_;
 	size_t h_;
-	size_t mois_ext;
 	size_t st;
 	size_t se;
+	size_t me_;
 
 	/*! result of the model */
 	double getSpeed(double*);
@@ -79,18 +79,18 @@ RothermelAndrews2018::RothermelAndrews2018(const int & mindex, DataBroker* db)
 	/* defining the properties needed for the model */
 	windReductionFactor = params->getDouble("windReductionFactor");
 
-	wv_ = registerProperty("normalWind_ms");
-	slope_ = registerProperty("slope_deg");
+	wv_ = registerProperty("normalWind");
+	slope_ = registerProperty("slope");
 
-	wo_ = registerProperty("fl1h_tac");
-	fd_ = registerProperty("fd_ft");
-	fpsa_ = registerProperty("SAVcar_ftinv");
-	mf_ = registerProperty("mdOnDry1h_r");
-	pp_ = registerProperty("fuelDens_lbft3");
-	h_ = registerProperty("H_BTUlb");
-	mois_ext = registerProperty("mois_ext_r");
-	st = registerProperty("st_r");
-	se = registerProperty("se_r");
+	wo_ = registerProperty("fuel.fl1h_tac");
+	fd_ = registerProperty("fuel.fd_ft");
+	fpsa_ = registerProperty("fuel.SAVcar_ftinv");
+	// mf_ = registerProperty("fuel.mdOnDry1h_r"); // is an environmental property that do not depends on fuel? = 0.06
+	// pp_ = registerProperty("fuel.fuelDens_lbft3"); // is an environmental property that do not depends on fuel? = 32
+	// h_ = registerProperty("fuel.H_BTUlb"); // is an environmental property that do not depends on fuel? = 8000
+	me_ = registerProperty("fuel.Dme_pc");
+	// st = registerProperty("fuel.st_r");
+	// se = registerProperty("fuel.se_r");
 	
 	/* allocating the vector for the values of these properties */
 	if ( numProperties > 0 ) properties =  new double[numProperties];
@@ -116,26 +116,34 @@ string RothermelAndrews2018::getName(){
 
 double RothermelAndrews2018::getSpeed(double* valueOf){
 
-	double mois_ext = 0.3;
-	double st = 0.0555;
-	double se = 0.01;
-	double Pi = 3.14159265358;
-	double ms2ftmin = 196.85039;
-	double ftmin2ms = 0.00508;
+	// Constants
+	double msToftmin = 196.85039;
+	double ftminToms = 0.00508;
+	double lbft2Tokgm2 = 4.88243;
+	double tacTokgm2 = 0.224;
+	double pcTor = 0.01;
 
-	double slope = Pi * valueOf[slope_] / 180; // convert degrees to radians
-	double wv = ms2ftmin * valueOf[wv_]; // convert m/s to feat/min
-	double pp = valueOf[pp_];
-	double mf = valueOf[mf_];
+	// Fuel properties
+	double tan_slope = valueOf[slope_];
+	double wv = msToftmin * valueOf[wv_]; // convert m/s to feat/min
+	double me = valueOf[me_] * pcTor; // convert percentage to ratio
+	// double pp = valueOf[pp_];
+	// double mf = valueOf[mf_];
 	double fpsa = valueOf[fpsa_];
 	double fd = valueOf[fd_];
-	double wo = valueOf[wo_];
-	double h = valueOf[h_];
+	double wo = valueOf[wo_] * tacTokgm2 / lbft2Tokgm2; // convert US short tons per acre to pounds per square foot
+	// double h = valueOf[h_];
+
+	// Fuel properties that are not in the fuel table
+	double st = 0.0555;
+	double se = 0.01;
+	double mf = 0.06;
+	double pp = 32;
+	double h = 8000;
 
 	if (wv < 0) wv = 0;
 
-	if(wv < 0){
-		double tan_slope = tan(slope);
+	if(wo > 0){
 		double Beta_op = 3.348 * pow(fpsa, -0.8189);  // Optimum packing ratio
 		double ODBD = wo / fd; // Ovendry bulk density
         double Beta = ODBD / pp; // Packing ratio
@@ -143,7 +151,7 @@ double RothermelAndrews2018::getSpeed(double* valueOf){
         double A =  133.0 / pow(fpsa, 0.7913); // updated A
         double T_max = pow(fpsa,1.5) * pow(495.0 + 0.0594 * pow(fpsa, 1.5),-1.0); // Maximum reaction velocity
 		double T = T_max * pow((Beta / Beta_op), A) * exp(A * (1 - Beta / Beta_op));  // Optimum reaction velocity
-        double NM = 1. - 2.59 * (mf / mois_ext) + 5.11 * pow(mf / mois_ext, 2.) - 3.52 * pow(mf / mois_ext,3.);  // Moisture damping coeff.
+        double NM = 1. - 2.59 * (mf / me) + 5.11 * pow(mf / me, 2.) - 3.52 * pow(mf / me,3.);  // Moisture damping coeff.
         double NS = 0.174 * pow(se, -0.19);  // Mineral damping coefficient
         double RI = T * WN * h * NM * NS;
         double PFR = pow(192.0 + 0.2595 * fpsa, -1) * exp((0.792 + 0.681 * pow(fpsa, 0.5)) * (Beta + 0.1));  // Propogating flux ratio
@@ -165,7 +173,7 @@ double RothermelAndrews2018::getSpeed(double* valueOf){
 		if(R <= 0.0) {
 			return 0;
 		}else{
-			return R * ftmin2ms;
+			return R * ftminToms;
 		}
 	}else{
 		return 0;
