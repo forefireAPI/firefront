@@ -85,6 +85,9 @@ RothermelAndrews2018::RothermelAndrews2018(const int & mindex, DataBroker* db)
 	mf = registerProperty("mdOnDry1h_r");
 	pp = registerProperty("fuelDens_lbft3");
 	h = registerProperty("H_BTUlb");
+	mois_ext = registerProperty("mois_ext_r");
+	st = registerProperty("st_r");
+	se = registerProperty("se_r");
 	
 	/* allocating the vector for the values of these properties */
 	if ( numProperties > 0 ) properties =  new double[numProperties];
