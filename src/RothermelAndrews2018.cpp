@@ -43,8 +43,8 @@ class RothermelAndrews2018: public PropagationModel {
 	size_t mf_;
 	size_t pp_;
 	size_t h_;
-	size_t st;
-	size_t se;
+	size_t st_;
+	size_t se_;
 	size_t me_;
 
 	/*! result of the model */
@@ -85,12 +85,12 @@ RothermelAndrews2018::RothermelAndrews2018(const int & mindex, DataBroker* db)
 	wo_ = registerProperty("fuel.fl1h_tac");
 	fd_ = registerProperty("fuel.fd_ft");
 	fpsa_ = registerProperty("fuel.SAVcar_ftinv");
-	// mf_ = registerProperty("fuel.mdOnDry1h_r"); // is an environmental property that do not depends on fuel? = 0.06
-	// pp_ = registerProperty("fuel.fuelDens_lbft3"); // is an environmental property that do not depends on fuel? = 32
-	// h_ = registerProperty("fuel.H_BTUlb"); // is an environmental property that do not depends on fuel? = 8000
+	mf_ = registerProperty("fuel.mdOnDry1h_r");
+	pp_ = registerProperty("fuel.fuelDens_lbft3");
+	h_ = registerProperty("fuel.H_BTUlb");
 	me_ = registerProperty("fuel.Dme_pc");
-	// st = registerProperty("fuel.st_r");
-	// se = registerProperty("fuel.se_r");
+	st_ = registerProperty("fuel.totMineral_r");
+	se_ = registerProperty("fuel.effectMineral_r");
 	
 	/* allocating the vector for the values of these properties */
 	if ( numProperties > 0 ) properties =  new double[numProperties];
@@ -127,19 +127,14 @@ double RothermelAndrews2018::getSpeed(double* valueOf){
 	double tan_slope = valueOf[slope_];
 	double wv = msToftmin * valueOf[wv_]; // convert m/s to feat/min
 	double me = valueOf[me_] * pcTor; // convert percentage to ratio
-	// double pp = valueOf[pp_];
-	// double mf = valueOf[mf_];
+	double pp = valueOf[pp_];
+	double mf = valueOf[mf_];
 	double fpsa = valueOf[fpsa_];
 	double fd = valueOf[fd_];
 	double wo = valueOf[wo_] * tacTokgm2 / lbft2Tokgm2; // convert US short tons per acre to pounds per square foot
-	// double h = valueOf[h_];
-
-	// Fuel properties that are not in the fuel table
-	double st = 0.0555;
-	double se = 0.01;
-	double mf = 0.06;
-	double pp = 32;
-	double h = 8000;
+	double h = valueOf[h_];
+	double st = valueOf[st_];
+	double se = valueOf[se_];
 
 	if (wv < 0) wv = 0;
 
