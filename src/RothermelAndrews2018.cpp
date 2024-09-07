@@ -27,6 +27,16 @@ using namespace std;
 namespace libforefire {
 
 class RothermelAndrews2018: public PropagationModel {
+	
+	// ROS model as defined in Table 5 and Table 6 in Andrews, 2018.
+    // @book{Andrews_2018, 
+    //     title={The Rothermel surface fire spread model and associated developments: A comprehensive explanation}, 
+    //     url={http://dx.doi.org/10.2737/RMRS-GTR-371}, 
+    //     DOI={10.2737/rmrs-gtr-371}, 
+    //     institution={U.S. Department of Agriculture, Forest Service, Rocky Mountain Research Station}, 
+    //     author={Andrews, Patricia L.}, 
+    //     year={2018}
+    //     }
 
 	/*! name the model */
 	static const string name;
