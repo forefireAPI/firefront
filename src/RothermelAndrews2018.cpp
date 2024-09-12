@@ -160,7 +160,7 @@ double RothermelAndrews2018::getSpeed(double* Z){
 
 		double SC = 0;
 		if (Z[slope] >0){ // Rothermel only for upslope, assuming no slope if negative slope is encountered
-			5.275*(pow(Beta, -0.3))*pow(Z[slope], 2);
+			SC = 5.275*(pow(Beta, -0.3))*pow(Z[slope], 2);
 		}
         // Heat sink
         double EHN = exp(-138. / fpsa);  // Effective Heating Number = f(surface are volume ratio)
