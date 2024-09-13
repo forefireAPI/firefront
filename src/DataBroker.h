@@ -119,6 +119,10 @@ class DataBroker {
 		pgM["frontDepth"] = &getFrontDepth;
 		pgM["frontCurvature"] = &getFrontCurvature;
 		pgM["frontFastestInSection"] = &getFrontFastestInSection;
+		pgM["nodeLocationX"] = &getFirenodeLocX;
+		pgM["nodeLocationY"] = &getFirenodeLocY;
+		pgM["nodeID"] = &getFirenodeID,
+		pgM["nodeTime"] = &getFirenodeTime;
 		return pgM;
 	}
 	static const propGetterMap propPropertiesGetters; /*!< map to predefined functors to compute properties */
@@ -167,7 +171,15 @@ class DataBroker {
 	/*! \brief predefined function for getting the altitude for given firenode */
 	static int getAltitude(FireNode*, PropagationModel*, int);
 
-	static int getArrival_time_gradient(FireNode*, PropagationModel*, int);
+    static int getFirenodeLocX(FireNode *fn, PropagationModel *model, int keynum);
+
+    static int getFirenodeLocY(FireNode *fn, PropagationModel *model, int keynum);
+
+    static int getFirenodeID(FireNode *fn, PropagationModel *model, int keynum);
+
+    static int getFirenodeTime(FireNode *fn, PropagationModel *model, int keynum);
+
+    static int getArrival_time_gradient(FireNode*, PropagationModel*, int);
 	/*! \brief predefined function for getting the slope for given firenode */
 	static int getSlope(FireNode*, PropagationModel*, int);
 	/*! \brief predefined function for getting the longitudinal wind for given firenode */

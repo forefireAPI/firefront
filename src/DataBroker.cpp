@@ -760,6 +760,27 @@ int DataBroker::getAltitude(FireNode* fn, PropagationModel* model, int keynum) {
 	(model->properties)[keynum] = altitudeLayer->getValueAt(fn);
 	return 1;
 }
+
+int DataBroker::getFirenodeLocX(FireNode* fn, PropagationModel* model, int keynum) {
+	(model->properties)[keynum] = fn->getLoc().getX();
+	return 1;
+}
+
+int DataBroker::getFirenodeLocY(FireNode* fn, PropagationModel* model, int keynum) {
+	(model->properties)[keynum] = fn->getLoc().getY();
+	return 1;
+}
+
+int DataBroker::getFirenodeID(FireNode* fn, PropagationModel* model, int keynum) {
+	(model->properties)[keynum] = fn->getID();
+	return 1;
+}
+
+int DataBroker::getFirenodeTime(FireNode* fn, PropagationModel* model, int keynum) {
+	(model->properties)[keynum] = fn->getTime();
+	return 1;
+}
+
 int DataBroker::getArrival_time_gradient(FireNode* fn, PropagationModel* model, int keynum) {
 	(model->properties)[keynum] = forcedArrivalTimeLayer->getValueAt(fn);
 	return 1;
