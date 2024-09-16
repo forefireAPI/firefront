@@ -21,7 +21,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 
 #include "FluxModel.h"
 #include "FireDomain.h"
-
+#include "FromObsModels.h"
 using namespace std;
 
 namespace libforefire {
@@ -61,70 +61,6 @@ public:
     
 };
 
-struct SensibleheatFlux{
-    double flaming;
-    double smoldering; 
-
-    SensibleheatFlux(double f, double s) : flaming(f), smoldering(s) {}
-};
-
-
-
-FluxModel* getHeatFluxFromObsModel(const int& = 0, DataBroker* = 0);
-    
-/*! \compute heat flux from local input */
-SensibleheatFlux computeHeatFLuxFromBmap(const double&, const double&, const double&, const double&, const double&, const double&, const double&);
-
-
-/* name of the model */
-const string HeatFluxFromObsModel::name = "heatFluxFromObs";
-
-/* registration */
-int HeatFluxFromObsModel::isInitialized =
-        FireDomain::registerFluxModelInstantiator(name, getHeatFluxFromObsModel );
-
-/* instantiation */
-FluxModel* getHeatFluxFromObsModel(const int& index, DataBroker* db) {
-	return new HeatFluxFromObsModel(index, db);
-}
-
-/* constructor */
-HeatFluxFromObsModel::HeatFluxFromObsModel(
-		const int & mindex, DataBroker* db) : FluxModel(mindex, db) {
-
-	/* defining the properties needed for the model */
-	evaporationTime_data = registerProperty("FromObs_evaporationTime");
-    residenceTime_data = registerProperty("FromObs_residenceTime");
-	burningTime_data = registerProperty("FromObs_burningTime");
-	nominalHeatFlux_f_data = registerProperty("FromObs_NominalHeatFlux_flaming");
-	nominalHeatFlux_s_data = registerProperty("FromObs_NominalHeatFlux_smoldering");
-
-    /* allocating the vector for the values of these properties */
-	if ( numProperties > 0 ) properties =  new double[numProperties];
-
-	/* registering the model in the data broker */
-	dataBroker->registerFluxModel(this);
-
-	/* Definition of the coefficients */
-	/*nominalHeatFlux = 150000.;
-	if ( params->isValued("nominalHeatFlux") )
-		nominalHeatFlux = params->getDouble("nominalHeatFlux");*/
-
-}
-
-/* destructor (shoudn't be modified) */
-HeatFluxFromObsModel::~HeatFluxFromObsModel() {
-	if ( properties != 0 ) delete properties;
-}
-
-/* accessor to the name of the model */
-string HeatFluxFromObsModel::getName(){
-	return name;
-}
-
-/* ****************** */
-/* Model for the flux */
-/* ****************** */
 
 SensibleheatFlux  computeHeatFLuxFromBmap(const double& burningTime, const double& residenceTime, const double&  nominalHeatFlux_f, const double&  nominalHeatFlux_s, 
 		 const double& bt, const double& et, const double& at){
@@ -184,6 +120,56 @@ SensibleheatFlux  computeHeatFLuxFromBmap(const double& burningTime, const doubl
     //cout << "merde" << endl;
 
 }
+
+
+FluxModel* getHeatFluxFromObsModel(const int& = 0, DataBroker* = 0);
+
+/* name of the model */
+const string HeatFluxFromObsModel::name = "heatFluxFromObs";
+
+/* registration */
+int HeatFluxFromObsModel::isInitialized =
+        FireDomain::registerFluxModelInstantiator(name, getHeatFluxFromObsModel );
+
+/* instantiation */
+FluxModel* getHeatFluxFromObsModel(const int& index, DataBroker* db) {
+	return new HeatFluxFromObsModel(index, db);
+}
+
+/* constructor */
+HeatFluxFromObsModel::HeatFluxFromObsModel(
+		const int & mindex, DataBroker* db) : FluxModel(mindex, db) {
+
+	/* defining the properties needed for the model */
+	evaporationTime_data = registerProperty("FromObs_evaporationTime");
+    residenceTime_data = registerProperty("FromObs_residenceTime");
+	burningTime_data = registerProperty("FromObs_burningTime");
+	nominalHeatFlux_f_data = registerProperty("FromObs_NominalHeatFlux_flaming");
+	nominalHeatFlux_s_data = registerProperty("FromObs_NominalHeatFlux_smoldering");
+
+    /* allocating the vector for the values of these properties */
+	if ( numProperties > 0 ) properties =  new double[numProperties];
+
+	/* registering the model in the data broker */
+	dataBroker->registerFluxModel(this);
+
+	/* Definition of the coefficients */
+	/*nominalHeatFlux = 150000.;
+	if ( params->isValued("nominalHeatFlux") )
+		nominalHeatFlux = params->getDouble("nominalHeatFlux");*/
+
+}
+
+/* destructor (shoudn't be modified) */
+HeatFluxFromObsModel::~HeatFluxFromObsModel() {
+	if ( properties != 0 ) delete properties;
+}
+
+/* accessor to the name of the model */
+string HeatFluxFromObsModel::getName(){
+	return name;
+}
+
 
 
 double HeatFluxFromObsModel::getValue(double* valueOf

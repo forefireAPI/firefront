@@ -32,7 +32,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 US
 
 // Activation functions
 inline float sigmoid(float x) {
-    
     return 1.0f / (1.0f + std::exp(-x));
 }
 
@@ -44,10 +43,16 @@ inline float linear(float x) {
     return x;
 }
 
+// Define the tanh activation function
+inline float tanh_activation(float x) {
+    return std::tanh(x);
+}
+
 // Activation function lookup
 inline float (*getActivationFunction(const std::string& name))(float) {
     if (name == "RELU") return relu;
     if (name == "SIGM") return sigmoid;
+    if (name == "TANH") return tanh_activation; // Added tanh
     if (name == "LINE") return linear;
     return nullptr;
 }
@@ -138,10 +143,6 @@ struct Network {
         if (std::string(header) != "FFANN001") {
             throw std::runtime_error("Invalid file format.");
         }
-
-       // int inputSize = 0;  // This will be set based on the first layer's weight matrix dimensions
-        //std::vector<std::unique_ptr<BaseLayer>> layers;  // Vector to store layers polymorphically
-
         for (int i = 0; i < numLayers; ++i) {
             char activation[5] = {0};
             int width, height;
@@ -171,7 +172,6 @@ struct Network {
                 layer->loadWeightsAndBiases(weightData, biasData);
                 layers.push_back(std::unique_ptr<BaseLayer>(layer));
                 std::cout << "adding dense "<<std::endl;
-               // inputSize = height; // Update inputSize for next layer
             }
         }
 
@@ -207,6 +207,7 @@ struct Network {
                 if (denseLayer->activation == relu) act = "ReLU";
                 if (denseLayer->activation == sigmoid) act = "Sigmoid";
                 if (denseLayer->activation == linear) act = "Linear";
+                if (denseLayer->activation == tanh_activation) act = "TanH";
                 ss << "Dense Layer: Input Size = " << denseLayer->weights[0].size()
                 << ", Output Size = " << denseLayer->neurons.size()
                 << ", Activation Function = " << act << "\n";
