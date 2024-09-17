@@ -122,6 +122,7 @@ class DataBroker {
 		pgM["nodeLocationX"] = &getFirenodeLocX;
 		pgM["nodeLocationY"] = &getFirenodeLocY;
 		pgM["nodeID"] = &getFirenodeID,
+		pgM["nodeState"] = &getFirenodeState,
 		pgM["nodeTime"] = &getFirenodeTime;
 		return pgM;
 	}
@@ -178,6 +179,7 @@ class DataBroker {
     static int getFirenodeID(FireNode *fn, PropagationModel *model, int keynum);
 
     static int getFirenodeTime(FireNode *fn, PropagationModel *model, int keynum);
+    static int getFirenodeState(FireNode *fn, PropagationModel *model, int keynum);
 
     static int getArrival_time_gradient(FireNode*, PropagationModel*, int);
 	/*! \brief predefined function for getting the slope for given firenode */

@@ -780,6 +780,12 @@ int DataBroker::getFirenodeTime(FireNode* fn, PropagationModel* model, int keynu
 	(model->properties)[keynum] = fn->getTime();
 	return 1;
 }
+int DataBroker::getFirenodeState(FireNode* fn, PropagationModel* model, int keynum) {
+	(model->properties)[keynum] = fn->getState();
+	return 1;
+}
+
+
 
 int DataBroker::getArrival_time_gradient(FireNode* fn, PropagationModel* model, int keynum) {
 	(model->properties)[keynum] = forcedArrivalTimeLayer->getValueAt(fn);
