@@ -101,7 +101,7 @@ string HeatFluxBasicModel::getName(){
 
 /* ****************** */
 /* Model for the flux */
-/* ****************** */
+/* ***	*************** */
 
 double HeatFluxBasicModel::getValue(double* valueOf
 		, const double& bt, const double& et, const double& at){

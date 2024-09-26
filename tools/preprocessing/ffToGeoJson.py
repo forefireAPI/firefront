@@ -773,6 +773,8 @@ def generate_indexed_png_and_legend(legend_file_path, tif_file_path, output_inde
 
     # Find unique values in the TIFF data
     unique_values = np.unique(tif_data)
+    if len(unique_values) < 2:
+        print("WARNING ::: Found ",len(unique_values), " in fuel data")
     
     # Filter color_palette and class_names to include only unique values
     filtered_color_palette = {key: color_palette[key] for key in unique_values if key in color_palette}
@@ -799,7 +801,8 @@ def generate_indexed_png_and_legend(legend_file_path, tif_file_path, output_inde
     ax.set_xlim(0, 4)  # Adjust limits to prevent clipping
     ax.set_ylim(0, len(all_labels))
     ax.set_aspect('auto')
-    plt.savefig(output_legend_png_path, transparent=True)
+    plt.tight_layout()
+    plt.savefig(output_legend_png_path, transparent=True,bbox_inches='tight')
 
  
 

@@ -126,7 +126,7 @@ def makeSubset():
     data_xarray = dirHDRtoXarray(dirin, hdrin)
     print("data loaded")
     # Sélectionner le sous-ensemble
-    subset = data_xarray.sel(latitude=slice(30, 60.02), longitude=slice(-15, 35))
+    subset = data_xarray.sel(latitude=slice(28, 60.02), longitude=slice(-15, 40))
     #subset.plot()
     # Augmenter la résolution
     # Le facteur 4 signifie que chaque dimension sera 4 fois plus grande
@@ -159,3 +159,4 @@ def makeSubset():
     # Sauvegarder les données
     xarrayToDirHdr(resampled_xarray, dirout, hdrout)
 
+makeSubset()
