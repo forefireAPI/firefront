@@ -4670,7 +4670,8 @@ void FireDomain::loadWindDataInBinary(double refTime){
 
 
 	void FireDomain::loadArrivalTimeNC(string fname){
-	 
+			if (getDomainID()!=0) return;
+
 				try
 						{
 								NcFile dataFile(fname.c_str(), NcFile::read);
@@ -4681,7 +4682,7 @@ void FireDomain::loadWindDataInBinary(double refTime){
 								size_t   FSPACE_DIM2 		= atime.getDim(0).getSize();	// 	Nb De colonnes au total
 
 								if((globalBMapSizeX!=FSPACE_DIM1)||(globalBMapSizeY!=FSPACE_DIM2)){
-													cout<<"ERROR: number of cells of the burning matrices ("
+													cout<<getDomainID()<<":ERROR: number of cells of the burning matrices ("
 													<<globalBMapSizeX<<"x"<<globalBMapSizeY<<")"
 													<<" not compatible with read data "
 													<<FSPACE_DIM1<<"x"<<FSPACE_DIM2<<endl;
@@ -4728,8 +4729,7 @@ void FireDomain::loadWindDataInBinary(double refTime){
 									}
 								}
 								dataFile.close();
-
-							 
+								cout<<getDomainID()<<": Read "<< fname<<"("<<globalBMapSizeX<<"x"<<globalBMapSizeY<<")" <<FSPACE_DIM1<<"x"<<FSPACE_DIM2<<endl;
 								delete[] allDataAtime;
 
 

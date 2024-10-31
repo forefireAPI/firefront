@@ -840,7 +840,7 @@ int Command::plotSimulation(const std::string& arg, size_t& numTabs) {
 int Command::loadSimulation(const std::string& arg, size_t& numTabs) {
 	if (getDomain() == nullptr) return normal;
 	string ncfilePath = getString("arrival_time_of_front",arg);
-	cout << "loading "<<ncfilePath<<endl;
+	cout<<getDomain()->getDomainID()<<": " << "loading "<<ncfilePath<<endl;
  	getDomain()->loadArrivalTimeNC(ncfilePath); // Default save operation if no arguments provided
 	return normal;
 }
