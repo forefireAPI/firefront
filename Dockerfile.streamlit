@@ -1,0 +1,58 @@
+FROM ubuntu:22.04 AS builder
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    build-essential \
+    libnetcdf-c++4-dev \
+    cmake \
+    python3 \
+    python3-pip \
+    python3-dev \
+    git && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /forefire
+ENV FOREFIREHOME=/forefire
+
+# Build ForeFire C++ library
+COPY CMakeLists.txt cmake-build.sh LICENSE ./
+COPY src/ ./src/
+COPY app/ ./app/
+COPY tools/runANN/ ./tools/runANN/
+RUN sh cmake-build.sh
+
+# Install Python bindings
+COPY bindings/ ./bindings/
+RUN pip3 install --no-cache-dir ./bindings/python
+
+# --- Runtime stage (smaller image) ---
+FROM ubuntu:22.04
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    libnetcdf-c++4-1 \
+    curl \
+    python3 \
+    python3-pip && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy built artifacts from builder
+COPY --from=builder /forefire/bin/forefire /usr/local/bin/
+COPY --from=builder /forefire/lib/ /usr/local/lib/
+COPY --from=builder /usr/local/lib/python3.10/dist-packages /usr/local/lib/python3.10/dist-packages
+ENV LD_LIBRARY_PATH=/usr/local/lib
+ENV FOREFIREHOME=/forefire
+WORKDIR /forefire
+
+# Install Streamlit (cached unless requirements change)
+RUN pip3 install --no-cache-dir streamlit folium
+
+# Copy the app (changes most often — last layer)
+COPY tests/python/run_sim.py ./run_sim.py
+COPY tests/python/streamlit_app.py ./app.py
+
+EXPOSE 8501
+
+HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health || exit 1
+
+ENTRYPOINT ["bash", "-c", "streamlit run app.py --server.port=8501 --server.address=0.0.0.0 --browser.gatherUsageStats=false 2>/dev/null"]
