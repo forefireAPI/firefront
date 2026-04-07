@@ -14,8 +14,12 @@ import math
 import numpy as np
 import json
 
-import folium
 import pyforefire as pyff
+
+try:
+    import folium
+except ImportError:
+    folium = None
 
 # --- Configuration ---
 IGNITION_LAT = 44.58836445769429
@@ -193,34 +197,35 @@ if features:
         json.dump(geojson, f, indent=2)
     print(f"\nGeoJSON saved to fire_prediction.geojson")
 
-# Build CartoDB HTML map
-m = folium.Map(
-    location=[IGNITION_LAT, IGNITION_LON],
-    zoom_start=13,
-    tiles="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-    attr='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>',
-)
+# Build CartoDB HTML map (only if folium is available)
+if folium is not None:
+    m = folium.Map(
+        location=[IGNITION_LAT, IGNITION_LON],
+        zoom_start=13,
+        tiles="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+        attr='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>',
+    )
 
-folium.Marker(
-    [IGNITION_LAT, IGNITION_LON],
-    popup="Ignition point",
-    icon=folium.Icon(color="red", icon="fire", prefix="fa"),
-).add_to(m)
-
-colors = {"30min": "orange", "2h": "red"}
-for feat in features:
-    label = feat["properties"]["label"]
-    coords = feat["geometry"]["coordinates"][0]
-    # folium expects (lat, lon)
-    latlngs = [[lat, lon] for lon, lat in coords]
-    folium.Polygon(
-        locations=latlngs,
-        color=colors.get(label, "red"),
-        fill=True,
-        fill_opacity=0.3,
-        popup=f"Fire perimeter at {label}",
+    folium.Marker(
+        [IGNITION_LAT, IGNITION_LON],
+        popup="Ignition point",
+        icon=folium.Icon(color="red", icon="fire", prefix="fa"),
     ).add_to(m)
 
-map_file = "fire_prediction.html"
-m.save(map_file)
-print(f"Map saved to {map_file}")
+    colors = {"30min": "orange", "2h": "red"}
+    for feat in features:
+        label = feat["properties"]["label"]
+        coords = feat["geometry"]["coordinates"][0]
+        # folium expects (lat, lon)
+        latlngs = [[lat, lon] for lon, lat in coords]
+        folium.Polygon(
+            locations=latlngs,
+            color=colors.get(label, "red"),
+            fill=True,
+            fill_opacity=0.3,
+            popup=f"Fire perimeter at {label}",
+        ).add_to(m)
+
+    map_file = "fire_prediction.html"
+    m.save(map_file)
+    print(f"Map saved to {map_file}")

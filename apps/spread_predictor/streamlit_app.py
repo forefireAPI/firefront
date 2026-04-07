@@ -18,8 +18,8 @@ import streamlit as st
 st.set_page_config(page_title="ForeFire Spread Predictor", layout="wide")
 st.title("ForeFire Fire Spread Predictor")
 
-REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
-TEMPLATE_SCRIPT = os.path.join(REPO_ROOT, "tests", "python", "predict_spread.py")
+APP_DIR = os.path.dirname(os.path.abspath(__file__))
+TEMPLATE_SCRIPT = os.path.join(APP_DIR, "predict_spread.py")
 
 # --- Sidebar controls ---
 with st.sidebar.form("simulation_form"):
@@ -71,11 +71,11 @@ if submitted:
                 cmd = [
                     "docker", "run", "--rm",
                     "-v", f"{output_dir}:/output",
-                    "-v", f"{script_path}:/forefire/tests/python/predict_spread.py",
+                    "-v", f"{script_path}:/work/predict_spread.py",
+                    "-w", "/work",
                     "forefire",
                     "bash", "-c",
-                    "cd tests/python && python3 predict_spread.py && "
-                    "cp fire_prediction.html fire_prediction.geojson /output/",
+                    "python3 predict_spread.py && cp fire_prediction.geojson /output/",
                 ]
                 result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
 

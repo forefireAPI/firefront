@@ -14,7 +14,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies for testing
-RUN pip3 install --no-cache-dir lxml xarray netCDF4 folium
+RUN pip3 install --no-cache-dir lxml xarray netCDF4
 
 WORKDIR /forefire
 ENV FOREFIREHOME=/forefire
