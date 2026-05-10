@@ -41,7 +41,7 @@ fi
 
 # Run additional tests (e.g., runff and runANN)
 run_test "runff" "runff"
-run_test "runANN" "runff"  # adjust the directory if runANN is in a different location
+run_test "runANN" "runANN"
 
 # Final summary
 echo "--------------------------"
