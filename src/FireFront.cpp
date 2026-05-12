@@ -314,7 +314,7 @@ void FireFront::splineInterp(FireNode* ifn, FFVector& nml, double& kappa){
 		d2x = new double[nspl];
 		if ( d2y!=0 ) delete [] d2y;
 		d2y = new double[nspl];
-		if ( u!=0 ) delete [] z;
+		if ( u!=0 ) delete [] u;
 		u = new double[nspl];
 		if ( z!=0 ) delete [] z;
 		z = new double[nspl];
