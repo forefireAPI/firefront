@@ -19,7 +19,6 @@ maintainers = [
 ]
 keywords = ["ForeFire", "forefire", "pyforefire", "wildfire", "fire", "simulation", "wildfire-simulation"]
 classifiers = [
-  "Development Status :: 5 - Production/Stable",
   "Intended Audience :: Science/Research",
   "Programming Language :: C++",
   "Programming Language :: Python :: 3",
