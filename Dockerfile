@@ -23,20 +23,25 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 WORKDIR /build
 
 # LICENSE is required by CPack at configure time (CMakeLists includes CPack).
-COPY --link CMakeLists.txt LICENSE ./
+COPY --link CMakeLists.txt LICENSE pyproject.toml ./
 COPY --link app/ ./app/
 # tools/ is needed at configure time: CMakeLists.txt invokes
 # tools/check_all_lfs.bash and references tools/runANN/ANNTest.cpp.
 COPY --link tools/ ./tools/
 COPY --link src/ ./src/
 
-RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
+# -march=native is off: this image is published and has to run on CPUs other
+# than the builder's.
+RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DFOREFIRE_NATIVE_ARCH=OFF \
  && cmake --build build -j"$(nproc)"
 
 COPY --link bindings/ ./bindings/
 
+# The wheel is built from the repository root, where pyproject.toml drives
+# CMake through scikit-build-core. It carries both the pyforefire module and
+# its own copy of the `forefire` interpreter.
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip3 wheel --no-deps --wheel-dir /wheels ./bindings/python
+    pip3 wheel --no-deps --wheel-dir /wheels .
 
 
 # Stage 2: runtime
@@ -65,7 +70,8 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     pip3 install --break-system-packages \
         lxml xarray netCDF4
 
-COPY --from=builder --link /build/bin/forefire        /usr/local/bin/forefire
+# /usr/local/bin/forefire is not copied from the builder: installing the wheel
+# below provides it, and one interpreter binary beats two that can drift.
 COPY --from=builder --link /build/lib/libforefireL.so /usr/local/lib/
 COPY --from=builder --link /wheels/                   /tmp/wheels/
 
