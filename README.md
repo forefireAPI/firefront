@@ -66,12 +66,12 @@ The easiest way to get started is often using Docker and the interactive console
     docker build . -t forefire:latest
     ```
 
-5. Run the container interactively
+3. Run the container interactively
 
     ```bash
     docker run -it --rm -p 8000:8000 --name ff_interactive forefire
     ```
-6. Inside the container navigate to test directory and launch the forefire console:
+4. Inside the container navigate to test directory and launch the forefire console:
     ```bash
     cd tests/runff
 
@@ -80,9 +80,10 @@ The easiest way to get started is often using Docker and the interactive console
 
     ```
 
-67   ```bash
+5. Launch the HTTP server from the console:
+    ```bash
     listenHTTP[]
-    ````
+    ```
     the output should be :
 
     ```bash
@@ -91,15 +92,15 @@ The easiest way to get started is often using Docker and the interactive console
 
     This server provides a graphical user interface that you can access on your browser at http://localhost:8000/
 
-7. Run your first simulation
+6. Run your first simulation
     
     In ForeFire (web or on console are equivalent), running a simulation and viewing the result are separate commands. The UI guides you through this process.
     - **Step 1: Run the simulation script.** In HTTP Interface click the **`include`** button or type `include[real_case.ff]` in command input box, and click the **`Send`** button. 
-    ou can also run the same command directly in the interactive console if you prefer py typing `include[real_case.ff]` and press enter.
-    The scripts executes a simulation by loading data, starting fires, applying wind triggers, and running the simulation for a specified duration.
+    You can also run the same command directly in the interactive console if you prefer, by typing `include[real_case.ff]` and pressing enter.
+    The script executes a simulation by loading data, starting fires, applying wind triggers, and running the simulation for a specified duration.
 
     - **Step 2: View the result.** After the command finishes, click the **`Refresh Map`** button to display the simulation results onto the web map.
-    - **Step 3 (optional): iterate more.** you can continue the simulation, command `include[real_case.ff]` the **`Refresh Map`** button to display the simulation results onto the web map.
+    - **Step 3 (optional): iterate more.** You can continue the simulation by running the `include[real_case.ff]` command again and clicking the **`Refresh Map`** button to display the updated simulation results onto the web map.
     
     ![ForeFire Web UI showing a simulation example](docs/source/_static/images/gui_real_case_ff.jpg)
     
