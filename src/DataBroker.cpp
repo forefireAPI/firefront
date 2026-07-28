@@ -721,12 +721,11 @@ namespace libforefire
 		// Iterate over regular layers and add their names.
 		for (const auto &entry : layersMap)
 		{
-
-			names.push_back(entry.first);
+				names.push_back(entry.first);
 		}
 
 		// Iterate over flux layers and add their names.
-
+		
 		return names;
 	}
 
@@ -768,21 +767,7 @@ namespace libforefire
 
 		return 0;
 	}
-	void DataBroker::computeActiveSurfacesFlux(const double &t)
-	{
-		// Scanning the scalar layers
-		map<string, FluxLayer<double> *>::iterator iter = fluxLayersMap.begin();
-		int numFluxModelsMax = 10;
-		for (; iter != fluxLayersMap.end(); ++iter)
-		{
 
-			FluxLayer<double> *flayer = iter->second;
-			int modelCount[numFluxModelsMax];
-			for (int i = 0; i < numFluxModelsMax; i++)
-				modelCount[i] = 0;
-			flayer->computeActiveMatrix(t, modelCount);
-		}
-	}
 
 	/* *************************************** */
 	/* Property getters for propagation models */

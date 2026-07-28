@@ -1663,17 +1663,14 @@ namespace libforefire
                                 }
                             }else{
                                 *currentSession.outStream << kmlStream.str() << std::endl;
-                            }
-                           
+                            }  
                         }
-
-
-
                     }
-                }
+                }   
                 // --------------------------------------------------------------
                 // ELSE: original logic for other parameters / file extensions
                 // --------------------------------------------------------------
+                
                 else
                 {
                     // Standard approach: fetch single matrix for the requested "parameter"
@@ -1865,7 +1862,6 @@ namespace libforefire
 
         // 'modelName' is optional (used for flux layers)
         std::string modelName = "";
-        cout << "Adding layer: " << layerName << " of type: " << layerType << "Model: " << modelName << " ARG "<<arg<<endl;
         if (argMap.find("modelName") != argMap.end())
             modelName = argMap["modelName"];
 
@@ -2193,8 +2189,7 @@ namespace libforefire
                 cout << "Error: spatialIncrement must be greater than 0." << endl;
                 valid = false;
             }
-            if (!valid) return error;
-            
+            if (!valid) return error;            
             FireDomain* domain = getDomain();
             if (domain != nullptr)
             {
@@ -2215,6 +2210,206 @@ namespace libforefire
             }
         }
         return error;
+    }
+
+    int Command::emit(const string &arg, size_t &numTabs)
+    {
+        FireDomain *domain = currentSession.fd;//getDomain();
+        if (domain == 0)
+        {
+            cout << "emit: no active FireDomain, create one first." << endl;
+            return error;
+        }
+
+        auto isoToSeconds = [&](const string &iso) -> double
+        {
+            if (iso == stringError)
+                return FLOATERROR;
+            SimulationParameters *simParam = SimulationParameters::GetInstance();
+            int year = 0, yday = 0;
+            double secs = 0.;
+            if (!simParam->ISODateDecomposition(iso, secs, year, yday))
+            {
+                return FLOATERROR;
+            }
+            return simParam->SecsBetween(simParam->getDouble("refTime"),
+                                         simParam->getInt("refYear"),
+                                         simParam->getInt("refDay"),
+                                         secs, year, yday);
+        };
+
+        auto parsePointString = [&](const string &raw, bool lonlat) -> FFPoint
+        {
+            if (raw == stringError || raw.size() < 2)
+                return pointError;
+            string inner = raw.substr(1, raw.size() - 2);
+            vector<string> tokens;
+            tokenize(inner, tokens, ",");
+            if (tokens.size() != 3)
+                return pointError;
+            double a, b, c;
+            if (!(istringstream(tokens[0]) >> a && istringstream(tokens[1]) >> b && istringstream(tokens[2]) >> c))
+            {
+                return pointError;
+            }
+            if (lonlat)
+            {
+                double x = domain->getXFromLon(a);
+                double y = domain->getYFromLat(b);
+                return FFPoint(x, y, c);
+            }
+            return FFPoint(a, b, c);
+        };
+
+        string layer = getString("layer", arg);
+        if (layer == stringError)
+            layer = getString("name", arg);
+        if (layer == stringError)
+        {
+            cout << "emit: missing layer parameter (layer=...)" << endl;
+            return error;
+        }
+  
+
+        // Spatial support
+        constexpr double pi = 3.14159265358979323846;
+        double radius = getFloat("radius", arg);
+        double surface = getFloat("surface", arg);
+        if (surface == FLOATERROR)
+            surface = getFloat("area", arg);
+
+        FFPoint center = pointError;
+
+        FFPoint loc = getPoint("loc", arg);
+        if (loc != pointError)
+            center = loc;
+        FFPoint lonlat = getPoint("lonlat", arg);
+        if (lonlat != pointError)
+            center = lonlat;
+
+        FFPoint sw = getPoint("sw", arg);
+        FFPoint ne = getPoint("ne", arg);
+        FFPoint swlonlat = parsePointString(getString("swlonlat", arg), true);
+        FFPoint nelonlat = parsePointString(getString("nelonlat", arg), true);
+
+        if (sw != pointError && ne != pointError)
+        {
+            center = FFPoint(0.5 * (sw.x + ne.x), 0.5 * (sw.y + ne.y), 0.5 * (sw.z + ne.z));
+            double width = fabs(ne.x - sw.x);
+            double height = fabs(ne.y - sw.y);
+            if (surface == FLOATERROR)
+                surface = width * height;
+        }
+        else if (swlonlat != pointError && nelonlat != pointError)
+        {
+            center = FFPoint(0.5 * (swlonlat.x + nelonlat.x), 0.5 * (swlonlat.y + nelonlat.y), 0.5 * (swlonlat.z + nelonlat.z));
+            double width = fabs(nelonlat.x - swlonlat.x);
+            double height = fabs(nelonlat.y - swlonlat.y);
+            if (surface == FLOATERROR)
+                surface = width * height;
+        }
+
+        if (radius != FLOATERROR && surface == FLOATERROR)
+        {
+            surface = pi * radius * radius;
+        }
+
+        if (surface == FLOATERROR)
+        {
+            surface = 0.0;
+        }
+
+        // Time window: start now, duration required
+        double tStart = domain->getTime();
+        double duration = getFloat("duration", arg);
+        if (duration == FLOATERROR)
+        {
+            cout << "emit: missing duration=... (seconds)" << endl;
+            return error;
+        }
+        if (duration < 0)
+        {
+            cout << "emit: duration must be non-negative." << endl;
+            return error;
+        }
+        double tEnd = tStart + duration;
+
+        // Flux handling with optional FRP (MW) conversion
+        double flux = getFloat("flux", arg);
+        double frpMw = getFloat("frp", arg);
+        double value = FLOATERROR;
+        double total = FLOATERROR;
+
+        if (flux == FLOATERROR)
+        {
+            if (frpMw != FLOATERROR)
+            {
+                if (surface <= 0.0 && radius == FLOATERROR)
+                {
+                    cout << "emit: FRP given but area/radius missing or zero." << endl;
+                    return error;
+                }
+                if (surface <= 0.0 && radius != FLOATERROR)
+                {
+                    surface = pi * radius * radius;
+                }
+                if (surface <= 0.0)
+                {
+                    cout << "emit: FRP requires a positive area." << endl;
+                    return error;
+                }
+                 double frptoHeatWatt = currentSession.params->getDouble("FRPToWatts");
+                if (frptoHeatWatt == FLOATERROR || frptoHeatWatt <= 0.0) {              frptoHeatWatt = 1e7; }// default MW->W
+                double watts = frpMw * frptoHeatWatt ; // radiant MW -> W, then to total heat
+                flux = watts / surface;
+            }
+            else
+            {
+                value = getFloat("value", arg);
+                if (value == FLOATERROR)
+                    value = getFloat("val", arg);
+                total = getFloat("total", arg);
+
+                if (value != FLOATERROR)
+                {
+                    if (surface <= 0.0)
+                    {
+                        cout << "emit: value given but area/surface missing or zero." << endl;
+                        return error;
+                    }
+                    flux = value / surface;
+                }
+                else if (total != FLOATERROR)
+                {
+                    if (surface <= 0.0 || duration <= 0.0)
+                    {
+                        cout << "emit: total given but duration or area is zero." << endl;
+                        return error;
+                    }
+                    flux = total / (surface * duration);
+                }
+            }
+        }
+
+        if (center == pointError)
+        {
+            cout << "emit: no location provided (use loc=(), lonlat=(), sw+ne)." << endl;
+            return error;
+        }
+
+        if (flux == FLOATERROR)
+        {
+            cout << "emit: provide flux=..., FRP=..., value=... (power), or total=... (energy)." << endl;
+            return error;
+        }
+
+        bool ok = domain->emitFlux(layer, center, surface, tStart, tEnd, flux);
+        if (!ok)
+        {
+            cout << "emit: domain failed to register emission request." << endl;
+            return error;
+        }
+        return normal;
     }
 
     void Command::executeLoop(ifstream* inputStream)
@@ -3349,24 +3544,22 @@ namespace libforefire
 
                     int colorIndex = 0;
                     double range = maxVal - minVal;
-                    
-                    if (std::isfinite(val) && std::isfinite(minVal) && std::isfinite(maxVal) && range != 0.0) {
-                        double normalized = (val - minVal) / range;
-                        colorIndex = static_cast<int>(normalized * (mapSize - 1));
-                        colorIndex = std::max(0, std::min(colorIndex, mapSize - 1));
+                    if (std::isfinite(val) && std::isfinite(minVal) && std::isfinite(maxVal) && range > 0.0 && mapSize > 0) {
+                        double normalized = 0.0;
+                        if (val <= minVal) {
+                            normalized = 0.0;
+                        } else if (val >= maxVal) {
+                            normalized = 1.0;
+                        } else {
+                            normalized = (val - minVal) / range; // safe: numerator smaller than range
+                        }
+                        if (!std::isfinite(normalized)) normalized = 0.0;
+                        colorIndex = static_cast<int>(normalized * static_cast<double>(mapSize - 1));
+                        colorIndex = std::max(0, std::min(colorIndex, static_cast<int>(mapSize - 1)));
                     } else {
                         // Failsafe: set to 0 or 1 depending on mapSize
-                             colorIndex = (mapSize > 1) ? 1 : 0;
-                             }
-                    
-                    //int colorIndex = static_cast<int>((val - minVal) / (maxVal - minVal) * (mapSize - 1));
-                      //                  colorIndex = std::max(0, std::min(colorIndex, mapSize - 1));
-                                        /*  if ((x % 1000 == 0) && (y % 1000 == 0)) {
-                                              std::cout << val << " : " << colorIndex << std::endl;
-                                          }*/
-                    /*  if ((x % 1000 == 0) && (y % 1000 == 0)) {
-                          std::cout << val << " : " << colorIndex << std::endl;
-                      }*/
+                        colorIndex = (mapSize > 1) ? 1 : 0;
+                    }
                     const auto &color = colorMap[colorIndex];
                     image[index] = color[0];
                     image[index + 1] = color[1];

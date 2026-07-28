@@ -248,10 +248,11 @@ void MNHCreateDomain(const int id
 				if((line[0] == '#')||(line[0] == '*')||(line[0] == '\n'))
 					continue;
 				// treating the command of the current line
-				executor.ExecuteCommand(line);
+		
+					executor.ExecuteCommand(line);
 			}
 		} else {
-			cout<<"No global initialization "<<globalInitFile.str()<<" files for all domains" << endl;
+		//	cout<<"No global initialization "<<globalInitFile.str()<<" files for all domains" << endl;
 		}
 	#endif
  
@@ -606,7 +607,7 @@ void FFGetDoubleArray(const char* mname, double t
 
 	} 
 	else {
-		cout<<"MesoNH trying to set data for unknown layer :"<<tmpname<<endl;
+			cout<<"MesoNH trying to set data for unknown layer :"<<tmpname<<endl;
 	}
 }
 
@@ -666,13 +667,18 @@ void FFPutDoubleArray(const char* mname, double* x,
 		size_t sizein, size_t sizeout){
 	string tmpname(mname);
 	// searching for concerned layer
- 
+			
  
 	DataLayer<double>* myLayer = session->fd->getDataLayer(tmpname);
 
-
+	
 
 	if ( myLayer ){
+	/*
+	   int mprank = SimulationParameters::GetInstance()->getInt("mpirank");
+	if (mprank ==1 ){
+		    cout<<mprank<<" foundlayer "<<tmpname<<endl;
+		}*/
 		FFArray<double>* myMatrix;
 		// getting the pointer
 		myLayer->getMatrix(&myMatrix, executor.getTime());
@@ -682,13 +688,6 @@ void FFPutDoubleArray(const char* mname, double* x,
 		MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 		MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 		
-		if (tmpname == "BRatio"){
-			double sumBR = myMatrix->sum();
-			if (sumBR > 0.0){
-				//	cout << world_rank <<" has "<< myMatrix->sum()<<" size M " <<myMatrix->getSize()<<" sizein "<< sizein << " sizeout "<< sizeout << endl;
-			}
-		
-		}
 		#endif
 
 		myMatrix->copyDataToFortran(x);
@@ -721,10 +720,7 @@ void FFDumpDoubleArray(size_t nmodel, size_t nip, const char* mname, double t
 
 
 	try {
-//	size_t indF = 0;
-//		for ( indF = 0; indF < sizein; indF++ ) {
-//                     FileOut.write(reinterpret_cast<const char*>(x+indF), sizeof(double));
-//		}
+
 		FileOut.write(reinterpret_cast<const char*>(x), sizein * sizeof(double));
 
 	} catch (...) {

@@ -838,6 +838,7 @@
 		 }
 
 		 FluxModel* model = fluxModelInstanciation(mindex, fmname);
+
  
 		 if ( model != 0 ){
 			 /* Instantiating a flux layer related to this model */
@@ -1377,16 +1378,17 @@
 		 /* the location is considered to be burning if the heat released
 		  * by the fire is superior to a prescribed value (~500 W.m-2) */
 		 
-		 double at = getArrivalTime(loc);
-		 if ( t >= at ){ 
-			 int mind = dataBroker->heatFluxLayer->getFunctionIndexAt(loc, t);
+		// double at = getArrivalTime(loc);
+		// if ( t >= at ){ 
+			 //int mind = dataBroker->heatFluxLayer->getFunctionIndexAt(loc, t);
  
-			 double heatFlux = getModelValueAt(mind, loc, t, t, at);
+			 //double heatFlux = getModelValueAt(mind, loc, t, t, at);
+			 double heatFlux = dataBroker->heatFluxLayer->getValueAt( loc, t);
 			 
 			 if ( heatFlux > burningTresholdFlux ) {
 				 return true;
 			 }
-		 }
+		 //}
 		 return false;
 	 }
  
@@ -3366,12 +3368,12 @@
 				resX = extractWidth/eni;
 				resY = extractHeight/enj;
 			}
-			FFPoint itp = FFPoint(SWbound.getX()+resX/2, SWbound.getY()+resY/2, 0.0);
+			FFPoint itp = FFPoint(SWbound.getX()+resX/2, SWbound.getY()-resY, 0.0);
 			std::vector<std::vector<double>> matrix(eni, std::vector<double>(enj, -9999));
 			for (size_t i = 0; i < eni; i++) {
 				itp.setX(SWbound.getX()+resX/2 + i*resX);
 				for (size_t j = 0; j < enj; j++) {
-					itp.setY(SWbound.getY()+resY/2 + j*resY);
+					itp.setY(SWbound.getY()-resY + j*resY);
 					matrix[i][j] = dataLayer->getValueAt(itp,lTime);  
 				}
 			}
@@ -3597,6 +3599,22 @@
 		 }
 		 cout<<oss.str();
 	 }
- 
+
+	 bool FireDomain::emitFlux(const std::string& layerName, const FFPoint& center, double surfaceArea, double startTime, double endTime, double value) {
+		 FluxLayer<double>* fl = getFluxLayer(layerName);
+		 if (fl == nullptr) {
+			 cout << "emitFlux: flux layer '" << layerName << "' not found." << endl;
+			 return false;
+		 }
+		 fl->addEmission(center, surfaceArea, startTime, endTime, value);
+	/*	 cout << "emitFlux registered -> layer: " << layerName
+			  << " center: (" << center.x << "," << center.y << "," << center.z << ")"
+			  << " area: " << surfaceArea
+			  << " start: " << startTime
+			  << " end: " << endTime
+			  << " flux: " << value << endl;*/
+		 return true;
+	 }
+
  }
  

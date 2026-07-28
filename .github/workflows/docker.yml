@@ -1,4 +1,4 @@
-name: Docker
+name: 📦 Build & Test Docker Image
 
 on:
   push:
@@ -21,7 +21,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           lfs: true
 
