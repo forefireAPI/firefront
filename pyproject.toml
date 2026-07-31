@@ -95,6 +95,10 @@ before-all = "brew install netcdf netcdf-cxx"
 [tool.cibuildwheel.macos.environment]
 # Homebrew is not on the default compiler search path on Apple Silicon.
 CMAKE_PREFIX_PATH = "/opt/homebrew:/usr/local"
-# Must not be older than the Homebrew bottles we link against, otherwise the
-# linker rejects the NetCDF dylibs as "built for a newer macOS version".
-MACOSX_DEPLOYMENT_TARGET = "13.0"
+
+# MACOSX_DEPLOYMENT_TARGET is deliberately not set here. It has to match the
+# macOS version the runner's Homebrew bottles were built for, which differs
+# per runner image, so wheels.yml sets it per matrix entry. Setting it in this
+# table would override that. Building locally without it gives cibuildwheel's
+# default (11.0 on arm64), which delocate rejects against current bottles;
+# export MACOSX_DEPLOYMENT_TARGET to match your own Homebrew install.
