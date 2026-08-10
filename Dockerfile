@@ -32,8 +32,12 @@ COPY --link src/ ./src/
 
 # -march=native is off: this image is published and has to run on CPUs other
 # than the builder's.
+#
+# Only libforefireL.so is carried into the runtime stage, and the wheel build
+# below compiles the core again on its own terms, so building the `forefire`
+# and ANN_test executables here as well would just be a wasted compile.
 RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DFOREFIRE_NATIVE_ARCH=OFF \
- && cmake --build build -j"$(nproc)"
+ && cmake --build build -j"$(nproc)" --target forefireL
 
 COPY --link bindings/ ./bindings/
 
