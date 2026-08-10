@@ -36,6 +36,12 @@ dependencies = [
   "matplotlib",
 ]
 
+[project.scripts]
+# Thin Python shim that execs the native interpreter bundled in the package.
+# See the install rule for `forefire` in CMakeLists.txt for why the binary is
+# not shipped as a wheel script directly.
+forefire = "pyforefire._cli:main"
+
 [project.urls]
 Homepage = "https://forefire.univ-corse.fr/"
 Documentation = "https://forefire.readthedocs.io/en/latest/"

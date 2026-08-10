@@ -288,11 +288,19 @@ if(FOREFIRE_BUILD_PYTHON)
     target_link_libraries(_pyforefire PRIVATE forefireL)
     install(TARGETS _pyforefire DESTINATION pyforefire)
 
-    # Ship the command line interpreter alongside the module so that
-    # `pip install forefire` also provides a working `forefire` command.
-    # SKBUILD_SCRIPTS_DIR only exists when scikit-build-core is driving.
+    # Ship the command line interpreter so that `pip install forefire` also
+    # provides a working `forefire` command.
+    #
+    # It goes *inside* the package, next to _pyforefire, rather than into
+    # SKBUILD_SCRIPTS_DIR. auditwheel and delocate point a relocated binary at
+    # the vendored libraries using a path relative to the binary itself, and
+    # only a binary inside the package keeps that path valid: pip installs
+    # `.data/scripts/` into `<env>/bin` but the package into
+    # `<env>/lib/pythonX.Y/site-packages/`, so a reference from one to the
+    # other cannot survive installation. delocate produced exactly that broken
+    # path on macOS. `pyforefire._cli` is the entry point that execs it.
     if(_ff_wheel_build)
-        install(TARGETS forefire RUNTIME DESTINATION ${SKBUILD_SCRIPTS_DIR})
+        install(TARGETS forefire RUNTIME DESTINATION pyforefire)
     endif()
 endif()
 
