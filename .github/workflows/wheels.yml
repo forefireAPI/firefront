@@ -30,14 +30,19 @@ jobs:
             arch: aarch64
           # macos_target must match the macOS version the runner's Homebrew
           # bottles were built for. delocate refuses to repair a wheel whose
-          # vendored dylibs require a newer macOS than the wheel tag claims.
-          # Revisit whenever these runner images change.
+          # vendored dylibs require a newer macOS than the wheel tag claims,
+          # so this is coupled to the runner image and has to be revisited
+          # whenever that changes.
+          #
+          # There is no Intel macOS entry. macos-13 was retired by GitHub and
+          # its jobs queue forever instead of failing, and the replacements
+          # (macos-15-intel, macos-26-intel) need their billing confirmed for
+          # public repositories first. Intel Mac users build from the sdist.
+          # macos-14 is deprecated but still current enough to keep the
+          # supported floor at macOS 14 rather than 15.
           - os: macos-14
             arch: arm64
             macos_target: "14.0"
-          - os: macos-13
-            arch: x86_64
-            macos_target: "13.0"
     steps:
       # No `lfs: true` here: wheels are built from source only, and the LFS
       # fixtures are ~60 MB that no wheel job reads.
