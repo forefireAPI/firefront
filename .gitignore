@@ -10,6 +10,10 @@ tools/cache
 tools/cmaps
 bindings/python/src/pyforefire.egg-info
 paper/jats
+#python packaging
+dist
+wheelhouse
+*.egg-info
 #python
 __pycache__
 venv
@@ -32,7 +36,8 @@ docs/doxygen/xml
 docs/doxygen/html
 
 # build
-CMakeLists.txt
+# Do not ignore CMakeLists.txt here: it is tracked, and ignoring it makes
+# packaging tools drop it from the sdist.
 build.sh
 
 #tools
