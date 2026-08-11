@@ -138,9 +138,18 @@ MODELS = (
     ModelSpec("Rothermel", balbi_table, has_extinction=True),
     ModelSpec("RothermelAndrews2018", andrews_table, has_extinction=True),
     ModelSpec("BalbiNov2011", balbi_table, has_extinction=False),
+    # These three register "moisture" alongside their fuel properties. Until
+    # the "moist" prefix in registerPropagationModel was narrowed to "moist.",
+    # that single registration was served by the five-slot
+    # getMoisturesProperties, shifting every later property by four and
+    # leaving each model unable to see its own fuel table at all.
+    ModelSpec("Balbi2020", balbi_table, has_extinction=False),
+    ModelSpec("Balbi2015", balbi_table, has_extinction=False),
+    ModelSpec("BalbiNov2011TMdMl", balbi_table, has_extinction=False),
 )
 
 ME = 0.30  # moisture of extinction used throughout
+LIVE_MOISTURE = 1.0  # matches the Ml column of the tables above
 
 # --------------------------------------------------------------------------
 # Probe
@@ -149,8 +158,23 @@ ME = 0.30  # moisture of extinction used throughout
 DOMAIN = 2000.0  # m, square
 GRID = 100  # cells per side
 WIND = 2.0  # m/s, along +x
-DURATION = 120.0  # s -- short enough that the driest fuel stays off the edge
 IGNITION = (DOMAIN / 2.0, DOMAIN / 2.0)
+
+# Run duration is calibrated per model rather than fixed. Spread rates
+# differ by more than an order of magnitude between models, and a single
+# duration either drives the fast ones off the domain edge -- clipping the
+# dry end of the sweep -- or leaves the slow ones barely clear of the
+# initial front, where perimeterResolution quantises the displacement and
+# adjacent moistures collide. Calibrating keeps every model in the range
+# where displacement actually resolves ROS, and survives recalibration of
+# any model without anyone editing this file.
+CALIB_DURATION = 60.0  # s, the trial run used to estimate ROS
+TARGET_SPREAD = 600.0  # m, comfortably inside the 1000 m half-width
+MIN_SPREAD = 300.0  # m, below this adjacent moistures start to collide
+MAX_SPREAD = 800.0  # m, above this the front is closing on the domain edge
+MIN_DURATION = 5.0  # s, floor for a very fast model
+MAX_DURATION = 3600.0  # s, ceiling for a very slow model
+CALIB_ROUNDS = 4  # Balbi fronts accelerate, so one round can undershoot
 
 # Moisture far above any model's extinction threshold. Its displacement is
 # the "did not spread" floor: a point ignition always lays down an initial
@@ -194,23 +218,53 @@ def captured_native_output():
 class Probe:
     """Result of one spread run."""
 
-    def __init__(self, distance, raw, native):
+    def __init__(self, distance, raw, native, duration):
         self.distance = distance  # m travelled by the furthest front node
         self.raw = raw  # concatenated print[] output
         self.native = native  # stdout emitted by the C++ core
+        self.duration = duration  # s of simulated time
 
     @property
     def ros(self):
         """Mean ROS along the fastest ray, m/s."""
-        return self.distance / DURATION
+        return self.distance / self.duration
 
     @property
     def has_nonfinite(self):
         return bool(_NONFINITE_RE.search(self.raw))
 
 
-def probe(model, md, *, me=ME, wind=WIND, dead_moisture_layer=None):
-    """Spread a fire for DURATION seconds and report how far it got.
+_DURATIONS = {}
+
+
+def duration_for(model):
+    """Pick a run duration that puts this model's driest case near TARGET_SPREAD.
+
+    Iterated rather than solved in one step: a Balbi front accelerates as it
+    develops, so ROS measured over a short trial underestimates the eventual
+    rate and the first duration overshoots into the domain edge.
+    """
+    if model.name in _DURATIONS:
+        return _DURATIONS[model.name]
+
+    floor = probe(model, FLOOR_MD, duration=CALIB_DURATION).distance
+    duration = CALIB_DURATION
+    for _ in range(CALIB_ROUNDS):
+        reached = probe(model, DRY_SWEEP[0], duration=duration).distance
+        if MIN_SPREAD <= reached <= MAX_SPREAD:
+            break
+        ros = max((reached - floor) / duration, 1e-6)
+        # Clamped to MIN_DURATION, not CALIB_DURATION: a model fast enough to
+        # saturate the domain inside the trial needs a *shorter* run than the
+        # trial, and clamping at the trial length would leave it clipped.
+        duration = min(max(TARGET_SPREAD / ros, MIN_DURATION), MAX_DURATION)
+
+    _DURATIONS[model.name] = duration
+    return duration
+
+
+def probe(model, md, *, me=ME, wind=WIND, duration=None, dead_moisture_layer=None):
+    """Spread a fire and report how far the furthest front node got.
 
     Runs in a forked interpreter; see "Why every probe forks" above.
 
@@ -218,12 +272,14 @@ def probe(model, md, *, me=ME, wind=WIND, dead_moisture_layer=None):
     scalar layer. It is ignored by the current code -- that is exactly what
     the `responsive` test detects.
     """
+    if duration is None:
+        duration = duration_for(model)
     spec = {
         "model": model.name,
         "md": md,
         "me": me,
         "wind": wind,
-        "duration": DURATION,
+        "duration": duration,
         "dead_moisture_layer": dead_moisture_layer,
     }
     proc = subprocess.run(
@@ -233,7 +289,8 @@ def probe(model, md, *, me=ME, wind=WIND, dead_moisture_layer=None):
     for line in proc.stdout.splitlines():
         if line.startswith(_SENTINEL):
             payload = json.loads(line[len(_SENTINEL):])
-            return Probe(payload["distance"], payload["raw"], payload["native"])
+            return Probe(payload["distance"], payload["raw"], payload["native"],
+                         duration)
     raise RuntimeError(
         f"probe subprocess produced no result (exit {proc.returncode})\n"
         f"stdout: {proc.stdout[-2000:]}\nstderr: {proc.stderr[-2000:]}"
@@ -309,6 +366,18 @@ def _probe_in_process(spec):
         )
         ff.addScalarLayer(
             "windScalDir", "windV", 0.0, 0.0, 0, DOMAIN, DOMAIN, 0, zeros
+        )
+        # Models such as Balbi2020 register "temperature" and "moisture"
+        # (the latter meaning live fuel moisture) beside their fuel
+        # properties. Supplying both unconditionally keeps every model on the
+        # same footing; models that do not register them never read them.
+        ff.addScalarLayer(
+            "data", "temperature", 0.0, 0.0, 0, DOMAIN, DOMAIN, 0,
+            np.full((1, 1, GRID, GRID), 300.0),
+        )
+        ff.addScalarLayer(
+            "data", "moisture", 0.0, 0.0, 0, DOMAIN, DOMAIN, 0,
+            np.full((1, 1, GRID, GRID), LIVE_MOISTURE),
         )
         if dead_moisture_layer is not None:
             layer = np.full((1, 1, GRID, GRID), float(dead_moisture_layer))
