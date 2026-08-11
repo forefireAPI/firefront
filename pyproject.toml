@@ -1,0 +1,110 @@
+[build-system]
+requires = ["scikit-build-core>=0.11", "pybind11>=2.12"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "forefire"
+dynamic = ["version"]
+description = "ForeFire wildfire simulation engine, with Python bindings"
+readme = "bindings/python/README.md"
+requires-python = ">=3.9"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
+authors = [
+  { name = "Jean-Baptiste Filippi", email = "filippi_j@univ-corse.fr" },
+  { name = "Quentin Duriani", email = "qduriani@gmail.com" },
+]
+maintainers = [
+  { name = "Jean-Baptiste Filippi", email = "filippi_j@univ-corse.fr" },
+]
+keywords = ["ForeFire", "forefire", "pyforefire", "wildfire", "fire", "simulation", "wildfire-simulation"]
+classifiers = [
+  "Intended Audience :: Science/Research",
+  "Programming Language :: C++",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Scientific/Engineering",
+  "Operating System :: POSIX :: Linux",
+  "Operating System :: MacOS :: MacOS X",
+]
+dependencies = [
+  "numpy",
+  "matplotlib",
+]
+
+[project.scripts]
+# Thin Python shim that execs the native interpreter bundled in the package.
+# See the install rule for `forefire` in CMakeLists.txt for why the binary is
+# not shipped as a wheel script directly.
+forefire = "pyforefire._cli:main"
+
+[project.urls]
+Homepage = "https://forefire.univ-corse.fr/"
+Documentation = "https://forefire.readthedocs.io/en/latest/"
+Repository = "https://github.com/forefireAPI/forefire"
+Issues = "https://github.com/forefireAPI/forefire/issues"
+
+[tool.scikit-build]
+minimum-version = "build-system.requires"
+# 3.18 for FindPython's Development.Module component; plain C++ builds of
+# ForeFire still work with the 3.15 declared in CMakeLists.txt.
+cmake.version = ">=3.18"
+build-dir = "build/{wheel_tag}"
+
+# The importable package keeps its historical name, `pyforefire`; only the
+# distribution on PyPI is called `forefire`.
+wheel.packages = ["bindings/python/src/pyforefire"]
+wheel.exclude = ["pyforefire/_pyforefire.cpp", "pyforefire/_pyforefire.h"]
+
+# The test suite carries ~60 MB of Git LFS fixtures, and the docs/paper are of
+# no use to someone building from an sdist. The wheel smoke test is small and
+# needs no fixtures, so it is kept.
+sdist.exclude = [
+  ".github",
+  "docs",
+  "paper",
+  "tests",
+  "tools/cache",
+  "tools/htdocs",
+  "*.svg",
+]
+sdist.include = ["tests/python/test_wheel.py"]
+
+[tool.scikit-build.metadata.version]
+provider = "scikit_build_core.metadata.regex"
+input = "src/include/Version.h"
+regex = '''ff_version\s*=\s*"v?(?P<value>\d+\.\d+\.\d+)"'''
+
+[tool.cibuildwheel]
+# 32-bit and musl targets have no usable NetCDF C++4 story, and PyPy cannot
+# load the pybind11 module built here.
+skip = ["pp*", "*-musllinux_*", "*_i686", "*-win32"]
+test-command = [
+  "python {project}/tests/python/test_wheel.py",
+  "forefire -v",
+]
+
+[tool.cibuildwheel.linux]
+# manylinux_2_28 is the oldest image where EPEL ships netcdf/hdf5 for both
+# x86_64 and aarch64; the C++4 API is built from source by the script below.
+manylinux-x86_64-image = "manylinux_2_28"
+manylinux-aarch64-image = "manylinux_2_28"
+before-all = "bash {project}/tools/devops/install-netcdf-manylinux.sh"
+
+[tool.cibuildwheel.macos]
+before-all = "brew install netcdf netcdf-cxx"
+
+[tool.cibuildwheel.macos.environment]
+# Homebrew is not on the default compiler search path on Apple Silicon.
+CMAKE_PREFIX_PATH = "/opt/homebrew:/usr/local"
+
+# MACOSX_DEPLOYMENT_TARGET is deliberately not set here. It has to match the
+# macOS version the runner's Homebrew bottles were built for, which differs
+# per runner image, so wheels.yml sets it per matrix entry. Setting it in this
+# table would override that. Building locally without it gives cibuildwheel's
+# default (11.0 on arm64), which delocate rejects against current bottles;
+# export MACOSX_DEPLOYMENT_TARGET to match your own Homebrew install.

@@ -1,0 +1,115 @@
+name: 🐍 Build Python wheels
+
+on:
+  push:
+    branches:
+      - "master"
+    tags:
+      - "v*"
+  pull_request:
+    branches: [ "master" ]
+  release:
+    types: [ published ]
+  workflow_dispatch:
+
+concurrency:
+  group: wheels-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build-wheels:
+    name: Wheels (${{ matrix.arch }} on ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            arch: x86_64
+          - os: ubuntu-24.04-arm
+            arch: aarch64
+          # macos_target must match the macOS version the runner's Homebrew
+          # bottles were built for. delocate refuses to repair a wheel whose
+          # vendored dylibs require a newer macOS than the wheel tag claims,
+          # so this is coupled to the runner image and has to be revisited
+          # whenever that changes.
+          #
+          # There is no Intel macOS entry. macos-13 was retired by GitHub and
+          # its jobs queue forever instead of failing, and the replacements
+          # (macos-15-intel, macos-26-intel) need their billing confirmed for
+          # public repositories first. Intel Mac users build from the sdist.
+          # macos-14 is deprecated but still current enough to keep the
+          # supported floor at macOS 14 rather than 15.
+          - os: macos-14
+            arch: arm64
+            macos_target: "14.0"
+    steps:
+      # No `lfs: true` here: wheels are built from source only, and the LFS
+      # fixtures are ~60 MB that no wheel job reads.
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v4.1.1
+        env:
+          CIBW_ARCHS: ${{ matrix.arch }}
+          MACOSX_DEPLOYMENT_TARGET: ${{ matrix.macos_target }}
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v7
+        with:
+          name: wheels-${{ matrix.os }}-${{ matrix.arch }}
+          path: ./wheelhouse/*.whl
+
+  build-sdist:
+    name: Source distribution
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Build sdist
+        run: pipx run build --sdist
+
+      - name: Install NetCDF (to compile the sdist)
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake libnetcdf-dev libnetcdf-c++4-dev
+
+      # Building the sdist end to end is the only check that someone on an
+      # unsupported platform can still `pip install forefire`.
+      - name: Install and smoke test the sdist
+        run: |
+          pip install dist/*.tar.gz
+          python tests/python/test_wheel.py
+          forefire -v
+
+      - name: Upload sdist
+        uses: actions/upload-artifact@v7
+        with:
+          name: sdist
+          path: dist/*.tar.gz
+
+  publish:
+    name: Publish to PyPI
+    needs: [ build-wheels, build-sdist ]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release' && github.event.action == 'published'
+    environment:
+      name: pypi
+      url: https://pypi.org/p/forefire
+    # Trusted publishing: no API token to rotate, but the `forefire` PyPI
+    # project must first declare this repository and workflow as a trusted
+    # publisher (https://docs.pypi.org/trusted-publishers/).
+    permissions:
+      id-token: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Publish
+        uses: pypa/gh-action-pypi-publish@v1.14.1

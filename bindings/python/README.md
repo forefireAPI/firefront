@@ -1,95 +1,99 @@
 # PyForeFire
 
 <p align="center">
-  <img src="./pyforefire.svg" alt="PyForeFire Logo" width="300">
+  <img src="https://raw.githubusercontent.com/forefireAPI/forefire/master/bindings/python/pyforefire.svg" alt="PyForeFire Logo" width="300">
 </p>
 
+**PyForeFire** provides Python bindings for [ForeFire](https://github.com/forefireAPI/forefire),
+an open-source wildfire simulation engine written in C++ and developed by CNRS
+at the Université de Corse Pascal Paoli.
 
-**PyForeFire** provides Python bindings for the ForeFire library, enabling users to access ForeFire’s functionality directly from Python. The bindings link against the precompiled ForeFire library and include support for NetCDF and other dependencies.
-
-## Overview
-
-The PyForeFire package is designed to:
-- Expose core ForeFire functionality to Python via pybind11.
-- Link against a precompiled ForeFire library located in the top-level `lib/` directory.
-- Optionally incorporate NetCDF support by detecting either a static NetCDF installation (via `SRC_MESONH` and `XYZ`) or a dynamic installation via `NETCDF_HOME`.
-- Provide helper functions that leverage additional packages such as NumPy and Matplotlib.
-
----
-
-## Requirements
-
-Before installation, ensure that:
-- The ForeFire library is precompiled and the dynamic library (e.g., `libforefireL.dylib`, `libforefireL.so`, or `libforefireL.dll`) is located in the top-level `lib/` directory.
-- The ForeFire source (headers) is available in the top-level `src/` directory.
-- A compatible NetCDF installation is available. Either:
-  - Set `SRC_MESONH` and `XYZ` to enable auto-detection of a static NetCDF installation, or
-  - Set `NETCDF_HOME` to the path where NetCDF (and its headers) is installed.
-- Python (>=3.8) and a C++17 compiler are installed.
-- The following Python packages are required:
-  - pybind11
-  - numpy
-  - matplotlib
+The distribution is named `forefire` on PyPI; the importable module is
+`pyforefire`.
 
 ---
 
 ## Installation
 
-You can build and install the package into your current Python interpreter in editable mode. This mode allows you to recompile the extension without needing to reinstall the package.
+```bash
+pip install forefire
+```
 
-1. **Editable Installation**
+Wheels are published for Linux (x86_64, aarch64) and macOS (Apple Silicon and
+Intel), on CPython 3.9 and newer. They are self-contained: NetCDF and its own
+dependencies are bundled inside the wheel, so there is nothing to install
+beforehand and nothing to configure.
 
-   In the `bindings/python` directory, run:
+Installing also puts the `forefire` command-line interpreter on your `PATH`:
 
-   ```bash
-   pip install -e .
-   ```
+```bash
+forefire -v
+```
 
-   Editable mode links the installed package to the source directory. Any recompilation (e.g., via `python setup.py build_ext --inplace`) will be immediately available.
+### What the published wheels do not include
 
-2. **Wheel Build**
+Wheels are built for portability, which means they deliberately leave out two
+build-time features:
 
-   To build a wheel without installing it directly, run:
+- **MPI coupling** is disabled, so wheels cannot drive coupled fire-atmosphere
+  runs with MesoNH.
+- **CPU-specific optimisation** (`-march=native`) is off, so the binary runs on
+  any machine of the same architecture rather than only on the build machine.
 
-   ```bash
-   pip wheel .
-   ```
+If you need either, build from source (below).
 
-   You can later install the generated wheel with:
+### Building from source
 
-   ```bash
-   pip install <wheel_file>
-   ```
+Any platform without a published wheel — Windows, musl-based Linux, or an
+unusual architecture — falls back to compiling the sdist, which needs a C++
+compiler, CMake ≥ 3.15, and the NetCDF C and legacy C++4 libraries:
+
+```bash
+# Debian/Ubuntu
+sudo apt install build-essential cmake libnetcdf-dev libnetcdf-c++4-dev
+# Fedora/RHEL
+sudo dnf install gcc-c++ cmake netcdf-devel netcdf-cxx4-devel
+# macOS
+brew install cmake netcdf netcdf-cxx
+
+pip install forefire --no-binary forefire
+```
+
+To build with MPI support and native optimisation, pass the CMake options
+through:
+
+```bash
+pip install forefire --no-binary forefire \
+  --config-settings=cmake.define.FOREFIRE_ENABLE_MPI=ON \
+  --config-settings=cmake.define.FOREFIRE_NATIVE_ARCH=ON
+```
+
+If NetCDF lives somewhere CMake does not look, point at it with
+`--config-settings=cmake.define.NETCDF_HOME=/path/to/netcdf` (and
+`NETCDF_CXX_HOME` if the C++4 API is installed separately).
 
 ---
 
 ## Usage
 
-### Verifying the Installation
-
-The first step is to confirm that the PyForeFire library was installed and linked correctly. The following code creates a `ForeFire` instance and defines a simulation domain.
+### Verifying the installation
 
 ```python
 import pyforefire as forefire
 
-# Create an instance of the ForeFire class
 ff = forefire.ForeFire()
-
-# Example usage: define a domain command
-sizeX = 300
-sizeY = 200
-myCmd = "FireDomain[sw=(0.,0.,0.);ne=(%f,%f,0.);t=0.]" % (sizeX, sizeY)
-
-# Execute the command
-ff.execute(myCmd)
+ff.execute("FireDomain[sw=(0.,0.,0.);ne=(300.,200.,0.);t=0.]")
 print("PyForeFire installed and domain created successfully.")
 ```
 
-If this script runs without an `ImportError` or linking error, your installation is working. *Note: You may see warnings about missing fuel tables, which is expected at this stage.*
+If this runs without an `ImportError` or linking error, your installation is
+working. *Note: you may see warnings about missing fuel tables, which is
+expected at this stage.*
 
-### Running a Simple Simulation
+### Running a simple simulation
 
-To see a simulation in action, this example starts a fire in the center of a domain and runs it for 1000 seconds.
+This example starts a fire in the centre of a domain and runs it for 1000
+seconds.
 
 ```python
 import pyforefire as forefire
@@ -100,7 +104,7 @@ ff = forefire.ForeFire()
 sim_shape = (10000, 10000)
 ff.execute(f'FireDomain[sw=(0,0,0);ne=({sim_shape[0]},{sim_shape[1]},0);t=0]')
 
-# 2. Set a simple propagation model (isotropic, i.e., a perfect circle)
+# 2. Set a simple propagation model (isotropic, i.e. a perfect circle)
 ff.addLayer("propagation", "Iso", "propagationModel")
 
 # 3. Start a fire in the center of the domain
@@ -113,52 +117,87 @@ ff.execute("step[dt=1000]")
 print(ff.execute("print[]"))
 ```
 
-This will produce text output describing the location of the fire front nodes.
+This produces text output describing the location of the fire front nodes.
 
-To generate a `circle.kml` file for visualization in Google Earth, you can set the `dumpMode` parameter before the final print command:
+To generate a `circle.kml` file for visualization in Google Earth, set the
+`dumpMode` parameter before the final print command:
+
 ```python
-# Optional: Set output mode to KML and save to a file
 ff["dumpMode"] = "kml"
 ff.execute("print[circle.kml]")
 ```
 
-### More Advanced Examples
+### More advanced examples
 
-For more complex examples that use real-world data (like fuel, topography, and wind), please see the scripts located in the `tests/python/` directory of the main repository.
+For examples that use real-world data (fuel, topography, wind), see the scripts
+in the [`tests/python/`](https://github.com/forefireAPI/forefire/tree/master/tests/python)
+directory of the main repository.
 
 ---
 
 ## Development
 
-For development or when modifying the underlying C++ code:
-- Rebuild the Python extension module in-place using:
+The Python bindings are built from the repository root, together with the C++
+core:
 
-  ```bash
-  python setup.py build_ext --inplace
-  ```
+```bash
+git clone https://github.com/forefireAPI/forefire.git
+cd forefire
+pip install -e .
+```
 
-- This approach updates the extension module immediately without the need for a full reinstall.
+Re-run that command after touching `_pyforefire.cpp` or the C++ core. If you
+iterate often, install the build requirements once and let scikit-build-core
+recompile on import instead:
 
+```bash
+pip install scikit-build-core pybind11
+pip install -e . --no-build-isolation --config-settings=editable.rebuild=true
+```
+
+To build a wheel without installing it:
+
+```bash
+pip wheel . -w dist/
+```
+
+The build is driven by [scikit-build-core](https://scikit-build-core.readthedocs.io/),
+configured in the root `pyproject.toml`; the extension module target itself
+lives in the root `CMakeLists.txt` behind `FOREFIRE_BUILD_PYTHON`.
+
+### Smoke testing a built wheel
+
+```bash
+python tests/python/test_wheel.py
+```
+
+Run this against an installed wheel rather than from a build tree: it checks
+that the extension loads, that its bundled NetCDF resolves, and that a trivial
+simulation advances.
+
+---
 
 ## Troubleshooting
 
-- **NetCDF Not Found:**  
-  If you encounter an error such as `fatal error: 'netcdf' file not found`, ensure that either:
-  - Your environment variables `SRC_MESONH` and `XYZ` (for static linking) or `NETCDF_HOME` (for dynamic linking) are correctly set, or
-  - Your system includes the necessary NetCDF headers and libraries in the default search paths.
-
-- **Editable Installation Issues:**  
-  Ensure you are running the command in the correct directory (`bindings/python`) and that no legacy configuration files (like a `setup.cfg`) conflict with the `pyproject.toml`.
+- **`NetCDF not found` while building from source:** install the *two* NetCDF
+  packages listed above. The C library alone is not enough; ForeFire's
+  `DataBroker` includes the legacy C++4 header `<netcdf>`, which ships in
+  `libnetcdf-c++4-dev` / `netcdf-cxx4-devel` / `netcdf-cxx`.
+- **`Illegal instruction` after copying a self-built install to another
+  machine:** it was compiled with `-march=native`. Rebuild with
+  `FOREFIRE_NATIVE_ARCH=OFF`, or use the published wheel.
 
 ---
 
 ## License
 
-This project is licensed under the terms specified in the `LICENSE` file.
+ForeFire is licensed under the GNU General Public License v3.0. See the
+[LICENSE](https://github.com/forefireAPI/forefire/blob/master/LICENSE) file.
 
 ---
 
 ## Project URLs
 
-- **Homepage:** [https://github.com/forefireAPI/forefire](https://github.com/forefireAPI/forefire)
+- **Homepage:** [https://forefire.univ-corse.fr/](https://forefire.univ-corse.fr/)
+- **Repository:** [https://github.com/forefireAPI/forefire](https://github.com/forefireAPI/forefire)
 - **Documentation:** [https://forefire.readthedocs.io/en/latest/](https://forefire.readthedocs.io/en/latest/)

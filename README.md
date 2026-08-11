@@ -40,6 +40,37 @@
 *   **Applications:** Research, case reanalysis, ensemble forecasting.
 
 
+## Quick Start with pip
+
+On Linux and macOS, ForeFire ships as a self-contained wheel. Nothing else to
+install &mdash; NetCDF is bundled inside the package:
+
+```bash
+pip install forefire
+```
+
+This gives you both the `forefire` command-line interpreter and the
+`pyforefire` Python module:
+
+```bash
+forefire -v
+```
+
+```python
+import pyforefire as forefire
+
+ff = forefire.ForeFire()
+ff.execute("FireDomain[sw=(0,0,0);ne=(10000,10000,0);t=0]")
+ff.addLayer("propagation", "Iso", "propagationModel")
+ff.execute("startFire[loc=(5000,5000,0.0)]")
+ff.execute("step[dt=1000]")
+print(ff.execute("print[]"))
+```
+
+Published wheels are built without MPI support. For fire-atmosphere coupling
+with MesoNH, or to tune the build for your CPU, build from source instead
+(see [Build from source](#build-from-source)).
+
 ## Quick Start with Docker
 
 
@@ -114,8 +145,25 @@ The demo datasets bundled under `tests/runff/` are stored with Git LFS because t
 
 See the Full Documentation for more details on building from source with the `install-forefire.sh` file
 
+The CMake build is option-driven. The defaults below are what a plain
+`cmake -S . -B build` gives you:
+
+| Option | Default | Purpose |
+| --- | --- | --- |
+| `FOREFIRE_ENABLE_MPI` | `ON` | Enable MPI coupling when MPI is available. |
+| `FOREFIRE_NATIVE_ARCH` | `ON` | Compile with `-march=native`. Turn off for binaries that must run on other machines. |
+| `FOREFIRE_BUILD_PYTHON` | `OFF` | Build the `pyforefire` extension module. |
+| `FOREFIRE_STATIC_CORE` | `OFF` | Build the core as a static library instead of `libforefireL`. |
+| `FOREFIRE_BUILD_TOOLS` | `ON` | Build the `ANN_test` helper executable. |
+| `FOREFIRE_CHECK_LFS` | `ON` | Run the Git LFS integrity check while configuring. |
+
+Wheel builds (anything driven by `pip`) flip these to the portable defaults:
+no MPI, no `-march=native`, static core, Python module on.
+
 ## Python Bindings
-ForeFire provides Python bindings for easier scripting and integration. See the Python Bindings [./bindings/python/README.md](./bindings/python/README.md) for details.
+ForeFire provides Python bindings for easier scripting and integration:
+`pip install forefire`, then `import pyforefire`. See the Python Bindings
+[./bindings/python/README.md](./bindings/python/README.md) for details.
 
 ## Contributing
 
