@@ -52,6 +52,8 @@ option(FOREFIRE_CHECK_LFS "Run the Git LFS data integrity check at configure tim
 option(FOREFIRE_BUILD_TESTS "Build the C++ unit tests, registered with CTest" ${_ff_default_tests})
 option(FOREFIRE_ENABLE_WARNINGS "Compile ForeFire's own sources with -Wall -Wextra" ON)
 option(FOREFIRE_WARNINGS_AS_ERRORS "Fail the build on a compiler warning" OFF)
+set(FOREFIRE_SANITIZE "" CACHE STRING
+    "Sanitizers to build with, passed to -fsanitize= (e.g. address, undefined, address,undefined)")
 
 # ----------------------------------
 # Set C++ Standard
@@ -220,6 +222,11 @@ endif()
 # ----------------------------------
 if(MPI_FOUND)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 -DMPI_COUPLING")
+elseif(FOREFIRE_SANITIZE)
+    # A sanitizer build wants frame pointers and debug info; the release set
+    # below strips both, and -flto makes the reports harder to read besides.
+    # -O1 keeps the suites quick enough to run in CI.
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O1 -fno-omit-frame-pointer")
 else()
     # uncomment if want to debug
     # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0")
@@ -227,6 +234,15 @@ else()
     if(FOREFIRE_NATIVE_ARCH)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
     endif()
+endif()
+
+# Sanitizers have to reach the link line as well as the compile line, and the
+# shared library too: the core is where the allocations happen.
+if(FOREFIRE_SANITIZE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=${FOREFIRE_SANITIZE}")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=${FOREFIRE_SANITIZE}")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fsanitize=${FOREFIRE_SANITIZE}")
+    message(STATUS "Sanitizers enabled: -fsanitize=${FOREFIRE_SANITIZE}")
 endif()
 
 # Warnings are a target property rather than a global flag on purpose: they
