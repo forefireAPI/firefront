@@ -4,9 +4,9 @@ on:
   push:
     branches:
       - "master"
-      # - "dev"
+      - "dev"
   pull_request:
-    branches: [ "master" ]
+    branches: [ "master", "dev" ]
   workflow_dispatch:
 
 jobs:
@@ -42,6 +42,18 @@ jobs:
 
       - name: Check ForeFire version
         run: ./bin/forefire -v
+
+      # The unit tests are built by install-forefire.sh along with everything
+      # else (FOREFIRE_BUILD_TESTS defaults on outside wheel builds), so this
+      # only has to run them. They cover the propagation and flux models one
+      # call at a time, which is what runff below cannot reach: it exercises a
+      # single case through Rothermel.
+      - name: Run C++ unit tests
+        run: |
+          # The build step above runs under sudo, so build/ is root-owned and
+          # ctest cannot create build/Testing/Temporary as the runner user.
+          sudo chown -R "$(id -u):$(id -g)" build
+          ctest --test-dir build --output-on-failure
 
       - name: Add Build/Runtime Diagnostics
         run: |
