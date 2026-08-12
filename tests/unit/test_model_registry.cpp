@@ -116,30 +116,52 @@ TEST_CASE("an unknown model name is refused rather than fatal") {
     CHECK(flux == 0);
 }
 
-TEST_CASE("a model with no properties can be destroyed") {
-    // Models that register no property never allocate their `properties`
-    // array, so they are the ones that expose whatever the base class leaves
-    // uninitialised: ~ForeFireModel deletes that pointer unconditionally.
-    // Iso is on the default path — it is what tests/python and test_wheel.py
-    // run — so this has to be safe.
+TEST_CASE("every model can be destroyed") {
+    // `properties` is allocated by each model's own constructor with
+    // new double[numProperties] and freed by ~ForeFireModel. Freeing it in a
+    // derived destructor as well is a double free, and this case is what says
+    // so: run it under a build that reintroduces one and it aborts.
     //
-    // Nothing deletes a model in a normal run: FireDomain keeps them in
-    // propModelsTable and fluxModelsTable and never frees either, so the
-    // destructors below are reached only from here. That is also why this case
-    // covers only the property-less models: the ones that do allocate delete
-    // `properties` in their own destructor *and* inherit the base class doing
-    // it again, so destroying them is a double free. See tests/unit/README.md.
+    // Nothing deletes a model in a normal run — FireDomain keeps them in
+    // propModelsTable and fluxModelsTable and never frees either — so these
+    // destructors are reached only from here. That is precisely why the double
+    // free survived: the code that trips it does not otherwise run.
     ModelSandbox sandbox;
 
-    PropagationModel* iso = sandbox.propagation("Iso");
-    REQUIRE(iso != 0);
-    REQUIRE(iso->numProperties == 0);
-    delete iso;
+    const std::vector<std::string>& props = propagationModels();
+    for (size_t i = 0; i < props.size(); i++) {
+        CAPTURE(props[i]);
+        PropagationModel* model = sandbox.propagation(props[i]);
+        REQUIRE(model != 0);
+        delete model;
+    }
 
-    FluxModel* heat = sandbox.flux("heatFluxBasic");
-    REQUIRE(heat != 0);
-    REQUIRE(heat->numProperties == 0);
-    delete heat;
+    const std::vector<std::string>& fluxes = fluxModels();
+    for (size_t i = 0; i < fluxes.size(); i++) {
+        CAPTURE(fluxes[i]);
+        FluxModel* model = sandbox.flux(fluxes[i]);
+        REQUIRE(model != 0);
+        delete model;
+    }
+}
+
+TEST_CASE("destroying a model does not disturb the next one") {
+    // A double free often shows up as the *next* allocation coming back
+    // corrupted rather than as an immediate abort, so allocate across the
+    // destruction and check the new model is intact.
+    ModelSandbox sandbox;
+
+    PropagationModel* first = sandbox.propagation("Rothermel");
+    REQUIRE(first != 0);
+    const std::vector<std::string> wanted = first->wantedProperties;
+    const size_t count = first->numProperties;
+    delete first;
+
+    PropagationModel* second = sandbox.propagation("Rothermel");
+    REQUIRE(second != 0);
+    CHECK(second->numProperties == count);
+    CHECK(second->wantedProperties == wanted);
+    delete second;
 }
 
 TEST_CASE("property registration order is stable within a model") {
