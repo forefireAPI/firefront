@@ -115,6 +115,35 @@ for the right reason.
 
 The `tests/` directory contains other subdirectories (`mnh_*`, `runANN`) for testing specific features like coupled simulations. A main `tests/run.bash` script exists but is not currently fully validated in CI. Refer to specific subdirectories for details if needed.
 
+## Sanitizers
+
+`-DFOREFIRE_SANITIZE=<list>` builds with `-fsanitize=<list>`, applied to the
+compile line, the executables and the shared library. It also switches the
+optimisation flags to `-g -O1 -fno-omit-frame-pointer`, since the default
+release set (`-O3 -flto -fomit-frame-pointer`) makes sanitizer reports hard to
+read.
+
+```bash
+cmake -S . -B build-asan -DFOREFIRE_SANITIZE=address
+cmake --build build-asan -j
+ASAN_OPTIONS=detect_leaks=0 ctest --test-dir build-asan --output-on-failure
+```
+
+`address` is what CI runs, on both the unit suite and `runff`, as a blocking
+check. Other values are passed straight through — `undefined`, or
+`address,undefined` for both — but only `address` is currently verified clean.
+
+**`detect_leaks=0` is deliberate, not a workaround.** ForeFire reports zero
+ASan *errors* — no use-after-free, no overflow, no double free — on either test
+path, which is what makes a blocking job possible. It does leak: nothing owns a
+`PropagationModel` (#159), so every one is reported. Leaving leak detection on
+would produce a permanently failing job that everyone learns to ignore. The CI
+workflow runs the leak check anyway as an informational step, so the number
+stays visible, and it can be made blocking once #159 lands.
+
+Note that the sanitizer build writes `bin/forefire` and `lib/libforefireL.so`
+like any other build, so it replaces a release build in the source tree.
+
 ## Compiler Warnings
 
 ForeFire's own sources compile with `-Wall -Wextra` by default. The warnings
