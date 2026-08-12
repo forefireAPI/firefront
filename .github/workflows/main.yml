@@ -49,7 +49,11 @@ jobs:
       # call at a time, which is what runff below cannot reach: it exercises a
       # single case through Rothermel.
       - name: Run C++ unit tests
-        run: ctest --test-dir build --output-on-failure
+        run: |
+          # The build step above runs under sudo, so build/ is root-owned and
+          # ctest cannot create build/Testing/Temporary as the runner user.
+          sudo chown -R "$(id -u):$(id -g)" build
+          ctest --test-dir build --output-on-failure
 
       - name: Add Build/Runtime Diagnostics
         run: |
