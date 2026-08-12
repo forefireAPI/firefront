@@ -111,6 +111,26 @@ which is the point — it is the failing test the work in #175 has to make pass.
 Wiring it into CI belongs with the last step of that issue, once it can pass
 for the right reason.
 
+## Running the Landscape Generator Test (`test_genforefirecase.py`)
+
+Covers `tools/preprocessing/genForeFireCase.py`, which writes the NetCDF
+landscape file a simulation runs on. It builds a landscape, hands it to
+ForeFire, ignites it and steps, so it exercises the writer and the reader
+together rather than the writer alone. It also pins the field axis order,
+where the 3-D and 4-D paths were previously broken.
+
+**To run it manually**, after installing the Python package as above:
+
+```bash
+./.venv/bin/python tests/python/test_genforefirecase.py
+```
+
+It needs `numpy` and `netCDF4`, writes only into a temporary directory, and
+takes a few seconds. Without a built `pyforefire` the load-and-simulate case
+skips and the rest still run, so it is usable while iterating on the writer.
+
+The test doubles as the worked example for the tool.
+
 ## Other Tests
 
 The `tests/` directory contains other subdirectories (`mnh_*`, `runANN`) for testing specific features like coupled simulations. A main `tests/run.bash` script exists but is not currently fully validated in CI. Refer to specific subdirectories for details if needed.
