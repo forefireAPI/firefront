@@ -31,6 +31,7 @@ if(DEFINED SKBUILD)
     set(_ff_default_static ON)
     set(_ff_default_tools OFF)
     set(_ff_default_lfs OFF)
+    set(_ff_default_tests OFF)
 else()
     set(_ff_wheel_build OFF)
     set(_ff_default_mpi ON)
@@ -39,6 +40,7 @@ else()
     set(_ff_default_static OFF)
     set(_ff_default_tools ON)
     set(_ff_default_lfs ON)
+    set(_ff_default_tests ON)
 endif()
 
 option(FOREFIRE_ENABLE_MPI "Enable MPI coupling when MPI is available" ${_ff_default_mpi})
@@ -47,6 +49,9 @@ option(FOREFIRE_BUILD_PYTHON "Build the pyforefire Python extension module" ${_f
 option(FOREFIRE_STATIC_CORE "Build the ForeFire core as a static library" ${_ff_default_static})
 option(FOREFIRE_BUILD_TOOLS "Build the ANN_test helper executable" ${_ff_default_tools})
 option(FOREFIRE_CHECK_LFS "Run the Git LFS data integrity check at configure time" ${_ff_default_lfs})
+option(FOREFIRE_BUILD_TESTS "Build the C++ unit tests, registered with CTest" ${_ff_default_tests})
+option(FOREFIRE_ENABLE_WARNINGS "Compile ForeFire's own sources with -Wall -Wextra" ON)
+option(FOREFIRE_WARNINGS_AS_ERRORS "Fail the build on a compiler warning" OFF)
 
 # ----------------------------------
 # Set C++ Standard
@@ -154,7 +159,7 @@ if(DEFINED ENV{SRC_MESONH} AND DEFINED ENV{XYZ} AND DEFINED ENV{FF_STATIC})
             message(FATAL_ERROR "Required static library not found: ${lib}")
         endif()
     endforeach()
-    target_include_directories(forefire_netcdf INTERFACE "${NETCDF_HOME}/include")
+    target_include_directories(forefire_netcdf SYSTEM INTERFACE "${NETCDF_HOME}/include")
     target_link_libraries(forefire_netcdf INTERFACE
         ${NETCDF_LIB}
         ${NETCDF_CXX_LIB}
@@ -200,7 +205,9 @@ else()
 
     message(STATUS "NetCDF C:   ${NETCDF_LIBRARY} (headers: ${NETCDF_INCLUDE_DIR})")
     message(STATUS "NetCDF C++: ${NETCDF_CXX_LIBRARY} (headers: ${NETCDF_CXX_INCLUDE_DIR})")
-    target_include_directories(forefire_netcdf INTERFACE ${NETCDF_CXX_INCLUDE_DIR} ${NETCDF_INCLUDE_DIR})
+    # SYSTEM: the NetCDF C++4 headers trip -Wunused-variable, and that is not a
+    # warning anyone here can act on.
+    target_include_directories(forefire_netcdf SYSTEM INTERFACE ${NETCDF_CXX_INCLUDE_DIR} ${NETCDF_INCLUDE_DIR})
     target_link_libraries(forefire_netcdf INTERFACE ${NETCDF_CXX_LIBRARY} ${NETCDF_LIBRARY})
 endif()
 
@@ -219,6 +226,25 @@ else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -flto -fomit-frame-pointer -finline-functions -funroll-loops -ftree-vectorize -fno-strict-aliasing")
     if(FOREFIRE_NATIVE_ARCH)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
+    endif()
+endif()
+
+# Warnings are a target property rather than a global flag on purpose: they
+# should apply to code this project writes, not to pybind11's headers or to
+# whatever a consumer compiles against the installed library.
+set(_ff_warning_flags "")
+if(FOREFIRE_ENABLE_WARNINGS)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
+        list(APPEND _ff_warning_flags -Wall -Wextra)
+    elseif(MSVC)
+        list(APPEND _ff_warning_flags /W4)
+    endif()
+endif()
+if(FOREFIRE_WARNINGS_AS_ERRORS AND _ff_warning_flags)
+    if(MSVC)
+        list(APPEND _ff_warning_flags /WX)
+    else()
+        list(APPEND _ff_warning_flags -Werror)
     endif()
 endif()
 
@@ -262,6 +288,9 @@ target_include_directories(forefireL PUBLIC
 # its consumers the way the shared library does.
 find_package(Threads REQUIRED)
 target_link_libraries(forefireL PUBLIC forefire_netcdf Threads::Threads)
+if(_ff_warning_flags)
+    target_compile_options(forefireL PRIVATE ${_ff_warning_flags})
+endif()
 
 # ----------------------------------
 # Test Executable
@@ -276,6 +305,17 @@ endif()
 # ----------------------------------
 add_executable(forefire app/forefire/ForeFire.cpp app/forefire/AdvancedLineEditor.cpp)
 target_link_libraries(forefire PRIVATE forefireL)
+if(_ff_warning_flags)
+    target_compile_options(forefire PRIVATE ${_ff_warning_flags})
+endif()
+
+# ----------------------------------
+# Unit Tests
+# ----------------------------------
+if(FOREFIRE_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests/unit)
+endif()
 
 # ----------------------------------
 # Python Extension Module
