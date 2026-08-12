@@ -12,8 +12,52 @@ history, so they summarise each release rather than list every change. The
 
 ## [Unreleased]
 
-Merged since v2.5.0. Work still on the `dev` branch is listed in that branch's
-copy of this file.
+Merged since v2.5.0, not yet released.
+
+### Added
+
+- C++ unit tests covering every propagation and flux model, built by default
+  and registered with CTest. They exercise the models one call at a time,
+  which the `runff` regression test cannot reach. ([#156])
+- A dead fuel moisture invariant suite (`tests/python/test_moisture_invariants.py`)
+  and the `invariants.yml` workflow that runs it. Unlike `runff` it holds no
+  reference data: every assertion follows from the published spread equations,
+  so it stays valid across recalibration. ([#158])
+- A blocking AddressSanitizer job, and `-DFOREFIRE_SANITIZE=<list>` to build
+  with `-fsanitize=<list>` on the compile line, the executables and the shared
+  library. ([#180])
+- Characterisation tests pinning the HTTP command server's current behaviour.
+  ([#174])
+- A concurrency stress test for free-threaded CPython
+  (`tests/python/test_threading.py`). It does not pass yet: it is the failing
+  test for the shared-state work in [#175]. ([#176])
+- `-Wall -Wextra` on ForeFire's own sources, with `FOREFIRE_ENABLE_WARNINGS`
+  and `FOREFIRE_WARNINGS_AS_ERRORS` to control them. NetCDF's headers are
+  included as system headers so their warnings do not appear. ([#156])
+- `FOREFIRE_BUILD_TESTS` (default on outside wheel builds) to build the unit
+  tests. ([#156])
+- `TESTING.md` now documents every suite, how to run it, and which ones CI
+  validates.
+
+### Fixed
+
+- Rate of spread stayed finite and decreasing at high dead fuel moisture, and
+  `DataBroker` no longer serves `moisture` through the five-slot getter, which
+  returned a neighbouring property. ([#158])
+- The model properties array was freed twice on destruction. ([#157])
+- `~ForeFireModel` freed an uninitialised pointer when construction had not
+  reached the allocation. ([#156])
+- `runANN` had failed on its second line since it was committed: it diffed
+  against `result.txt.ref`, a file that is not in the repository. It now checks
+  the root mean squared error that `ANN_test` already computes, which does not
+  depend on the last digit of a machine-specific reference, and it runs in CI.
+  ([#183])
+- The `ForeFireAtom` instance counter is now atomic and the `SimulationParameters`
+  singleton is initialised safely, so two threads no longer race for ids or
+  construct the singleton twice. ([#177])
+- `StringRepresentation` kept its output buffer, current level and GeoJSON
+  cursor in file-scope globals shared by every instance. They are now members.
+  ([#178])
 
 ### Changed
 
@@ -135,3 +179,13 @@ repository stays easy to return to.
 [#152]: https://github.com/forefireAPI/forefire/pull/152
 [#154]: https://github.com/forefireAPI/forefire/pull/154
 [#155]: https://github.com/forefireAPI/forefire/pull/155
+[#156]: https://github.com/forefireAPI/forefire/pull/156
+[#157]: https://github.com/forefireAPI/forefire/pull/157
+[#158]: https://github.com/forefireAPI/forefire/pull/158
+[#174]: https://github.com/forefireAPI/forefire/pull/174
+[#175]: https://github.com/forefireAPI/forefire/issues/175
+[#176]: https://github.com/forefireAPI/forefire/pull/176
+[#177]: https://github.com/forefireAPI/forefire/pull/177
+[#178]: https://github.com/forefireAPI/forefire/pull/178
+[#180]: https://github.com/forefireAPI/forefire/pull/180
+[#183]: https://github.com/forefireAPI/forefire/pull/183
