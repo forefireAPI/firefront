@@ -27,7 +27,7 @@
  //  On fait plus de chaines....
  
 	 // Static variables
-	 long ForeFireAtom::instanceNRCount = 0;
+	 std::atomic<long> ForeFireAtom::instanceNRCount{0};
  
 	 const double FireDomain::endChain = -1.;
 	 const double FireDomain::endCom = -10.;
