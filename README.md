@@ -10,6 +10,7 @@
 <!-- Project Health & Status -->
 [![linuxCI](https://github.com/forefireAPI/forefire/actions/workflows/main.yml/badge.svg)](https://github.com/forefireAPI/forefire/actions/workflows/main.yml)
 [![macOSCI](https://github.com/forefireAPI/forefire/actions/workflows/macos.yml/badge.svg)](https://github.com/forefireAPI/forefire/actions/workflows/macos.yml)
+[![Model Invariants](https://github.com/forefireAPI/forefire/actions/workflows/invariants.yml/badge.svg)](https://github.com/forefireAPI/forefire/actions/workflows/invariants.yml)
 [![Docker CI/CD](https://github.com/forefireAPI/forefire/actions/workflows/docker.yml/badge.svg)](https://github.com/forefireAPI/forefire/actions/workflows/docker.yml)
 [![Documentation Status](https://readthedocs.org/projects/forefire/badge/?version=latest)](https://forefire.readthedocs.io/en/latest/?badge=latest)
 <!-- Distribution and Technical Stack -->

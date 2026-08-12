@@ -48,9 +48,44 @@ The `ff-run.bash` script:
 3.  Uses Python scripts (`compare_kml.py`, `compare_nc.py`) to compare the generated KML and NetCDF files against reference files (`*.ref`) with numerical tolerance, accounting for minor floating-point variations.
 4.  Exits with status 0 on success, non-zero on failure.
 
+## Running the Model Invariants (`test_moisture_invariants.py`)
+
+The second test validated in CI, by the `invariants.yml` workflow. Where
+`runff` compares ForeFire against frozen ForeFire output — and so cannot tell a
+physics fix from a physics regression — this suite holds no reference data.
+Every assertion follows from the published spread equations, so it stays valid
+across recalibration.
+
+It asserts, for each propagation model that consumes dead fuel moisture, that
+the rate of spread stays finite for any moisture, decreases as moisture rises,
+reaches zero at the moisture of extinction, responds to a dynamic
+dead-moisture layer, and that `DataBroker` resolves every property the model
+registers.
+
+**To run it manually:**
+
+1.  Install the Python package, which builds the `pyforefire` extension:
+    ```bash
+    python3 -m venv .venv
+    ./.venv/bin/python -m pip install .
+    ```
+2.  Run the suite (add `-v` to print every probe's spread rate):
+    ```bash
+    ./.venv/bin/python tests/python/test_moisture_invariants.py
+    ```
+
+Restrict it while iterating with `--model NAME` and `--test NAME`, both
+repeatable. It needs no fixtures — fuel, wind, temperature and moisture layers
+are built in memory — and takes well under a minute.
+
+Note that each probe runs in its own interpreter. The C++ core keeps mutable
+global state, so a second `ForeFire()` in one process inherits the first one's
+parameters and a parameter sweep silently returns one identical result. Keep
+that in mind when writing any new Python test that varies parameters.
+
 ## Other Tests
 
-The `tests/` directory contains other subdirectories (`mnh_*`, `python`, `runANN`) for potentially testing specific features like coupled simulations or Python bindings. A main `tests/run.bash` script exists but is not currently fully validated in CI. Refer to specific subdirectories for details if needed.
+The `tests/` directory contains other subdirectories (`mnh_*`, `runANN`) for testing specific features like coupled simulations. A main `tests/run.bash` script exists but is not currently fully validated in CI. Refer to specific subdirectories for details if needed.
 
 ## Compiler Warnings
 

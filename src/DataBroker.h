@@ -146,6 +146,8 @@ class DataBroker {
 	static int getDummy(FireNode*, PropagationModel*, int);
 	/*! \brief predefined function for getting the fuel parameters at firenode location */
 	static int getFuelProperties(FireNode*, PropagationModel*, int);
+	/*! \brief constant moisture used when no moisture layer is loaded */
+	static double fallbackMoisture();
 	/*! \brief predefined function for getting the moisture at firenode location */
 
 	static int getMoisturesProperties(FireNode *, PropagationModel *, int );
