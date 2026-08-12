@@ -96,11 +96,13 @@ Merged since v2.5.0, not yet released.
 
 ### Added
 
-- **Pip-installable wheels** for Linux (x86_64, aarch64) and macOS (Apple
-  Silicon and Intel), CPython 3.9 and newer. `pip install forefire` gives both
-  the `forefire` command-line interpreter and the `pyforefire` module, with
-  NetCDF bundled inside the wheel. Wheels are built without MPI and without
-  `-march=native`. ([#151])
+- **Pip-installable wheels** for Linux (x86_64, aarch64) and macOS on Apple
+  Silicon, CPython 3.9 and newer. `pip install forefire` gives both the
+  `forefire` command-line interpreter and the `pyforefire` module, with NetCDF
+  bundled inside the wheel. Wheels are built without MPI and without
+  `-march=native`. There is no Intel macOS wheel — the `macos-13` runner was
+  retired before the release, so Intel Macs build from the source
+  distribution. ([#151])
 
 ### Changed
 
