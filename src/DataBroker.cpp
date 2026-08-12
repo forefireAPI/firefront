@@ -147,7 +147,16 @@ namespace libforefire
 					}
 				}
 				else
-				if ((model->wantedProperties)[prop].substr(0, 5) == "moist")
+				// Only the "moist." group, i.e. the five NFDRS-style dead and
+				// live moistures FarsitePropagationModel registers as
+				// moist.ones / moist.tens / moist.hundreds / moist.liveh /
+				// moist.livew. getMoisturesProperties fills five slots, so it
+				// is only correct for a model that reserved five of them.
+				// The shorter prefix "moist" also caught the singular
+				// "moisture", which reserves one slot, so every property a
+				// model registered after it was written four slots too late
+				// -- and the last four ran off the end of the array.
+				if ((model->wantedProperties)[prop].substr(0, 6) == "moist.")
 				{
 					if (!moistAsked)
 					{
@@ -818,9 +827,33 @@ namespace libforefire
 		return 5;
 	}
 
+	/*! \brief moisture to use when a model asks for it but no layer supplies it
+
+	 * Returns the moistures.ones parameter, which is the value such a model
+	 * received before the "moist" prefix fix, so no simulation silently
+	 * changes its numbers. Warns once, because a model that wants a moisture
+	 * field and is given a constant is almost certainly misconfigured.
+	 */
+	double DataBroker::fallbackMoisture()
+	{
+		static bool warned = false;
+		double m = params->isValued("moistures.ones")
+					   ? params->getDouble("moistures.ones")
+					   : 0.032;
+		if (!warned)
+		{
+			warned = true;
+			cout << "WARNING: a model requires the 'moisture' property but no "
+					"moisture layer was loaded; falling back to the constant "
+					"moistures.ones = " << m << endl;
+		}
+		return m;
+	}
+
 	int DataBroker::getMoisture(FireNode *fn, PropagationModel *model, int keynum)
 	{
-		(model->properties)[keynum] = moistureLayer->getValueAt(fn);
+		(model->properties)[keynum] =
+			moistureLayer ? moistureLayer->getValueAt(fn) : fallbackMoisture();
 		return 1;
 	}
 
@@ -933,7 +966,8 @@ namespace libforefire
 	int DataBroker::getMoisture(FFPoint loc, const double &t, FluxModel *model,
 								int keynum)
 	{
-		(model->properties)[keynum] = moistureLayer->getValueAt(loc, t);
+		(model->properties)[keynum] =
+			moistureLayer ? moistureLayer->getValueAt(loc, t) : fallbackMoisture();
 		return 1;
 	}
 

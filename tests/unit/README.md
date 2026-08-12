@@ -74,29 +74,26 @@ do not trip it. A pin moving means the model changed; that may well be
 intended, but it should be a decision rather than a surprise. The pins carry
 no claim of matching published values.
 
-## Things found while writing these, and not fixed here
-
-Two of them are why `test_model_registry.cpp` only destroys the models that
-register no properties.
+## Things found while writing these
 
 **Models are never destroyed in a normal run.** `FireDomain` keeps them in
 `propModelsTable` and `fluxModelsTable` and frees neither, so every model a
-simulation instantiates is leaked. That is why the two problems below have
-never been observed: the code that would trip them does not run.
+simulation instantiates is leaked. That is why the two memory bugs below went
+unnoticed for so long: the code that trips them does not otherwise run. Still
+open.
 
-**The `properties` array is deleted twice.** Seventeen flux models and two
-propagation models delete `properties` in their own destructor, and
-`~ForeFireModel` deletes it again. Most of them also use scalar `delete` on an
-array allocated with `new[]`. So destroying any model that registers at least
-one property is a double free. Fixing it means removing the `delete` from each
-derived destructor and leaving it to the base class — nineteen files, worth
-doing as its own change.
+**The `properties` array was deleted twice** — fixed, along with the test that
+holds it fixed. Sixteen flux models and two propagation models deleted
+`properties` in their own destructor while `~ForeFireModel` deleted it again,
+and the flux ones used scalar `delete` on an array allocated with `new[]`. It is
+allocated by each model's constructor and freed by the base class, so the
+derived deletes are simply gone. `every model can be destroyed` covers all 33
+models; reintroduce one delete and it aborts with `double free or corruption`.
 
-`~ForeFireModel` itself was fixed while writing these tests: it left
-`properties` uninitialised, so destroying a model that registers *no*
-properties — `Iso`, `heatFluxBasic` — deleted whatever the member happened to
-be built over. It also deleted `fuelPropertiesTable`, allocated with a scalar
-`new`, with `delete[]`.
+`~ForeFireModel` itself left `properties` uninitialised, so destroying a model
+that registers *no* properties — `Iso`, `heatFluxBasic` — deleted whatever the
+member happened to be built over. It also freed `fuelPropertiesTable`, allocated
+with a scalar `new`, using `delete[]`. Both fixed.
 
 **`BalbiNov2011` responds non-physically to live fuel moisture at the values
 in the shipped fuel table.** `xsi` exceeds 1 for fuel 1 of
