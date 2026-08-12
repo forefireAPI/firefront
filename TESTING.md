@@ -83,6 +83,34 @@ global state, so a second `ForeFire()` in one process inherits the first one's
 parameters and a parameter sweep silently returns one identical result. Keep
 that in mind when writing any new Python test that varies parameters.
 
+## Running the Concurrency Stress Test (`test_threading.py`)
+
+Not run in CI, deliberately. On an ordinary interpreter the GIL serialises
+every call into the extension, so the test skips and would report a green
+result that proves nothing. It is a reproduction tool, run by hand when
+working on the shared-state problem in
+[#175](https://github.com/forefireAPI/forefire/issues/175).
+
+It runs eight simulations in threads and requires each to reproduce the fire
+node count it produces when run alone, plus a case that hammers object
+construction to exercise the shared id counter.
+
+**To run it**, you need a free-threaded build of CPython (`python3.14t` or
+later) and `PYTHON_GIL=0`. The variable is required: `_pyforefire` does not
+declare `py::mod_gil_not_used()`, so importing it switches the GIL back on and
+the test skips.
+
+```bash
+python3.14t -m venv .venv
+./.venv/bin/python -m pip install .
+PYTHON_GIL=0 ./.venv/bin/python tests/python/test_threading.py
+```
+
+**It does not pass today.** On `dev` it segfaults or returns wrong node counts,
+which is the point — it is the failing test the work in #175 has to make pass.
+Wiring it into CI belongs with the last step of that issue, once it can pass
+for the right reason.
+
 ## Other Tests
 
 The `tests/` directory contains other subdirectories (`mnh_*`, `runANN`) for testing specific features like coupled simulations. A main `tests/run.bash` script exists but is not currently fully validated in CI. Refer to specific subdirectories for details if needed.
