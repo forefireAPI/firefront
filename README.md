@@ -70,6 +70,11 @@ ff.execute("step[dt=1000]")
 print(ff.execute("print[]"))
 ```
 
+You can drive a whole simulation from NumPy arrays — a fuel map and a wind
+field, no NetCDF and no GIS — using `addIndexLayer` and `addScalarLayer`. See
+[Running from NumPy arrays](https://forefire.readthedocs.io/en/latest/user_guide/python_arrays.html)
+for a complete example.
+
 Published wheels are built without MPI support. For fire-atmosphere coupling
 with MesoNH, or to tune the build for your CPU, build from source instead
 (see [Build from source](#build-from-source)).
