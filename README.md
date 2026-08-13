@@ -26,6 +26,8 @@
 - 📚 **Full Documentation:** [forefire.readthedocs.io](https://forefire.readthedocs.io/en/latest/)
 - 🚀 **Live Demo:** [forefire.univ-corse.fr/sim](http://forefire.univ-corse.fr/sim)
 - 🌍 **Website:** [forefire.univ-corse.fr](https://forefire.univ-corse.fr/)
+- 📝 **Changelog:** [CHANGELOG.md](CHANGELOG.md) — what each release changed
+- 🧪 **Testing:** [TESTING.md](TESTING.md) — how to run each test suite
 
 ## Features
 
@@ -157,9 +159,15 @@ The CMake build is option-driven. The defaults below are what a plain
 | `FOREFIRE_STATIC_CORE` | `OFF` | Build the core as a static library instead of `libforefireL`. |
 | `FOREFIRE_BUILD_TOOLS` | `ON` | Build the `ANN_test` helper executable. |
 | `FOREFIRE_CHECK_LFS` | `ON` | Run the Git LFS integrity check while configuring. |
+| `FOREFIRE_BUILD_TESTS` | `ON` | Build the C++ unit tests and register them with CTest. |
+| `FOREFIRE_ENABLE_WARNINGS` | `ON` | Compile ForeFire's own sources with `-Wall -Wextra`. |
+| `FOREFIRE_WARNINGS_AS_ERRORS` | `OFF` | Fail the build on any compiler warning. Not yet usable repository-wide. |
+| `FOREFIRE_SANITIZE` | `""` | Sanitizers to build with, passed to `-fsanitize=` (e.g. `address`). |
 
 Wheel builds (anything driven by `pip`) flip these to the portable defaults:
-no MPI, no `-march=native`, static core, Python module on.
+no MPI, no `-march=native`, static core, Python module on, no tools, no tests.
+
+`TESTING.md` covers the test suites and the sanitizer build in detail.
 
 ## Python Bindings
 ForeFire provides Python bindings for easier scripting and integration:
