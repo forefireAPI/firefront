@@ -157,6 +157,16 @@ real spread of rates of spread would make this a much stronger check.
 `tests/python/` when `PYTHONEXE` is set. It is not itself invoked by CI, which
 runs the suites individually.
 
+`tests/python/test_validate.py` covers the `forefire-validate` landscape
+checker. It loads the checker straight from source and exercises its pure
+decision logic, so it needs neither the compiled `_pyforefire` extension nor
+`netCDF4`; the one test that reads a real `.nc` is skipped when `netCDF4` is
+absent. `run.bash` runs it after the examples.
+
+```bash
+python3 tests/python/test_validate.py
+```
+
 `tests/python/` also holds `idealizedwind.py`, `farsite_flat.py` and
 `percolation.py`. They are examples rather than tests — they produce plots and
 assert nothing — and are not run anywhere. They are the closest thing to
