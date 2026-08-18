@@ -150,6 +150,26 @@ spanning 1.1 in 12412, which is why the gap between a working network and a
 constant one is so narrow. Replacing `modelrun.csv` with inputs that produce a
 real spread of rates of spread would make this a much stronger check.
 
+## Running the Landscape Generator Test (`test_genforefirecase.py`)
+
+Covers `tools/preprocessing/genForeFireCase.py`, which writes the NetCDF
+landscape file a simulation runs on. It builds a landscape, hands it to
+ForeFire, ignites it and steps, so it exercises the writer and the reader
+together rather than the writer alone. It also pins the field axis order,
+where the 3-D and 4-D paths were previously broken.
+
+**To run it manually**, after installing the Python package as above:
+
+```bash
+./.venv/bin/python tests/python/test_genforefirecase.py
+```
+
+It needs `numpy` and `netCDF4`, writes only into a temporary directory, and
+takes a few seconds. Without a built `pyforefire` the load-and-simulate case
+skips and the rest still run, so it is usable while iterating on the writer.
+
+The test doubles as the worked example for the tool.
+
 ## Other Tests
 
 `tests/run.bash` runs every suite that its environment allows: `runff` and
