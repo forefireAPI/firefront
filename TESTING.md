@@ -32,7 +32,7 @@ They need no Python and no test data. Configure with
 
 ## Running the Core Test (`runff`)
 
-The primary automated test, validated in our CI pipeline, is located in `tests/runff/`. This test verifies core simulation, save/reload functionality, and NetCDF/KML output generation against reference files.
+The primary physics regression test, validated in CI by `main.yml` and `macos.yml`, is located in `tests/runff/`. This test verifies core simulation, save/reload functionality, and NetCDF/KML output generation against reference files.
 
 **To run this test manually:**
 
@@ -111,6 +111,45 @@ which is the point — it is the failing test the work in #175 has to make pass.
 Wiring it into CI belongs with the last step of that issue, once it can pass
 for the right reason.
 
+## Running the ANN Test (`runANN`)
+
+Validated in CI by `main.yml`. It is the only coverage for
+`ANNPropagationModel` and `BMapLoggerForANNTraining`: both read a `.ffann`
+network in their constructor and abort without one, so the C++ unit suite
+cannot construct them.
+
+It runs the trained network in `Rothermel.ffann` over the 1424 inputs in
+`modelrun.csv` and checks the root mean squared error against what the
+propagation model produced.
+
+**To run it manually**, after building (`ANN_test` needs
+`-DFOREFIRE_BUILD_TOOLS=ON`, which is the default outside wheel builds):
+
+```bash
+cd tests/runANN
+bash run.bash
+```
+
+Add `print` to `ANN_test` for a per-input dump:
+
+```bash
+../../bin/ANN_test Rothermel.ffann modelrun.csv print
+```
+
+The tolerance is calibrated between a working network and a useless one:
+
+| | RMSE |
+| --- | --- |
+| trained network | 0.0235 |
+| predicting the mean of every output | 0.0966 |
+| normalisation weights scaled by 1% | 17817 |
+| **tolerance** | **0.05** |
+
+Note the fixture is weak: the expected outputs take four distinct values
+spanning 1.1 in 12412, which is why the gap between a working network and a
+constant one is so narrow. Replacing `modelrun.csv` with inputs that produce a
+real spread of rates of spread would make this a much stronger check.
+
 ## Running the Landscape Generator Test (`test_genforefirecase.py`)
 
 Covers `tools/preprocessing/genForeFireCase.py`, which writes the NetCDF
@@ -133,7 +172,54 @@ The test doubles as the worked example for the tool.
 
 ## Other Tests
 
-The `tests/` directory contains other subdirectories (`mnh_*`, `runANN`) for testing specific features like coupled simulations. A main `tests/run.bash` script exists but is not currently fully validated in CI. Refer to specific subdirectories for details if needed.
+`tests/run.bash` runs every suite that its environment allows: `runff` and
+`runANN` always, the `mnh_*` coupled cases when `SRC_MESONH` is set, and
+`tests/python/` when `PYTHONEXE` is set. It is not itself invoked by CI, which
+runs the suites individually.
+
+`tests/python/test_validate.py` covers the `forefire-validate` landscape
+checker. It loads the checker straight from source and exercises its pure
+decision logic, so it needs neither the compiled `_pyforefire` extension nor
+`netCDF4`; the one test that reads a real `.nc` is skipped when `netCDF4` is
+absent. `run.bash` runs it after the examples.
+
+```bash
+python3 tests/python/test_validate.py
+```
+
+`tests/python/` also holds `idealizedwind.py`, `farsite_flat.py` and
+`percolation.py`. They are examples rather than tests — they produce plots and
+assert nothing — and are not run anywhere. They are the closest thing to
+worked examples in the repository, so keeping them executable is worthwhile.
+
+## Sanitizers
+
+`-DFOREFIRE_SANITIZE=<list>` builds with `-fsanitize=<list>`, applied to the
+compile line, the executables and the shared library. It also switches the
+optimisation flags to `-g -O1 -fno-omit-frame-pointer`, since the default
+release set (`-O3 -flto -fomit-frame-pointer`) makes sanitizer reports hard to
+read.
+
+```bash
+cmake -S . -B build-asan -DFOREFIRE_SANITIZE=address
+cmake --build build-asan -j
+ASAN_OPTIONS=detect_leaks=0 ctest --test-dir build-asan --output-on-failure
+```
+
+`address` is what CI runs, on both the unit suite and `runff`, as a blocking
+check. Other values are passed straight through — `undefined`, or
+`address,undefined` for both — but only `address` is currently verified clean.
+
+**`detect_leaks=0` is deliberate, not a workaround.** ForeFire reports zero
+ASan *errors* — no use-after-free, no overflow, no double free — on either test
+path, which is what makes a blocking job possible. It does leak: nothing owns a
+`PropagationModel` (#159), so every one is reported. Leaving leak detection on
+would produce a permanently failing job that everyone learns to ignore. The CI
+workflow runs the leak check anyway as an informational step, so the number
+stays visible, and it can be made blocking once #159 lands.
+
+Note that the sanitizer build writes `bin/forefire` and `lib/libforefireL.so`
+like any other build, so it replaces a release build in the source tree.
 
 ## Compiler Warnings
 
