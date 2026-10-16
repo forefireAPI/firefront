@@ -44,6 +44,7 @@ else()
 endif()
 
 option(FOREFIRE_ENABLE_MPI "Enable MPI coupling when MPI is available" ${_ff_default_mpi})
+option(FOREFIRE_ENABLE_NETCDF "Build the NetCDF-backed I/O paths" ON)
 option(FOREFIRE_NATIVE_ARCH "Optimise for the build machine's CPU (-march=native)" ${_ff_default_native})
 option(FOREFIRE_BUILD_PYTHON "Build the pyforefire Python extension module" ${_ff_default_python})
 option(FOREFIRE_STATIC_CORE "Build the ForeFire core as a static library" ${_ff_default_static})
@@ -137,7 +138,12 @@ endif()
 # detection logic below lives in exactly one place.
 add_library(forefire_netcdf INTERFACE)
 
-if(DEFINED ENV{SRC_MESONH} AND DEFINED ENV{XYZ} AND DEFINED ENV{FF_STATIC})
+if(NOT FOREFIRE_ENABLE_NETCDF)
+    # FF_NO_NETCDF compiles out every NetCDF-backed path; each entry point keeps
+    # a stub that reports the missing support (see DataBroker.h).
+    message(STATUS "NetCDF support disabled (FOREFIRE_ENABLE_NETCDF=OFF)")
+    target_compile_definitions(forefire_netcdf INTERFACE FF_NO_NETCDF)
+elseif(DEFINED ENV{SRC_MESONH} AND DEFINED ENV{XYZ} AND DEFINED ENV{FF_STATIC})
     message(STATUS "MESONH and XYZ environment variables are set. FF_STATIC too, static NetCDF.")
     set(MESONH $ENV{SRC_MESONH})
     set(XYZ $ENV{XYZ})
