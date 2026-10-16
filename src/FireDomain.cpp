@@ -836,6 +836,7 @@
 					 FuelDataLayer<double>* newlayer = new FuelDataLayer<double>(name,	origin, t0, span, timespan, nnx, nny, nnz, nnk,				values);
 				 
 					 dataBroker->registerLayer(name, newlayer);
+					 return true;
 			 }
  
 			 return false;
