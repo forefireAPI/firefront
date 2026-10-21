@@ -25,10 +25,11 @@ namespace libforefire{
 class EventCommand: public ForeFireAtom {
 
 	string schedueledCommand;
+	bool remote; // scheduled by a command received over HTTP
 
 public:
 	/*! \brief Default constructor */
-	EventCommand() : ForeFireAtom(0.) {};
+	EventCommand() : ForeFireAtom(0.), remote(false) {};
 	/*! \brief standard constructor */
 	EventCommand( string, double ) ;
 	/*! \brief Default destructor */

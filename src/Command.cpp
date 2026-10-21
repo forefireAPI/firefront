@@ -29,6 +29,7 @@ namespace libforefire
     double Command::endTime = 0;
 
     bool Command::firstCommand = true;
+    thread_local bool Command::remoteCommand = false;
     size_t Command::refTabs = 0;
 
     FFPoint *Command::lastReadLoc = 0;
@@ -1184,6 +1185,13 @@ namespace libforefire
     }
     int Command::systemExec(const string &arg, size_t &numTabs)
     {
+        // No shell commands from the network, even through include[] or @t=.
+        if (remoteCommand)
+        {
+            cout << "systemExec is not available over HTTP" << endl;
+            return error;
+        }
+
         SimulationParameters *simParam = SimulationParameters::GetInstance();
         string finalStr;
 
@@ -3368,16 +3376,14 @@ namespace libforefire
     std::string Command::executeCommandAndCaptureOutput(const std::string &cmd)
     {
         // 'cmd' is assumed to be the command text after the "ff:" prefix.
-        // No shell commands from the network: same name parsing as ExecuteCommand.
-        if (removeTabs(cmd.substr(0, cmd.find('['))) == "systemExec")
-            return "systemExec is not available over HTTP\n";
-
         std::streambuf *oldbuf = std::cout.rdbuf();
         std::ostringstream captured;
         std::cout.rdbuf(captured.rdbuf());
         std::string fireCommand = cmd;
         // Execute the command. (Assuming ExecuteCommand is defined elsewhere.)
+        remoteCommand = true;
         ExecuteCommand(fireCommand);
+        remoteCommand = false;
 
         std::cout.rdbuf(oldbuf);
         return captured.str();
