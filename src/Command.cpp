@@ -30,6 +30,7 @@ namespace libforefire
 
     bool Command::firstCommand = true;
     bool Command::quitAsked = false;
+    thread_local bool Command::remoteCommand = false;
     size_t Command::refTabs = 0;
 
     FFPoint *Command::lastReadLoc = 0;
@@ -1186,6 +1187,13 @@ namespace libforefire
     }
     int Command::systemExec(const string &arg, size_t &numTabs)
     {
+        // No shell commands from the network, even through include[] or @t=.
+        if (remoteCommand)
+        {
+            cout << "systemExec is not available over HTTP" << endl;
+            return error;
+        }
+
         SimulationParameters *simParam = SimulationParameters::GetInstance();
         string finalStr;
 
@@ -3400,14 +3408,16 @@ namespace libforefire
     std::string Command::executeCommandAndCaptureOutput(const std::string &cmd)
     {
         // 'cmd' is assumed to be the command text after the "ff:" prefix.
-        std::streambuf *oldbuf = std::cout.rdbuf();
         std::ostringstream captured;
-        std::cout.rdbuf(captured.rdbuf());
+        // Restore cout even if the command throws.
+        struct CoutRedirect {
+            std::streambuf *old;
+            explicit CoutRedirect(std::streambuf *buf) : old(std::cout.rdbuf(buf)) {}
+            ~CoutRedirect() { std::cout.rdbuf(old); }
+        } redirect(captured.rdbuf());
+        RemoteCommandScope remote(true);
         std::string fireCommand = cmd;
-        // Execute the command. (Assuming ExecuteCommand is defined elsewhere.)
         ExecuteCommand(fireCommand);
-
-        std::cout.rdbuf(oldbuf);
         return captured.str();
     }
   
@@ -3439,14 +3449,13 @@ namespace libforefire
             }
         }
 
-        char hostname[256];
-        if (gethostname(hostname, sizeof(hostname)) != 0)
-        {
-            cout << "Cannot get hostname info " << endl;
-            return error;
-        }
-
-        std::string address = arg.empty() ? std::string(hostname) + ":" + std::to_string(port) : arg;
+        // Local only by default; listenHTTP[0.0.0.0:8000] to open it to the network.
+        std::string address = arg.empty() ? defaultHostname + ":" + std::to_string(port) : arg;
+        if (address.compare(0, 5, "host=") == 0)
+            address = address.substr(5);
+        // listenHTTP[:8000] means localhost too.
+        if (!address.empty() && address[0] == ':')
+            address = defaultHostname + address;
 
         // Allocate a new HTTP server if none exists.
         if (currentSession.server == 0)
@@ -3463,10 +3472,15 @@ namespace libforefire
         }
         else
         {
+            // Other nodes need the machine name, not the wildcard address.
+            std::string connectAddress = address;
+            char hostname[256];
+            if (address.compare(0, 8, "0.0.0.0:") == 0 && gethostname(hostname, sizeof(hostname)) == 0)
+                connectAddress = std::string(hostname) + address.substr(7);
             std::ofstream infoFile("httpConnectInfo.txt");
             if (infoFile)
             {
-                infoFile << hostname << ":" << port << std::endl;
+                infoFile << connectAddress << std::endl;
                 infoFile.close();
             }
             else

@@ -250,6 +250,15 @@ public:
 	static bool quitRequested();
 	/*! \brief forgets a pending quit request */
 	static void clearQuitRequest();
+	// True while running a command received over HTTP (or scheduled by one)
+	static thread_local bool remoteCommand;
+
+	// Sets remoteCommand for a scope and restores the previous value, even on exceptions
+	struct RemoteCommandScope {
+		bool previous;
+		explicit RemoteCommandScope(bool remote) : previous(remoteCommand) { remoteCommand = remote; }
+		~RemoteCommandScope() { remoteCommand = previous; }
+	};
 
 	// Reference time
 	static double refTime;

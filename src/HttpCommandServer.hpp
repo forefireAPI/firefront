@@ -17,6 +17,7 @@
 #include <iostream>
 #include <fstream>
 #include <cstring>
+#include <cctype>
 #include <sys/stat.h>
 #include <dirent.h>
 
@@ -24,6 +25,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <netdb.h>
 #include <unistd.h>
 
 namespace http_command {
@@ -48,6 +50,20 @@ namespace http_command {
                 return false;
             }
             int port = std::stoi(address.substr(colon + 1));
+            std::string host = address.substr(0, colon);
+
+            // Bind to the requested host only (0.0.0.0 for all interfaces).
+            addrinfo hints;
+            std::memset(&hints, 0, sizeof(hints));
+            hints.ai_family = AF_INET;
+            hints.ai_socktype = SOCK_STREAM;
+            addrinfo *resolved = nullptr;
+            if (getaddrinfo(host.c_str(), nullptr, &hints, &resolved) != 0 || resolved == nullptr) {
+                std::cerr << "Cannot resolve host " << host << std::endl;
+                return false;
+            }
+            in_addr bindAddr = reinterpret_cast<sockaddr_in*>(resolved->ai_addr)->sin_addr;
+            freeaddrinfo(resolved);
 
             server_fd = socket(AF_INET, SOCK_STREAM, 0);
             if (server_fd < 0) {
@@ -60,23 +76,36 @@ namespace http_command {
             sockaddr_in addr;
             std::memset(&addr, 0, sizeof(addr));
             addr.sin_family = AF_INET;
-            addr.sin_addr.s_addr = INADDR_ANY;
+            addr.sin_addr = bindAddr;
             addr.sin_port = htons(port);
             if (::bind(server_fd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0) {
                 perror("bind");
+                close(server_fd);
+                server_fd = -1;
                 return false;
             }
             if (::listen(server_fd, 10) < 0) {
                 perror("listen");
+                close(server_fd);
+                server_fd = -1;
                 return false;
             }
+            loopbackOnly = (ntohl(bindAddr.s_addr) >> 24) == 127;
             running = true;
             server_thread = std::thread(&HttpCommandServer::acceptLoop, this);
             std::cout 
                 << "\033[35m"   // start color
-                << "ForeFire HTTP command server listening at http://localhost:" << port
+                << "ForeFire HTTP command server listening at http://" << host << ":" << port
                 << "\033[0m"
                 << std::endl;
+
+            if (!loopbackOnly) {
+                std::cout
+                    << "\033[31m"   // start red
+                    << "WARNING: development server, reachable from the network. Anyone who can reach this port can run ForeFire commands. Use listenHTTP[localhost:" << port << "] unless you need remote access."
+                    << "\033[0m"
+                    << std::endl;
+            }
 
             std::cout
                 << "\033[33m"   // start yellow
@@ -137,6 +166,13 @@ namespace http_command {
             std::string method, uri, version;
             requestStream >> method >> uri >> version;
 
+            if (!allowedHost(request)) {
+                std::string refused = buildSimpleResponse("403 Forbidden", "Forbidden request");
+                ssize_t refused_written = write(client_fd, refused.data(), refused.size());
+                (void)refused_written;
+                return;
+            }
+
             std::string complete_response;
             // Handle POST requests: look for an ff: command in the body.
             if (method == "POST") {
@@ -146,9 +182,7 @@ namespace http_command {
                     body = request.substr(pos + 4);
                 }
                 if (body.size() > 3 && (body.substr(0, 3) == "ff:" || body.substr(0, 3) == "FF:")) {
-                    std::string fireCommand = body.substr(3);
-                    std::string result = callback(fireCommand);
-                    complete_response = buildResponse("200 OK", "text/plain; charset=UTF-8", result);
+                    complete_response = runCommand(request, body.substr(3));
                 } else {
                     complete_response = serveFileOrDirectory(uri);
                 }
@@ -156,15 +190,63 @@ namespace http_command {
             // Handle GET requests.
             else {
                 if (uri.size() > 4 && (uri.substr(0, 4) == "/ff:" || uri.substr(0, 4) == "/FF:")) {
-                    std::string fireCommand = uri.substr(4);
-                    std::string result = callback(fireCommand);
-                    complete_response = buildResponse("200 OK", "text/plain; charset=UTF-8", result);
+                    complete_response = runCommand(request, uri.substr(4));
                 } else {
                     complete_response = serveFileOrDirectory(uri);
                 }
             }
             ssize_t bytes_written = write(client_fd, complete_response.data(), complete_response.size());
             (void)bytes_written;
+        }
+
+        // Value of an HTTP header (name in lowercase), empty if absent.
+        static std::string headerValue(const std::string &request, const std::string &name) {
+            std::istringstream lines(request);
+            std::string line;
+            std::getline(lines, line); // request line
+            while (std::getline(lines, line) && line != "\r" && !line.empty()) {
+                size_t colon = line.find(':');
+                if (colon == std::string::npos)
+                    continue;
+                std::string key = line.substr(0, colon);
+                for (char &c : key)
+                    c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+                if (key != name)
+                    continue;
+                size_t start = line.find_first_not_of(" \t", colon + 1);
+                size_t end = line.find_last_not_of(" \t\r");
+                return (start == std::string::npos) ? "" : line.substr(start, end - start + 1);
+            }
+            return "";
+        }
+
+        static bool isLoopbackHost(std::string host) {
+            if (!host.empty() && host[0] == '[')
+                return host.compare(0, 5, "[::1]") == 0;
+            host = host.substr(0, host.find(':'));
+            return host == "localhost" || host.compare(0, 4, "127.") == 0;
+        }
+
+        // DNS rebinding: a local server only answers to local names.
+        bool allowedHost(const std::string &request) {
+            std::string host = headerValue(request, "host");
+            return !loopbackOnly || host.empty() || isLoopbackHost(host);
+        }
+
+        // Commands only from the server's own pages or non-browser clients,
+        // not from another site (e.g. <img src=.../ff:...>).
+        static bool sameOriginCommand(const std::string &request) {
+            std::string site = headerValue(request, "sec-fetch-site");
+            if (!site.empty() && site != "same-origin" && site != "none")
+                return false;
+            std::string origin = headerValue(request, "origin");
+            return origin.empty() || origin == "http://" + headerValue(request, "host");
+        }
+
+        std::string runCommand(const std::string &request, const std::string &fireCommand) {
+            if (!sameOriginCommand(request))
+                return buildSimpleResponse("403 Forbidden", "Cross-site command refused");
+            return buildResponse("200 OK", "text/plain; charset=UTF-8", callback(fireCommand));
         }
 
         // Check whether a file exists.
@@ -270,6 +352,10 @@ namespace http_command {
             if (!path.empty() && path[0] == '/')
                 path = path.substr(1);
 
+            // Only files under the run directory or FOREFIREHOME/tools/htdocs.
+            if ((!path.empty() && path[0] == '/') || ("/" + path + "/").find("/../") != std::string::npos)
+                return buildSimpleResponse("403 Forbidden", "Forbidden path: " + uri);
+
             // For an empty path, try current directory's index.html;
             // if not available, check the FOREFIREHOME environment variable.
             if (path.empty()) {
@@ -318,6 +404,7 @@ namespace http_command {
             }
 
         int server_fd;
+        bool loopbackOnly = true;
         std::atomic<bool> running;
         std::thread server_thread;
         CommandCallback callback;

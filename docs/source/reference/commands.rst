@@ -587,7 +587,7 @@ Launches an HTTP server (on the machine running ForeFire) that listens for simul
 
 **Arguments:**
 
-*   Positional 1: Hostname or IP address to bind the server to, followed by a colon, followed by the port number (e.g., `127.0.0.1:8000`, `0.0.0.0:8080`).
+*   Positional 1: Hostname or IP address to bind the server to, followed by a colon, followed by the port number (e.g., `127.0.0.1:8000`, `0.0.0.0:8080`). Without a host (``listenHTTP[]`` or ``listenHTTP[:8000]``) the server binds to ``localhost``. ``0.0.0.0`` opens it to the network, as needed inside a Docker container.
 
 **Example:**
 

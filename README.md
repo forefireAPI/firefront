@@ -119,14 +119,16 @@ The easiest way to get started is often using Docker and the interactive console
 
     ```
 
-5. Launch the HTTP server from the console:
+5. Launch the HTTP server from the console. Inside the container, bind to all
+   interfaces so the published port reaches it (`listenHTTP[]` alone only
+   listens on the container's own localhost):
     ```bash
-    listenHTTP[]
+    listenHTTP[0.0.0.0:8000]
     ```
     the output should be :
 
     ```bash
-    >> ForeFire HTTP command server listening at http://localhost:8000
+    >> ForeFire HTTP command server listening at http://0.0.0.0:8000
     ```
 
     This server provides a graphical user interface that you can access on your browser at http://localhost:8000/
