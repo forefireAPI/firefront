@@ -45,6 +45,9 @@ Merged since v2.5.0, not yet released.
 
 ### Fixed
 
+- `pyforefire` calls that read the domain (`ff[key]`, `addLayer`,
+  `addScalarLayer`, `addIndexLayer`, `getDoubleArray`) segfaulted Python when
+  run before `FireDomain[...]`. They now raise `RuntimeError`. ([#202])
 - Rate of spread stayed finite and decreasing at high dead fuel moisture, and
   `DataBroker` no longer serves `moisture` through the five-slot getter, which
   returned a neighbouring property. ([#158])
