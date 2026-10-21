@@ -15,8 +15,8 @@ add_executable(forefire_unit_tests
     test_http_server.cpp
     test_model_registry.cpp
     test_propagation_models.cpp
-    test_topology.cpp)
-    test_timetable.cpp)
+    test_topology.cpp
+    test_timetable.cpp
     test_quit_command.cpp)
 
 target_link_libraries(forefire_unit_tests PRIVATE forefireL)
