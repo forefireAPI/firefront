@@ -3376,16 +3376,16 @@ namespace libforefire
     std::string Command::executeCommandAndCaptureOutput(const std::string &cmd)
     {
         // 'cmd' is assumed to be the command text after the "ff:" prefix.
-        std::streambuf *oldbuf = std::cout.rdbuf();
         std::ostringstream captured;
-        std::cout.rdbuf(captured.rdbuf());
+        // Restore cout even if the command throws.
+        struct CoutRedirect {
+            std::streambuf *old;
+            explicit CoutRedirect(std::streambuf *buf) : old(std::cout.rdbuf(buf)) {}
+            ~CoutRedirect() { std::cout.rdbuf(old); }
+        } redirect(captured.rdbuf());
+        RemoteCommandScope remote(true);
         std::string fireCommand = cmd;
-        // Execute the command. (Assuming ExecuteCommand is defined elsewhere.)
-        remoteCommand = true;
         ExecuteCommand(fireCommand);
-        remoteCommand = false;
-
-        std::cout.rdbuf(oldbuf);
         return captured.str();
     }
   
@@ -3421,6 +3421,9 @@ namespace libforefire
         std::string address = arg.empty() ? defaultHostname + ":" + std::to_string(port) : arg;
         if (address.compare(0, 5, "host=") == 0)
             address = address.substr(5);
+        // listenHTTP[:8000] means localhost too.
+        if (!address.empty() && address[0] == ':')
+            address = defaultHostname + address;
 
         // Allocate a new HTTP server if none exists.
         if (currentSession.server == 0)
@@ -3437,10 +3440,15 @@ namespace libforefire
         }
         else
         {
+            // Other nodes need the machine name, not the wildcard address.
+            std::string connectAddress = address;
+            char hostname[256];
+            if (address.compare(0, 8, "0.0.0.0:") == 0 && gethostname(hostname, sizeof(hostname)) == 0)
+                connectAddress = std::string(hostname) + address.substr(7);
             std::ofstream infoFile("httpConnectInfo.txt");
             if (infoFile)
             {
-                infoFile << address << std::endl;
+                infoFile << connectAddress << std::endl;
                 infoFile.close();
             }
             else
