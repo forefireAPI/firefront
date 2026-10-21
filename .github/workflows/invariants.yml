@@ -52,3 +52,6 @@ jobs:
 
       - name: Run dead fuel moisture invariants
         run: ./.venv/bin/python tests/python/test_moisture_invariants.py
+
+      - name: Run the worker process runner test
+        run: ./.venv/bin/python tests/python/test_runner.py

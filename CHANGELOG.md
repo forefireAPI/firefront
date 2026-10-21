@@ -38,6 +38,10 @@ Merged since v2.5.0, not yet released.
   tests. ([#156])
 - `TESTING.md` now documents every suite, how to run it, and which ones CI
   validates.
+- `pyforefire.ForeFireRunner`, a `ForeFire` that runs in its own worker
+  process, so several simulations in one Python process no longer share
+  state, and a crash in the kernel raises `pyforefire.WorkerDied` instead of
+  ending Python. `ForeFire()` itself is unchanged. ([#175])
 
 ### Fixed
 
