@@ -35,7 +35,7 @@ The weather it uses, `flatland_3mph0deg7hr.raws`, *is* in this directory.
 
 ## The test scripts
 
-These three are tests rather than examples, and `../run.bash` runs none of
+These four are tests rather than examples, and `../run.bash` runs none of
 them. They are plain scripts, not pytest modules. `TESTING.md` covers each in
 detail, including how to build the module they import.
 
@@ -54,6 +54,17 @@ python tests/python/test_moisture_invariants.py        # -v for every probe
 ```
 
 `--model NAME` and `--test NAME`, both repeatable, narrow it down.
+
+### `test_runner.py`
+
+Checks `pyforefire.ForeFireRunner`: eight simulations, each in its own worker
+process and driven from a thread, must match the in-process node count, and
+worker errors and crashes must surface as Python exceptions. Run in CI by
+`invariants.yml`. Manually:
+
+```bash
+python tests/python/test_runner.py
+```
 
 ### `test_threading.py`
 
