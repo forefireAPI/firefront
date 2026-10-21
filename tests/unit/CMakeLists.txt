@@ -9,6 +9,7 @@
 add_executable(forefire_unit_tests
     main.cpp
     model_sandbox.cpp
+    test_domain_ownership.cpp
     test_flux_models.cpp
     test_http_server.cpp
     test_model_registry.cpp
