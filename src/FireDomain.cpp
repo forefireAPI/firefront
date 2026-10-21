@@ -2096,10 +2096,14 @@
 				 return;
 			 } else {
 				 if ( fn->getPrev()->getNext() == fn ){
+					 FireFront* ff = fn->getFront();
+					 FireNode* prev = fn->getPrev();
 					 fn ->setFront(0);
 					 fn->getPrev()->setFront(0);
 					 addToTrashNodes(fn->getPrev());
 					 addToTrashNodes(fn);
+					 // these two nodes were the whole front
+					 if ( ff and ( ff->getHead() == fn or ff->getHead() == prev ) ) ff->setHead(0);
 					 return;
 				 } else {
 					 debugOutput<<getDomainID()<<": PROBLEM, serious topology problem for "
