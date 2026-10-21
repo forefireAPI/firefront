@@ -58,6 +58,8 @@ Merged since v2.5.0, not yet released.
 - `StringRepresentation` kept its output buffer, current level and GeoJSON
   cursor in file-scope globals shared by every instance. They are now members.
   ([#178])
+- A fire front reduced to two nodes kept a deleted node as its head, and the
+  next burning scan crashed the simulation. ([#198])
 - `clear[]` no longer crashes after a simulation whose fire front stopped
   everywhere, for instance an ignition in non-burnable fuel. ([#194])
 
@@ -196,5 +198,6 @@ repository stays easy to return to.
 [#180]: https://github.com/forefireAPI/forefire/pull/180
 [#183]: https://github.com/forefireAPI/forefire/pull/183
 [#193]: https://github.com/forefireAPI/forefire/pull/193
+[#198]: https://github.com/forefireAPI/forefire/pull/198
 [#197]: https://github.com/forefireAPI/forefire/pull/197
 [#194]: https://github.com/forefireAPI/forefire/pull/194
