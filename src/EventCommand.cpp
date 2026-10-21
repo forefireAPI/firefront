@@ -30,10 +30,8 @@ EventCommand::~EventCommand() {};
 
 
 void EventCommand::update(){
-	bool caller = Command::remoteCommand;
-	Command::remoteCommand = remote;
+	Command::RemoteCommandScope scope(remote);
 	Command::ExecuteCommand(schedueledCommand);
-	Command::remoteCommand = caller;
 }
 void EventCommand::timeAdvance(){
 	setUpdateTime(numeric_limits<double>::infinity());

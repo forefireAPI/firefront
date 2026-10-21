@@ -103,9 +103,10 @@ Steps
 
   .. code-block:: none
 
-    forefire> listenHTTP[]
+    forefire> listenHTTP[0.0.0.0:8000]
 
-  You should see the output : `>> ForeFire HTTP command server listening at http://localhost:8000`
+  You should see the output : `>> ForeFire HTTP command server listening at http://0.0.0.0:8000`, followed by a warning that the server is reachable from the network.
+  Inside a container this is needed: ``listenHTTP[]`` alone only listens on the container's own localhost, which the published port cannot reach.
 
 7.  **Access the Web Console:**
 

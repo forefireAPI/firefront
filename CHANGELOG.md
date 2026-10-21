@@ -21,10 +21,12 @@ Merged since v2.5.0, not yet released.
 - Free-threaded (`cp314t`) wheels are no longer published, because the core is
   not yet thread-safe; CPython 3.14 is declared supported. ([#155])
 - `listenHTTP[]` binds to `localhost` by default and to the host given in
-  `listenHTTP[host:port]`; use `listenHTTP[0.0.0.0:8000]` for the network,
-  which prints a warning.
-  `systemExec` is refused over HTTP, and the file server stays inside the run
-  directory and `FOREFIREHOME/tools/htdocs`.
+  `listenHTTP[host:port]`; use `listenHTTP[0.0.0.0:8000]` for the network
+  (and inside Docker), which prints a warning.
+  `systemExec` is refused over HTTP, the static file server only serves the run
+  directory and `FOREFIREHOME/tools/htdocs`, and commands from another site or
+  host name are refused. Other commands can still read and write files, so the
+  server is meant for trusted local use. ([#199])
 
 ## [v2.5.0] — 2026-08-11
 
@@ -139,3 +141,4 @@ repository stays easy to return to.
 [#152]: https://github.com/forefireAPI/forefire/pull/152
 [#154]: https://github.com/forefireAPI/forefire/pull/154
 [#155]: https://github.com/forefireAPI/forefire/pull/155
+[#199]: https://github.com/forefireAPI/forefire/pull/199
