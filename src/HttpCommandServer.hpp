@@ -23,6 +23,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <netdb.h>
 #include <unistd.h>
 
 namespace http_command {
@@ -47,6 +48,20 @@ namespace http_command {
                 return false;
             }
             int port = std::stoi(address.substr(colon + 1));
+            std::string host = address.substr(0, colon);
+
+            // Bind to the requested host only (0.0.0.0 for all interfaces).
+            addrinfo hints;
+            std::memset(&hints, 0, sizeof(hints));
+            hints.ai_family = AF_INET;
+            hints.ai_socktype = SOCK_STREAM;
+            addrinfo *resolved = nullptr;
+            if (getaddrinfo(host.c_str(), nullptr, &hints, &resolved) != 0 || resolved == nullptr) {
+                std::cerr << "Cannot resolve host " << host << std::endl;
+                return false;
+            }
+            in_addr bindAddr = reinterpret_cast<sockaddr_in*>(resolved->ai_addr)->sin_addr;
+            freeaddrinfo(resolved);
 
             server_fd = socket(AF_INET, SOCK_STREAM, 0);
             if (server_fd < 0) {
@@ -59,7 +74,7 @@ namespace http_command {
             sockaddr_in addr;
             std::memset(&addr, 0, sizeof(addr));
             addr.sin_family = AF_INET;
-            addr.sin_addr.s_addr = INADDR_ANY;
+            addr.sin_addr = bindAddr;
             addr.sin_port = htons(port);
             if (::bind(server_fd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0) {
                 perror("bind");
@@ -73,9 +88,17 @@ namespace http_command {
             server_thread = std::thread(&HttpCommandServer::acceptLoop, this);
             std::cout 
                 << "\033[35m"   // start color
-                << "ForeFire HTTP command server listening at http://localhost:" << port
+                << "ForeFire HTTP command server listening at http://" << host << ":" << port
                 << "\033[0m"
                 << std::endl;
+
+            if ((ntohl(bindAddr.s_addr) >> 24) != 127) {
+                std::cout
+                    << "\033[31m"   // start red
+                    << "WARNING: development server, reachable from the network. Anyone who can reach this port can run ForeFire commands. Use listenHTTP[localhost:" << port << "] unless you need remote access."
+                    << "\033[0m"
+                    << std::endl;
+            }
 
             std::cout
                 << "\033[33m"   // start yellow
@@ -268,6 +291,10 @@ namespace http_command {
                 path = path.substr(0, queryPos);
             if (!path.empty() && path[0] == '/')
                 path = path.substr(1);
+
+            // Only files under the run directory or FOREFIREHOME/tools/htdocs.
+            if ((!path.empty() && path[0] == '/') || ("/" + path + "/").find("/../") != std::string::npos)
+                return buildSimpleResponse("403 Forbidden", "Forbidden path: " + uri);
 
             // For an empty path, try current directory's index.html;
             // if not available, check the FOREFIREHOME environment variable.

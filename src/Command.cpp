@@ -3368,6 +3368,10 @@ namespace libforefire
     std::string Command::executeCommandAndCaptureOutput(const std::string &cmd)
     {
         // 'cmd' is assumed to be the command text after the "ff:" prefix.
+        // No shell commands from the network: same name parsing as ExecuteCommand.
+        if (removeTabs(cmd.substr(0, cmd.find('['))) == "systemExec")
+            return "systemExec is not available over HTTP\n";
+
         std::streambuf *oldbuf = std::cout.rdbuf();
         std::ostringstream captured;
         std::cout.rdbuf(captured.rdbuf());
@@ -3407,14 +3411,10 @@ namespace libforefire
             }
         }
 
-        char hostname[256];
-        if (gethostname(hostname, sizeof(hostname)) != 0)
-        {
-            cout << "Cannot get hostname info " << endl;
-            return error;
-        }
-
-        std::string address = arg.empty() ? std::string(hostname) + ":" + std::to_string(port) : arg;
+        // Local only by default; listenHTTP[0.0.0.0:8000] to open it to the network.
+        std::string address = arg.empty() ? defaultHostname + ":" + std::to_string(port) : arg;
+        if (address.compare(0, 5, "host=") == 0)
+            address = address.substr(5);
 
         // Allocate a new HTTP server if none exists.
         if (currentSession.server == 0)
@@ -3434,7 +3434,7 @@ namespace libforefire
             std::ofstream infoFile("httpConnectInfo.txt");
             if (infoFile)
             {
-                infoFile << hostname << ":" << port << std::endl;
+                infoFile << address << std::endl;
                 infoFile.close();
             }
             else
