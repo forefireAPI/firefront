@@ -52,6 +52,9 @@ public:
      *  the model reads its coefficients. */
     libforefire::SimulationParameters* parameters() const { return params; }
 
+    /** The domain the sandbox built. */
+    libforefire::FireDomain* fireDomain() const { return domain; }
+
     /** Instantiates a registered propagation model, or returns 0 if the name
      *  is not in the registry. Each call gets a fresh model index. */
     libforefire::PropagationModel* propagation(const std::string& name);
