@@ -232,6 +232,9 @@ class Command {
 
 public:
 
+	// True while running a command received over HTTP (or scheduled by one)
+	static thread_local bool remoteCommand;
+
 	// Reference time
 	static double refTime;
 

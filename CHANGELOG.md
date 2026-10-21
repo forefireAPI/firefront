@@ -20,6 +20,11 @@ Merged since v2.5.0, not yet released.
   the wheel. ([#154])
 - Free-threaded (`cp314t`) wheels are no longer published, because the core is
   not yet thread-safe; CPython 3.14 is declared supported. ([#155])
+- `listenHTTP[]` binds to `localhost` by default and to the host given in
+  `listenHTTP[host:port]`; use `listenHTTP[0.0.0.0:8000]` for the network,
+  which prints a warning.
+  `systemExec` is refused over HTTP, and the file server stays inside the run
+  directory and `FOREFIREHOME/tools/htdocs`.
 
 ## [v2.5.0] — 2026-08-11
 

@@ -29,6 +29,7 @@ namespace libforefire
     double Command::endTime = 0;
 
     bool Command::firstCommand = true;
+    thread_local bool Command::remoteCommand = false;
     size_t Command::refTabs = 0;
 
     FFPoint *Command::lastReadLoc = 0;
@@ -1184,6 +1185,13 @@ namespace libforefire
     }
     int Command::systemExec(const string &arg, size_t &numTabs)
     {
+        // No shell commands from the network, even through include[] or @t=.
+        if (remoteCommand)
+        {
+            cout << "systemExec is not available over HTTP" << endl;
+            return error;
+        }
+
         SimulationParameters *simParam = SimulationParameters::GetInstance();
         string finalStr;
 
@@ -3373,7 +3381,9 @@ namespace libforefire
         std::cout.rdbuf(captured.rdbuf());
         std::string fireCommand = cmd;
         // Execute the command. (Assuming ExecuteCommand is defined elsewhere.)
+        remoteCommand = true;
         ExecuteCommand(fireCommand);
+        remoteCommand = false;
 
         std::cout.rdbuf(oldbuf);
         return captured.str();
@@ -3407,14 +3417,10 @@ namespace libforefire
             }
         }
 
-        char hostname[256];
-        if (gethostname(hostname, sizeof(hostname)) != 0)
-        {
-            cout << "Cannot get hostname info " << endl;
-            return error;
-        }
-
-        std::string address = arg.empty() ? std::string(hostname) + ":" + std::to_string(port) : arg;
+        // Local only by default; listenHTTP[0.0.0.0:8000] to open it to the network.
+        std::string address = arg.empty() ? defaultHostname + ":" + std::to_string(port) : arg;
+        if (address.compare(0, 5, "host=") == 0)
+            address = address.substr(5);
 
         // Allocate a new HTTP server if none exists.
         if (currentSession.server == 0)
@@ -3434,7 +3440,7 @@ namespace libforefire
             std::ofstream infoFile("httpConnectInfo.txt");
             if (infoFile)
             {
-                infoFile << hostname << ":" << port << std::endl;
+                infoFile << address << std::endl;
                 infoFile.close();
             }
             else
