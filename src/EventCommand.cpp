@@ -19,6 +19,7 @@ namespace libforefire{
 
 EventCommand::EventCommand(string scommand, double schedueledTime) : ForeFireAtom(schedueledTime) {
 	schedueledCommand = scommand;
+	remote = Command::remoteCommand;
 
 };
 
@@ -29,6 +30,7 @@ EventCommand::~EventCommand() {};
 
 
 void EventCommand::update(){
+	Command::RemoteCommandScope scope(remote);
 	Command::ExecuteCommand(schedueledCommand);
 }
 void EventCommand::timeAdvance(){

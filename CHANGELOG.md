@@ -84,6 +84,13 @@ Merged since v2.5.0, not yet released.
   `printToPathe` or `plot_simulation` is called. `plt`, `cm`, `mpath`,
   `mpatches` and `ListedColormap` are no longer reachable as `pyforefire`
   attributes. ([#193])
+- `listenHTTP[]` binds to `localhost` by default and to the host given in
+  `listenHTTP[host:port]`; use `listenHTTP[0.0.0.0:8000]` for the network
+  (and inside Docker), which prints a warning.
+  `systemExec` is refused over HTTP, the static file server only serves the run
+  directory and `FOREFIREHOME/tools/htdocs`, and commands from another site or
+  host name are refused. Other commands can still read and write files, so the
+  server is meant for trusted local use. ([#199])
 
 ## [v2.5.0] — 2026-08-11
 
@@ -214,3 +221,4 @@ repository stays easy to return to.
 [#194]: https://github.com/forefireAPI/forefire/pull/194
 [#196]: https://github.com/forefireAPI/forefire/issues/196
 [#202]: https://github.com/forefireAPI/forefire/pull/202
+[#199]: https://github.com/forefireAPI/forefire/pull/199

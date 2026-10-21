@@ -135,6 +135,8 @@ This method, which you may have already used in the :doc:`quickstart` guide, use
 
     forefire -l
 
+  Both bind to ``localhost``. Inside a Docker container, use ``listenHTTP[0.0.0.0:8000]`` instead so the published port reaches the server.
+
 4.  **Use the Web Interface:**
 
   - Open your browser to ``http://localhost:8000/`` (or the specified port).
