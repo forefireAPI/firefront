@@ -251,7 +251,7 @@ TEST_CASE("recorded rates of spread for the standard fuel") {
     const Expectation expected[] = {
         {"Rothermel", 0.369131},
         {"Balbi2015", 0.069659},
-        {"Balbi2020", 0.0783659},
+        {"Balbi2020", 0.0823161},
         {"BalbiNov2011", 8.16139e-05},
         {"BalbiNov2011Curv", 0.080263},
         {"BalbiNov2011TMdMl", 0.0584482},

@@ -62,6 +62,10 @@ Merged since v2.5.0, not yet released.
   next burning scan crashed the simulation. ([#198])
 - `clear[]` no longer crashes after a simulation whose fire front stopped
   everywhere, for instance an ignition in non-burnable fuel. ([#194])
+- `Balbi2020` multiplied by the fuel surface-to-volume ratio instead of
+  dividing by it in eq. C7, which drove the radiant fraction to zero. It now
+  matches `Balbi2020.py` in `wildfire_ROS_models`, and its rate of spread is
+  floored at zero on a downslope with no wind. ([#196])
 
 ### Changed
 
@@ -201,3 +205,4 @@ repository stays easy to return to.
 [#198]: https://github.com/forefireAPI/forefire/pull/198
 [#197]: https://github.com/forefireAPI/forefire/pull/197
 [#194]: https://github.com/forefireAPI/forefire/pull/194
+[#196]: https://github.com/forefireAPI/forefire/issues/196
