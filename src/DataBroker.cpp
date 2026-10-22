@@ -42,10 +42,12 @@ namespace libforefire
 
 	DataBroker::~DataBroker()
 	{
-		// Deleting layers
+		// Deleting layers. loadData lists the domain's propagative layer here
+		// too, so it can be looked up, but the domain frees that one (#205).
 		while (!layers.empty())
 		{
-			delete layers.back();
+			if (layers.back() != domain->getPropagativeLayer())
+				delete layers.back();
 			layers.pop_back();
 		}
 		// Deleting atmospheric and parallel data
@@ -324,7 +326,8 @@ namespace libforefire
 			DataLayer<double> *oldlayer = ilayer->second;
 			layersMap.erase(name);
 			layers.remove(oldlayer);
-			delete oldlayer;
+			if (oldlayer != domain->getPropagativeLayer())
+				delete oldlayer;
 			//}
 		}
 
