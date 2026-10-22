@@ -57,16 +57,9 @@ Merged since v2.5.0, not yet released.
 - `pyforefire` calls that read the domain (`ff[key]`, `addLayer`,
   `addScalarLayer`, `addIndexLayer`, `getDoubleArray`) segfaulted Python when
   run before `FireDomain[...]`. They now raise `RuntimeError`. ([#202])
-- Building a second `FireDomain`, as coupled runs do, wiped the static model
-  tables and could leave the first domain using the second one's propagation
-  model, which gave wrong spread rates. Each domain now releases only the
-  models it registered, and a domain with a propagation layer no longer leaks
-  about 183 kB. ([#182])
-- `quit[]` called `exit(0)`, ending the host process: Python, or Meso-NH in a
-  coupled run. It now ends the session only; the `forefire` shell still exits
-  on it, including over HTTP. ([#181])
-- `clear[]` aborted with a double free after a fire front merged with itself
-  into an outer loop too small to keep. ([#197])
+- `clear[]` after `loadData` freed the propagative layer twice and crashed.
+  The data broker lists that layer but no longer deletes it; the domain does.
+  ([#205])
 - Rate of spread stayed finite and decreasing at high dead fuel moisture, and
   `DataBroker` no longer serves `moisture` through the five-slot getter, which
   returned a neighbouring property. ([#158])
@@ -254,3 +247,4 @@ repository stays easy to return to.
 [#190]: https://github.com/forefireAPI/forefire/pull/190
 [#192]: https://github.com/forefireAPI/forefire/pull/192
 [#203]: https://github.com/forefireAPI/forefire/pull/203
+[#205]: https://github.com/forefireAPI/forefire/issues/205
