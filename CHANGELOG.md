@@ -42,6 +42,15 @@ Merged since v2.5.0, not yet released.
   process, so several simulations in one Python process no longer share
   state, and a crash in the kernel raises `pyforefire.WorkerDied` instead of
   ending Python. `ForeFire()` itself is unchanged. ([#175])
+- `forefire-validate landscape.nc fuels.csv` checks a landscape against its
+  fuel table before a run: fuel indices missing from the table, a fuel and
+  elevation shape mismatch, and missing elevation or wind. ([#190])
+- `tools/preprocessing/genForeFireCase.py` is back as a general landscape
+  writer. Its 3-D and 4-D fields are written in the right axis order, it uses
+  `netCDF4` instead of the deprecated `scipy.io.netcdf`, and it checks the
+  required `parametersProperties` keys before writing. ([#179])
+- A User Guide page on driving a simulation from NumPy arrays, with no
+  landscape file and no GIS. ([#189])
 
 ### Fixed
 
@@ -93,17 +102,23 @@ Merged since v2.5.0, not yet released.
   `systemExec` is refused over HTTP, the static file server only serves the run
   directory and `FOREFIREHOME/tools/htdocs`, and commands from another site or
   host name are refused. Other commands can still read and write files, so the
-  server is meant for trusted local use. ([#199])
+  server is meant for trusted local use. ([#199], [#203])
+- A safe-topology failure in a step no longer ends the process; the command
+  reports an error and the coupled run continues. ([#181])
+- `stb_image_write.h` moved to `third_party/`, with its version, origin and
+  MIT / public-domain licence recorded. ([#192])
 
 ## [v2.5.0] — 2026-08-11
 
 ### Added
 
-- **Pip-installable wheels** for Linux (x86_64, aarch64) and macOS (Apple
-  Silicon and Intel), CPython 3.9 and newer. `pip install forefire` gives both
-  the `forefire` command-line interpreter and the `pyforefire` module, with
-  NetCDF bundled inside the wheel. Wheels are built without MPI and without
-  `-march=native`. ([#151])
+- **Pip-installable wheels** for Linux (x86_64, aarch64) and macOS on Apple
+  Silicon, CPython 3.9 and newer. `pip install forefire` gives both the
+  `forefire` command-line interpreter and the `pyforefire` module, with NetCDF
+  bundled inside the wheel. Wheels are built without MPI and without
+  `-march=native`. There is no Intel macOS wheel — the `macos-13` runner was
+  retired before the release, so Intel Macs build from the source
+  distribution. ([#151])
 
 ### Changed
 
@@ -225,4 +240,11 @@ repository stays easy to return to.
 [#196]: https://github.com/forefireAPI/forefire/issues/196
 [#202]: https://github.com/forefireAPI/forefire/pull/202
 [#199]: https://github.com/forefireAPI/forefire/pull/199
+[#179]: https://github.com/forefireAPI/forefire/pull/179
+[#181]: https://github.com/forefireAPI/forefire/pull/181
+[#182]: https://github.com/forefireAPI/forefire/pull/182
+[#189]: https://github.com/forefireAPI/forefire/pull/189
+[#190]: https://github.com/forefireAPI/forefire/pull/190
+[#192]: https://github.com/forefireAPI/forefire/pull/192
+[#203]: https://github.com/forefireAPI/forefire/pull/203
 [#205]: https://github.com/forefireAPI/forefire/issues/205
