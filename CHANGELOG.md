@@ -51,6 +51,10 @@ Merged since v2.5.0, not yet released.
   required `parametersProperties` keys before writing. ([#179])
 - A User Guide page on driving a simulation from NumPy arrays, with no
   landscape file and no GIS. ([#189])
+- `-DFOREFIRE_ENABLE_NETCDF=OFF` builds the engine without NetCDF or HDF5,
+  the first step towards a WebAssembly build and a slim wheel. Commands that
+  read or write NetCDF files report that the build has no NetCDF support.
+  The default stays on. ([#171])
 
 ### Fixed
 
@@ -248,3 +252,4 @@ repository stays easy to return to.
 [#192]: https://github.com/forefireAPI/forefire/pull/192
 [#203]: https://github.com/forefireAPI/forefire/pull/203
 [#205]: https://github.com/forefireAPI/forefire/issues/205
+[#171]: https://github.com/forefireAPI/forefire/issues/171

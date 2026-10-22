@@ -89,6 +89,9 @@ namespace libforefire
     {
 
         size_t n = argCount(arg);
+#ifndef FF_NO_NETCDF
+        // The two-argument form reads the domain extent out of a MesoNH PGD
+        // file, so it exists only where NetCDF does.
         if (n == 2)
         {
            
@@ -176,6 +179,7 @@ namespace libforefire
 
             }
         }
+#endif /* FF_NO_NETCDF */
         if (n >= 3)
         {
             FFPoint SW = getPoint("sw", arg);
@@ -2502,6 +2506,18 @@ namespace libforefire
         return normal;
     }
 
+#ifdef FF_NO_NETCDF
+
+    // saveData writes a landscape file, which is NetCDF end to end; there is no
+    // partial behaviour to keep when NetCDF is compiled out.
+    int Command::saveData(const std::string &arg, size_t &numTabs)
+    {
+        std::cout << "saveData: this build has no NetCDF support" << std::endl;
+        return error;
+    }
+
+#else
+
     int Command::saveData(const std::string &arg, size_t &numTabs)
     {
         // Check for an argument
@@ -2836,6 +2852,8 @@ namespace libforefire
         }
     }
 
+#endif /* FF_NO_NETCDF */
+
     int Command::loadData(const string &arg, size_t &numTabs)
     {
 
@@ -2865,6 +2883,11 @@ namespace libforefire
         if (args.size() == 2)
         {
 
+#ifdef FF_NO_NETCDF
+            cout << "loadData: reading a domain from " << path
+                 << " needs NetCDF, which this build has no support for" << endl;
+            return error;
+#else
             simParam->setParameter("NetCDFfile", args[0]);
             try
             {
@@ -2950,6 +2973,7 @@ namespace libforefire
             }
 
             ExecuteCommand(com);
+#endif /* FF_NO_NETCDF */
         }
         if (args.size() == 1)
         {
@@ -3710,6 +3734,10 @@ namespace libforefire
 
     void Command::writeNetCDF(const char *filename, const string &varName, const std::vector<std::vector<double>> &matrix, const vector<double> &latitudes, const vector<double> &longitudes)
     {
+#ifdef FF_NO_NETCDF
+        std::cerr << "writeNetCDF: this build has no NetCDF support, "
+                  << filename << " not written" << std::endl;
+#else
         try
         {
             // Create (or replace) the NetCDF file using NetCDF-4 mode.
@@ -3753,6 +3781,7 @@ namespace libforefire
         {
             std::cerr << "Error writing NetCDF file: " << e.what() << std::endl;
         }
+#endif /* FF_NO_NETCDF */
     }
     void Command::writeASCII(const char *filename, const std::vector<std::vector<double>> &matrix, double SWX, double SWY, double NEX, double NEY)
     {
