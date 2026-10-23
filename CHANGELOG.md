@@ -55,6 +55,11 @@ Merged since v2.5.0, not yet released.
   the first step towards a WebAssembly build and a slim wheel. Commands that
   read or write NetCDF files report that the build has no NetCDF support.
   The default stays on. ([#171])
+- An experimental WebAssembly build: `emcmake cmake` compiles the engine
+  without NetCDF into an ES module whose embind API mirrors `pyforefire`, with
+  typed arrays in place of NumPy arrays. `FOREFIRE_BUILD_CLI` and
+  `FOREFIRE_BUILD_WASM` control the two executables. See
+  `bindings/wasm/README.md`. ([#171])
 
 ### Fixed
 
