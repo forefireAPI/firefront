@@ -60,6 +60,10 @@ Merged since v2.5.0, not yet released.
   typed arrays in place of NumPy arrays. `FOREFIRE_BUILD_CLI` and
   `FOREFIRE_BUILD_WASM` control the two executables. See
   `bindings/wasm/README.md`. ([#171])
+- A browser demo of the WebAssembly build (`bindings/wasm/index.html`): pick
+  a square of ground on a map, and the page builds fuel and elevation layers
+  from satellite and terrain tiles, runs the fire in a worker, and plays it
+  back in 2D or on 3D terrain. ([#171])
 
 ### Fixed
 
