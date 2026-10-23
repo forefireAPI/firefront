@@ -158,6 +158,15 @@
         display: none;
       }
       body.fuel #legend { display: block; }
+      #windBadge {
+        position: absolute;
+        left: 1rem;
+        top: 4rem;
+        width: 3.6rem;
+        height: 3.6rem;
+        pointer-events: none;
+      }
+      body.three #windBadge { display: none; }
       .key { display: flex; align-items: center; gap: 0.4rem; }
       .sw { width: 10px; height: 10px; border-radius: 2px; }
 
@@ -287,6 +296,13 @@
         <div class="brand"><b>Fore<i>Fire</i></b><span>wildfire spread, running in this tab</span></div>
         <div id="loading" class="pill" hidden>loading terrain…</div>
         <div id="legend"></div>
+        <svg id="windBadge" viewBox="-30 -30 60 60" aria-hidden="true">
+          <circle r="29" fill="rgba(13,11,10,0.6)" />
+          <g id="windArrow" fill="#f2ebe4" stroke="#f2ebe4">
+            <line x1="-18" y1="0" x2="12" y2="0" stroke-width="3" stroke-linecap="round" />
+            <path d="M21 0 L9 -7 L9 7 Z" stroke="none" />
+          </g>
+        </svg>
         <div id="hint" class="pill"><kbd>click</kbd> to light a fire · <kbd>drag</kbd> to move · <kbd>scroll</kbd> to zoom</div>
         <div id="outcome"></div>
         <div class="hud">
@@ -845,7 +861,7 @@
 
         if (!timeline) {
           drawIgnition(size);
-          drawWind(wind.angleDeg, size);
+          setWindBadge(wind.angleDeg);
           return;
         }
         // From the run's domain metres to this view's pixels. The run's square
@@ -881,13 +897,14 @@
         ctx.lineWidth = 2.5;
         ctx.strokeStyle = "#ffb347";
         ctx.fillStyle = "rgba(255,70,0,0.35)";
-        for (const c of frame.fronts) {
-          const p = path(c);
-          ctx.fill(p);
-          ctx.stroke(p);
-        }
+        // One shape, filled even-odd: a front nested inside another is the edge
+        // of ground the fire went round, not more fire, and stays unfilled.
+        const burnt = new Path2D();
+        for (const c of frame.fronts) burnt.addPath(path(c));
+        ctx.fill(burnt, "evenodd");
+        ctx.stroke(burnt);
         drawIgnition(size);
-        drawWind(frame.windDeg, size);
+        setWindBadge(frame.windDeg);
       }
 
       function drawIgnition(size) {
@@ -908,31 +925,13 @@
         ctx.restore();
       }
 
-      function drawWind(deg, size) {
-        if (!wind.speed) return;
-        const cx = 70;
-        const cy = size - 150;
-        const r = 30 * (0.4 + (0.6 * wind.speed) / 30);
-        const rad = (deg * Math.PI) / 180;
-        const dx = Math.cos(rad);
-        const dy = -Math.sin(rad);
-        ctx.save();
-        ctx.fillStyle = "rgba(13,11,10,0.6)";
-        ctx.beginPath();
-        ctx.arc(cx, cy, 42, 0, 2 * Math.PI);
-        ctx.fill();
-        ctx.strokeStyle = ctx.fillStyle = "#f2ebe4";
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(cx - dx * r, cy - dy * r);
-        ctx.lineTo(cx + dx * r, cy + dy * r);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(cx + dx * (r + 4), cy + dy * (r + 4));
-        ctx.lineTo(cx + dx * (r - 9) - dy * 7, cy + dy * (r - 9) + dx * 7);
-        ctx.lineTo(cx + dx * (r - 9) + dy * 7, cy + dy * (r - 9) - dx * 7);
-        ctx.fill();
-        ctx.restore();
+      /*! The wind arrow lives in the page, not on the canvas: the canvas is the
+       *  texture the 3D mesh wears, and an arrow painted there would be draped
+       *  over the terrain. It is hidden in 3D, where map north turns with the
+       *  camera and a screen arrow would point the wrong way. */
+      function setWindBadge(deg) {
+        $("windBadge").hidden = !wind.speed;
+        $("windArrow").setAttribute("transform", `rotate(${-deg}) scale(${0.6 + (0.4 * wind.speed) / 30})`);
       }
 
       function updateReadout() {
