@@ -9,9 +9,9 @@ questions the issue left open: does it link, does it run, how big is it.
 
 `.github/workflows/wasm.yml` builds the module and runs `smoke.mjs` on every
 pull request, and `.github/workflows/wasm-pages.yml` publishes the browser
-demo to GitHub Pages when run by hand. The `.wasm` is built in CI rather than
-committed: it is a megabyte of generated output, and a stale binary sitting
-next to live sources is worse than a two minute build.
+demo to GitHub Pages on every push to `dev`. The `.wasm` is built in CI rather
+than committed: it is a megabyte of generated output, and a stale binary
+sitting next to live sources is worse than a two minute build.
 
 ## What made it possible
 

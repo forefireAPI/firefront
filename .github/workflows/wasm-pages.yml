@@ -5,9 +5,11 @@ name: 🌐 Build WASM & Deploy Demo
 # of generated output, and a stale binary next to live sources is worse than a
 # two minute build.
 
-# Manual only for now: GitHub Pages is not enabled on this repository, and
-# which branch should publish the demo is still to be decided.
+# Publishes from dev. The github-pages environment has to allow dev as a
+# deployment branch (Settings → Environments → github-pages).
 on:
+  push:
+    branches: [ "dev" ]
   workflow_dispatch:
 
 permissions:
