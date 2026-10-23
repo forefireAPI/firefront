@@ -61,10 +61,18 @@ windU.fill(1.0, 0, W * H);
 const windV = new Float64Array(2 * W * H);
 windV.fill(1.0, W * H);
 
-ff.addLayer("propagation", "WindDriven", "propagationModel");
-console.log("fuel  layer:", ff.addIndexLayer("table", "fuel", 0, 0, 0, L, L, 0, H, W, 1, 1, fuel));
-console.log("windU layer:", ff.addScalarLayer("windScalDir", "windU", 0, 0, 0, L, L, 0, H, W, 2, 1, windU));
-console.log("windV layer:", ff.addScalarLayer("windScalDir", "windV", 0, 0, 0, L, L, 0, H, W, 2, 1, windV));
+const layers = {
+  propagation: ff.addLayer("propagation", "WindDriven", "propagationModel"),
+  fuel: ff.addIndexLayer("table", "fuel", 0, 0, 0, L, L, 0, H, W, 1, 1, fuel),
+  windU: ff.addScalarLayer("windScalDir", "windU", 0, 0, 0, L, L, 0, H, W, 2, 1, windU),
+  windV: ff.addScalarLayer("windScalDir", "windV", 0, 0, 0, L, L, 0, H, W, 2, 1, windV),
+};
+console.log("layers:", layers);
+const missing = Object.entries(layers).filter(([, ok]) => !ok);
+if (missing.length) {
+  console.error("layers not registered: " + missing.map(([k]) => k).join(", "));
+  process.exit(1);
+}
 
 ff.execute("startFire[loc=(2000,2000,0.);t=0]");
 

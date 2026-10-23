@@ -105,11 +105,11 @@ public:
 	/*! \brief Attach a model-backed layer, e.g. ("propagation", "WindDriven",
 	 *         "propagationModel"). Distinct from the addLayer *command*, which
 	 *         builds constant layers instead. */
-	void addLayer(const std::string &type, const std::string &name,
+	bool addLayer(const std::string &type, const std::string &name,
 				  const std::string &key) {
 		FireDomain *domain = executor.getDomain();
-		if (domain == 0) return;
-		domain->addLayer(type, name, key);
+		if (domain == 0) return false;
+		return domain->addLayer(type, name, key);
 	}
 
 	/*! \brief Register a continuous field (altitude, wind, moisture, ...). */
