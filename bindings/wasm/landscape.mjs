@@ -167,7 +167,10 @@ export async function buildLandscape({ lon, lat, side, grid, zoom = zoomFor(lat,
 	const metresPerPx = resolution(lat, zoom);
 	const sidePx = Math.round(side / metresPerPx);
 	const [cx, cy] = project(lon, lat, zoom);
-	const box = { zoom, left: cx - sidePx / 2, top: cy - sidePx / 2, sidePx };
+	// Whole pixels: a tile drawn at a fractional offset is antialiased along
+	// its edges, which shows as a seam in the imagery and, in the terrain,
+	// decodes the half-blended edge pixels to spikes hundreds of metres high.
+	const box = { zoom, left: Math.round(cx - sidePx / 2), top: Math.round(cy - sidePx / 2), sidePx };
 
 	const [image, terrain] = await Promise.all([
 		mosaic((z, x, y) => `${IMAGERY}/${z}/${y}/${x}`, box),

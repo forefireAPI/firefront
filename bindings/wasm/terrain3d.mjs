@@ -404,6 +404,9 @@ export function createTerrainView(canvas, { altitude, grid, side, resolution = 1
 	return {
 		setMap,
 		render,
+		/*! The orbit pose, so a page rebuilding the mesh for new ground can
+		 *  carry the view over instead of resetting it. */
+		camera,
 		orbit(dAz, dEl) {
 			camera.azimuth += dAz;
 			// Stop short of straight down, where the up vector degenerates.

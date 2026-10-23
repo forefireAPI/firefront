@@ -459,6 +459,7 @@
       let cursor = 0;
       let playing = false;
       let terrain = null;
+      let camera = null; // the 3D pose, kept across terrain rebuilds
       let dirty = true;
       // Held as a place on Earth, not as domain metres: panning and zooming
       // both move the domain under it, and anything stored in domain
@@ -594,6 +595,7 @@
           land = result;
           relief = hillshade(land.altitude, land.nx, land.site.side / land.nx);
           reclassify();
+          if (terrain) camera = { ...terrain.camera };
           terrain = null; // the mesh belongs to the old ground
           if (document.body.classList.contains("three")) setView(true);
           for (const id of ["showFuel", "showRelief", "view3d"]) $(id).disabled = false;
@@ -981,16 +983,15 @@
       });
       flat.addEventListener("pointercancel", () => (pan = null));
 
-      flat.addEventListener(
-        "wheel",
-        (e) => {
-          e.preventDefault();
-          const next = site.side * (e.deltaY > 0 ? 1.15 : 1 / 1.15);
-          site.side = Math.max(SIDE_LIMITS.min, Math.min(SIDE_LIMITS.max, next));
-          siteChanged();
-        },
-        { passive: false }
-      );
+      // The wheel zooms the ground in both views: in 3D too, zooming out has to
+      // fetch the terrain around the square, not just pull the camera back.
+      function zoomGround(e) {
+        e.preventDefault();
+        const next = site.side * (e.deltaY > 0 ? 1.15 : 1 / 1.15);
+        site.side = Math.max(SIDE_LIMITS.min, Math.min(SIDE_LIMITS.max, next));
+        siteChanged();
+      }
+      flat.addEventListener("wheel", zoomGround, { passive: false });
 
       $("recentre").addEventListener("click", () => {
         site = { ...HOME };
@@ -1011,6 +1012,7 @@
           if (!land || !land.altitude) return;
           try {
             terrain = createTerrainView($("gl"), { altitude: land.altitude, grid: land.nx, side: land.site.side });
+            if (camera) Object.assign(terrain.camera, camera);
             terrain.setExaggeration(+$("exag").value);
             terrain.setTransition(tilt.value);
           } catch (err) {
@@ -1023,7 +1025,7 @@
         $("view3d").classList.toggle("on", three);
         $("exagRow").hidden = !three;
         if (three) document.body.classList.add("three");
-        tilt = { from: tilt.value, to: three ? 1 : 0, started: performance.now() };
+        tilt = { from: tilt.value, to: three ? 1 : 0, started: performance.now(), value: tilt.value };
         dirty = true;
       }
 
@@ -1088,16 +1090,7 @@
         drag = null;
       });
       $("gl").addEventListener("pointercancel", () => (drag = null));
-      $("gl").addEventListener(
-        "wheel",
-        (e) => {
-          if (!terrain) return;
-          e.preventDefault();
-          terrain.zoom(e.deltaY > 0 ? 1.08 : 0.93);
-          dirty = true;
-        },
-        { passive: false }
-      );
+      $("gl").addEventListener("wheel", zoomGround, { passive: false });
     </script>
   </body>
 </html>

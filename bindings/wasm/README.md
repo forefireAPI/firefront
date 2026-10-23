@@ -158,9 +158,10 @@ a twelve-step window (`stalled`), and an ignition on bare ground is reported as
 `terrain3d.mjs` draws the elevation field as a textured mesh in raw WebGL — no
 library, since a heightfield with one directional light is not worth a megabyte
 of dependency. The texture is whatever the 2D view painted, so the two views
-cannot disagree. Drag to orbit, scroll to zoom, and the vertical exaggeration
-is adjustable because 750 m of relief over 4 km is subtle at true scale. The
-view degrades to 2D if WebGL is unavailable.
+cannot disagree. Drag to orbit, scroll to zoom the ground in or out (which
+fetches new terrain, as in 2D), and the vertical exaggeration is adjustable
+because 750 m of relief over 4 km is subtle at true scale. The view degrades to
+2D if WebGL is unavailable.
 
 Switching between the two views is a **camera move, not a swap**. `blendCamera`
 interpolates between the orbit and a flat pose — straight down through a
