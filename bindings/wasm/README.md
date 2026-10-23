@@ -102,9 +102,10 @@ The page opens on a 4 km square of the Ajaccio hinterland — the site of
 `tests/runff/run.ff` — but the map is live: drag to pan, scroll to resize the
 domain between 500 m and 30 km, and click to light a fire. The tile zoom
 is chosen from the domain size so the mosaic stays around a thousand pixels and
-36 tiles whatever the scale. Changing the ground clears the run, since the old
-fronts belong to ground that is no longer under them; the fetch is debounced
-and the canvas previews the move with the tiles it already has.
+36 tiles whatever the scale. Panning and zooming keep the run playing: each
+run remembers the square it was computed on, and its fronts are drawn wherever
+that square now sits on screen. The fetch is debounced, and the canvas previews
+the move with the tiles it already has.
 
 The ignition point is stored as a longitude and latitude rather than as domain
 metres, so panning and zooming leave it on the same patch of ground instead of

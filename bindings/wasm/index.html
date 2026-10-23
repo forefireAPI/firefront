@@ -468,12 +468,14 @@
       let reloadTimer = null;
       const wind = { speed: 8, angleDeg: 0, turning: false, turnPerStep: 4 };
 
-      function ignitionXY() {
-        const east = (ignitionLL.lon - site.lon) * mPerDegLon(site.lat);
-        const north = (ignitionLL.lat - site.lat) * M_PER_DEG_LAT;
-        const margin = site.side * 0.02;
-        const clamp = (v) => Math.max(margin, Math.min(site.side - margin, v));
-        return [clamp(site.side / 2 + east), clamp(site.side / 2 + north)];
+      /*! The ignition point in the metres of the square `base`, clamped inside
+       *  it so a pan that carries it off the map still leaves somewhere to light. */
+      function ignitionXY(base = site) {
+        const east = (ignitionLL.lon - base.lon) * mPerDegLon(base.lat);
+        const north = (ignitionLL.lat - base.lat) * M_PER_DEG_LAT;
+        const margin = base.side * 0.02;
+        const clamp = (v) => Math.max(margin, Math.min(base.side - margin, v));
+        return [clamp(base.side / 2 + east), clamp(base.side / 2 + north)];
       }
 
       const fmtArea = (m2) => (m2 >= 1e4 ? `${(m2 / 1e4).toFixed(m2 < 1e5 ? 1 : 0)} ha` : `${m2.toFixed(0)} m²`);
@@ -626,8 +628,9 @@
         dirty = true;
       }
 
+      // A pan or zoom keeps the run: its fronts are drawn relative to the ground
+      // they were computed on (timeline.where), not to the current view.
       function siteChanged() {
-        clearRun();
         updateSiteReadout();
         dirty = true;
         clearTimeout(reloadTimer);
@@ -657,7 +660,10 @@
         $("outcome").className = "";
         play(false);
 
-        const side = land ? land.site.side : site.side;
+        // The square the layers below were built for, which is not the view
+        // while a pan is still waiting on its tiles.
+        const where = land ? { ...land.site } : { ...site };
+        const side = where.side;
         const run = {
           land: {
             side,
@@ -676,7 +682,7 @@
           params: Object.fromEntries(PARAMS.filter((p) => p.to === "params").map((p) => [p.key, value[p.key]])),
           steps: value.steps,
           dt: value.dt,
-          ignition: ignitionXY(),
+          ignition: ignitionXY(where),
           wind: { ...wind },
         };
 
@@ -697,7 +703,7 @@
             $("run").textContent = `Computing… ${Math.round((100 * data.done) / data.total)}%`;
           } else if (data.type === "timeline") {
             done();
-            showTimeline(data);
+            showTimeline({ ...data, where });
           } else if (data.type === "failed") {
             done();
             showFailure(data.message);
@@ -842,13 +848,19 @@
           drawWind(wind.angleDeg, size);
           return;
         }
-        const s = size / timeline.domain;
+        // From the run's domain metres to this view's pixels. The run's square
+        // sits wherever it sits on the ground, so panning and zooming move the
+        // fire with the map instead of clearing it.
+        const s = size / site.side;
+        const { where } = timeline;
+        const x0 = size / 2 + ((where.lon - site.lon) * mPerDegLon(site.lat) - where.side / 2) * s;
+        const y0 = size / 2 - ((where.lat - site.lat) * M_PER_DEG_LAT - where.side / 2) * s;
         // Canvas y grows downward, the domain's grows upward.
         const path = (coords) => {
           const p = new Path2D();
           for (let i = 0; i < coords.length; i += 2) {
-            const x = coords[i] * s;
-            const y = size - coords[i + 1] * s;
+            const x = x0 + coords[i] * s;
+            const y = y0 - coords[i + 1] * s;
             i === 0 ? p.moveTo(x, y) : p.lineTo(x, y);
           }
           p.closePath();
