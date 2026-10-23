@@ -147,17 +147,28 @@
       #outcome.show { display: block; }
       #outcome b { color: var(--flame); }
 
-      #legend {
+      .keys {
         position: absolute;
         top: 0.9rem;
         right: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+        width: 10rem;
+        pointer-events: none;
+      }
+      .keys > div {
         padding: 0.45rem 0.65rem;
         border-radius: 6px;
         background: rgba(13, 11, 10, 0.78);
         font-size: 12px;
         display: none;
       }
-      body.fuel #legend { display: block; }
+      body.fuel #legend,
+      body.ran.arrival #arrivalKey,
+      body.ran.spread #spreadKey { display: block; }
+      .scale .bar { height: 8px; border-radius: 2px; margin: 0.25rem 0 0.15rem; }
+      .scale .ends { display: flex; justify-content: space-between; color: var(--dim); font-size: 11px; }
       #windBadge {
         position: absolute;
         left: 1rem;
@@ -288,14 +299,24 @@
       }
     </style>
   </head>
-  <body>
+  <body class="arrival spread">
     <div class="stage">
       <div class="frame">
         <canvas id="flat" class="view" width="1024" height="1024"></canvas>
         <canvas id="gl" class="view" width="1024" height="1024"></canvas>
         <div class="brand"><b>Fore<i>Fire</i></b><span>wildfire spread, running in this tab</span></div>
         <div id="loading" class="pill" hidden>loading terrain…</div>
-        <div id="legend"></div>
+        <div class="keys">
+          <div id="legend"></div>
+          <div class="scale" id="arrivalKey">
+            <span>Arrival</span><div class="bar" id="arrivalBar"></div>
+            <div class="ends"><span>0</span><span id="arrivalEnd"></span></div>
+          </div>
+          <div class="scale" id="spreadKey">
+            <span>Spread</span><div class="bar" id="spreadBar"></div>
+            <div class="ends"><span>0</span><span id="spreadEnd"></span></div>
+          </div>
+        </div>
         <svg id="windBadge" viewBox="-30 -30 60 60" aria-hidden="true">
           <circle r="29" fill="rgba(13,11,10,0.6)" />
           <g id="windArrow" fill="#f2ebe4" stroke="#f2ebe4">
@@ -361,7 +382,8 @@
         <div class="chips" style="margin-top: 0.5rem">
           <button class="chip" id="showFuel" disabled>Fuel</button>
           <button class="chip on" id="showRelief" disabled>Relief</button>
-          <button class="chip on" id="showTrail">Trail</button>
+          <button class="chip on" id="showArrival" title="Colour the burnt ground by when it caught fire">Arrival</button>
+          <button class="chip on" id="showSpread" title="Colour the front by its rate of spread">Spread</button>
         </div>
         <div class="field" id="exagRow" hidden>
           <label>Relief ×<output id="exagOut">2.5</output></label>
@@ -735,6 +757,7 @@
 
       function clearRun() {
         timeline = null;
+        document.body.classList.remove("ran");
         $("scrub").disabled = true;
         $("playback").disabled = true;
         $("outcome").className = "";
@@ -742,8 +765,65 @@
         play(false);
       }
 
+      // Arrival runs from char (early) to ember (late), so the newest ground is
+      // the brightest; spread runs cool to white-hot, and stays legible against
+      // the ember it borders.
+      const ARRIVAL = [[42, 15, 46], [138, 28, 60], [226, 71, 12], [255, 166, 43]];
+      const SPREAD = [[46, 196, 241], [255, 225, 77], [255, 255, 255]];
+
+      function rgb(stops, t) {
+        const x = Math.max(0, Math.min(1, t || 0)) * (stops.length - 1);
+        const i = Math.min(stops.length - 2, Math.floor(x));
+        const f = x - i;
+        const c = stops[i].map((v, k) => Math.round(v + (stops[i + 1][k] - v) * f));
+        return `rgb(${c})`;
+      }
+      const gradient = (stops) => `linear-gradient(90deg, ${stops.map((c) => `rgb(${c})`).join(", ")})`;
+
+      /*! What the drawing needs once per run rather than once per frame: each
+       *  frame's fronts as one path in domain metres, the isochrones, and the
+       *  two scales' ranges. */
+      function prepare(data) {
+        data.paths = data.frames.map((f) => {
+          const p = new Path2D();
+          for (const c of f.fronts) {
+            p.moveTo(c[0], c[1]);
+            for (let i = 2; i < c.length; i += 2) p.lineTo(c[i], c[i + 1]);
+            p.closePath();
+          }
+          return p;
+        });
+        data.tEnd = Math.max(1, data.frames.at(-1).t);
+
+        // A round interval giving at most eight lines over the run.
+        const minutes = [5, 10, 15, 30, 60, 120, 240];
+        const every = 60 * (minutes.find((m) => data.tEnd / (60 * m) <= 8) ?? 480);
+        data.isochrones = [];
+        for (let t = every; t < data.tEnd; t += every) {
+          const frame = data.frames.findIndex((f) => f.t >= t);
+          if (frame < 0 || !data.frames[frame].fronts.length) continue;
+          // Labelled at the northernmost node, which is rarely under another line.
+          let label = [0, -Infinity];
+          for (const c of data.frames[frame].fronts)
+            for (let i = 0; i < c.length; i += 2) if (c[i + 1] > label[1]) label = [c[i], c[i + 1]];
+          data.isochrones.push({ frame, label, text: clock(t) });
+        }
+
+        // The 95th percentile rather than the maximum: a handful of nodes on a
+        // tight curve run far faster than the head and would wash out the scale.
+        const all = data.frames.flatMap((f) => f.speeds.flatMap((v) => Array.from(v))).sort((a, b) => a - b);
+        data.vMax = Math.max(1e-3, all[Math.floor(0.95 * (all.length - 1))] ?? 0);
+
+        $("arrivalBar").style.background = gradient(ARRIVAL);
+        $("arrivalEnd").textContent = clock(data.tEnd);
+        $("spreadBar").style.background = gradient(SPREAD);
+        $("spreadEnd").textContent = `${(data.vMax * 60).toFixed(1)} m/min`;
+        return data;
+      }
+
       function showTimeline(data) {
-        timeline = data;
+        timeline = prepare(data);
+        document.body.classList.add("ran");
         cursor = 0;
         $("scrub").max = String(data.frames.length - 1);
         $("scrub").value = "0";
@@ -866,43 +946,87 @@
         }
         // From the run's domain metres to this view's pixels. The run's square
         // sits wherever it sits on the ground, so panning and zooming move the
-        // fire with the map instead of clearing it.
+        // fire with the map instead of clearing it. Canvas y grows downward,
+        // the domain's grows upward.
         const s = size / site.side;
         const { where } = timeline;
         const x0 = size / 2 + ((where.lon - site.lon) * mPerDegLon(site.lat) - where.side / 2) * s;
         const y0 = size / 2 - ((where.lat - site.lat) * M_PER_DEG_LAT - where.side / 2) * s;
-        // Canvas y grows downward, the domain's grows upward.
-        const path = (coords) => {
-          const p = new Path2D();
-          for (let i = 0; i < coords.length; i += 2) {
-            const x = x0 + coords[i] * s;
-            const y = y0 - coords[i + 1] * s;
-            i === 0 ? p.moveTo(x, y) : p.lineTo(x, y);
-          }
-          p.closePath();
-          return p;
-        };
+        const toCanvas = (x, y) => [x0 + x * s, y0 - y * s];
+        const inMetres = () => ctx.setTransform(s, 0, 0, -s, x0, y0);
+        const frame = timeline.frames[cursor];
 
-        if (isOn("showTrail")) {
-          ctx.lineWidth = 1;
-          const first = Math.max(0, cursor - 60);
-          for (let i = first; i < cursor; i += 2) {
-            const age = (i - first) / Math.max(1, cursor - first);
-            ctx.strokeStyle = `rgba(255,106,19,${0.05 + age * 0.3})`;
-            for (const c of timeline.frames[i].fronts) ctx.stroke(path(c));
+        ctx.save();
+        inMetres();
+        if (isOn("showArrival")) {
+          // Arrival time: paint the burnt area latest first and earlier frames
+          // over it, so each point keeps the colour of the first frame that
+          // contained it. Strided past ~150 frames to keep playback smooth.
+          const stride = Math.max(1, Math.ceil(cursor / 150));
+          ctx.globalAlpha = 0.6;
+          for (let i = cursor; i >= 0; i -= stride) {
+            ctx.fillStyle = rgb(ARRIVAL, timeline.frames[i].t / timeline.tEnd);
+            ctx.fill(timeline.paths[i], "evenodd");
+            if (i > 0 && i - stride < 0) i = stride; // always end on frame 0
           }
+          ctx.globalAlpha = 1;
+
+          ctx.lineWidth = 1 / s;
+          ctx.strokeStyle = "rgba(255,255,255,0.55)";
+          for (const iso of timeline.isochrones)
+            if (iso.frame <= cursor) ctx.stroke(timeline.paths[iso.frame]);
+        } else {
+          // One shape, filled even-odd: a front nested inside another is the
+          // edge of ground the fire went round, not more fire.
+          ctx.fillStyle = "rgba(255,70,0,0.35)";
+          ctx.fill(timeline.paths[cursor], "evenodd");
         }
 
-        const frame = timeline.frames[cursor];
-        ctx.lineWidth = 2.5;
-        ctx.strokeStyle = "#ffb347";
-        ctx.fillStyle = "rgba(255,70,0,0.35)";
-        // One shape, filled even-odd: a front nested inside another is the edge
-        // of ground the fire went round, not more fire, and stays unfilled.
-        const burnt = new Path2D();
-        for (const c of frame.fronts) burnt.addPath(path(c));
-        ctx.fill(burnt, "evenodd");
-        ctx.stroke(burnt);
+        ctx.lineWidth = 3 / s;
+        ctx.lineCap = "round";
+        if (isOn("showSpread")) {
+          // Each segment takes the mean speed of its two nodes.
+          for (let f = 0; f < frame.fronts.length; f++) {
+            const c = frame.fronts[f];
+            const v = frame.speeds[f];
+            const n = c.length / 2;
+            for (let k = 0; k < n; k++) {
+              const j = (k + 1) % n;
+              ctx.strokeStyle = rgb(SPREAD, (v[k] + v[j]) / 2 / timeline.vMax);
+              ctx.beginPath();
+              ctx.moveTo(c[2 * k], c[2 * k + 1]);
+              ctx.lineTo(c[2 * j], c[2 * j + 1]);
+              ctx.stroke();
+            }
+          }
+        } else {
+          ctx.strokeStyle = "#ffb347";
+          ctx.stroke(timeline.paths[cursor]);
+        }
+        ctx.restore();
+
+        if (isOn("showArrival")) {
+          ctx.save();
+          ctx.font = "600 22px system-ui, sans-serif";
+          ctx.textAlign = "center";
+          ctx.lineWidth = 4;
+          ctx.strokeStyle = "rgba(13,11,10,0.8)";
+          ctx.fillStyle = "#fff";
+          // Later lines first, and none on top of another: once the fire has
+          // reached the domain edge, successive lines share their northernmost
+          // point.
+          const placed = [];
+          for (const iso of [...timeline.isochrones].reverse()) {
+            if (iso.frame > cursor) continue;
+            const [x, y] = toCanvas(...iso.label);
+            if (placed.some(([px, py]) => Math.abs(px - x) < 70 && Math.abs(py - y) < 28)) continue;
+            placed.push([x, y]);
+            ctx.strokeText(iso.text, x, y - 8);
+            ctx.fillText(iso.text, x, y - 8);
+          }
+          ctx.restore();
+        }
+
         drawIgnition(size);
         setWindBadge(frame.windDeg);
       }
@@ -944,10 +1068,10 @@
         $("dFronts").textContent = f.fronts.length;
       }
 
-      for (const id of ["showFuel", "showRelief", "showTrail"])
+      for (const id of ["showFuel", "showRelief", "showArrival", "showSpread"])
         $(id).addEventListener("click", () => {
           $(id).classList.toggle("on");
-          if (id === "showFuel") document.body.classList.toggle("fuel", isOn(id));
+          document.body.classList.toggle(id.slice(4).toLowerCase(), isOn(id));
           dirty = true;
         });
 

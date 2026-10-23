@@ -71,26 +71,36 @@ function build(land, model, solver) {
 	return ff;
 }
 
-/*! Split print[] into one coordinate array per front.
+/*! Split print[] into one coordinate array per front, with each node's
+ *  rate of spread alongside.
  *
  *  Fronts nest — an inner front is printed indented inside its parent — so
  *  every FireFront line starts a fresh polygon. Running them together is what
- *  draws spurious chords straight across the burn.
+ *  draws spurious chords straight across the burn. The speed is the length of
+ *  the node's `vel`, in m/s.
  */
 function parseFronts(text) {
 	const fronts = [];
 	let current = null;
 	for (const line of text.split("\n")) {
 		if (line.includes("FireFront[")) {
-			current = [];
+			current = { coords: [], speeds: [] };
 			fronts.push(current);
 		} else if (current && line.includes("FireNode[")) {
-			const m = /loc=\(([-\d.eE+]+),([-\d.eE+]+),/.exec(line);
-			if (m) current.push(parseFloat(m[1]), parseFloat(m[2]));
+			const loc = /loc=\(([-\d.eE+]+),([-\d.eE+]+),/.exec(line);
+			const vel = /vel=\(([-\d.eE+]+),([-\d.eE+]+),/.exec(line);
+			if (loc) {
+				current.coords.push(parseFloat(loc[1]), parseFloat(loc[2]));
+				current.speeds.push(vel ? Math.hypot(parseFloat(vel[1]), parseFloat(vel[2])) : 0);
+			}
 		}
 	}
 	// A front of one or two nodes is a degenerate sliver, not a perimeter.
-	return fronts.filter((f) => f.length >= 6).map((f) => Float32Array.from(f));
+	const kept = fronts.filter((f) => f.coords.length >= 6);
+	return {
+		fronts: kept.map((f) => Float32Array.from(f.coords)),
+		speeds: kept.map((f) => Float32Array.from(f.speeds)),
+	};
 }
 
 /*! Shoelace area, summed over fronts. Inner fronts wind the other way, so
@@ -148,12 +158,13 @@ function simulate({ land, model, params, steps, dt, wind, ignition }) {
 	const WINDOW = 12;
 
 	const push = (step, ms) => {
-		const fronts = parseFronts(ff.execute("print[]"));
+		const { fronts, speeds } = parseFronts(ff.execute("print[]"));
 		frames.push({
 			step,
 			t: ff.getTime(),
 			ms,
 			fronts,
+			speeds,
 			nodes: fronts.reduce((n, f) => n + f.length / 2, 0),
 			area: burntArea(fronts),
 			windDeg: windAt(step, wind).deg,
@@ -226,7 +237,7 @@ self.onmessage = ({ data: msg }) => {
 			const result = simulate(msg.run);
 			self.postMessage(
 				{ type: "timeline", ...result },
-				result.frames.flatMap((f) => f.fronts.map((c) => c.buffer))
+				result.frames.flatMap((f) => [...f.fronts, ...f.speeds].map((c) => c.buffer))
 			);
 		} catch (err) {
 			self.postMessage({ type: "failed", message: String(err && err.message) });
