@@ -4,8 +4,9 @@
   no NetCDF, no listenHTTP: the engine runs in this tab, on a fuel map and an
   elevation field decoded from public map tiles.
 
-  A whole run costs a fraction of a second to a few seconds, so it is computed
-  up front and then scrubbed on a timeline rather than watched a step at a time.
+  Two modes over one page. Explore is for trying things: click the map to light
+  a fire, pick a wind, watch. Research opens the model, its tuning factors, the
+  numerics and the fuel table, each labelled with its ForeFire parameter name.
 
   Copy the page files next to the build outputs and serve the directory over
   http — a file:// page can neither fetch the .wasm nor start a module worker:
@@ -17,289 +18,392 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>ForeFire in the browser</title>
+    <title>ForeFire</title>
     <style>
       :root {
         color-scheme: dark;
-        --bg: #14100e;
-        --panel: #1e1917;
-        --line: #3a302c;
-        --ink: #ede6e1;
-        --dim: #9c8f88;
-        --hot: #ff7a1a;
+        --ground: #0d0b0a;
+        --rail: #161210;
+        --raised: #221b18;
+        --line: #33291f;
+        --ink: #f2ebe4;
+        --dim: #8f8178;
+        --ember: #ff6a13;
+        --flame: #ffb347;
+        --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
       }
       * { box-sizing: border-box; }
+      html, body { height: 100%; }
       body {
         margin: 0;
-        padding: 2rem 1rem 4rem;
-        background: var(--bg);
+        background: var(--ground);
         color: var(--ink);
-        font: 15px/1.6 system-ui, sans-serif;
-      }
-      main {
-        max-width: 64rem;
-        margin: 0 auto;
+        font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
         display: grid;
-        gap: 1.5rem;
-        grid-template-columns: minmax(0, 1fr) 17.5rem;
+        grid-template-columns: minmax(0, 1fr) 19rem;
+        overflow: hidden;
       }
-      header { grid-column: 1 / -1; }
-      h1 { margin: 0 0 0.3rem; font-size: 1.6rem; letter-spacing: -0.01em; }
-      header p { margin: 0; color: var(--dim); max-width: 46rem; }
-      figure { margin: 0; }
-      .stage { position: relative; }
-      #flat { cursor: crosshair; touch-action: none; }
-      #loading {
-        position: absolute;
-        left: 0.75rem;
-        top: 0.75rem;
-        padding: 0.25rem 0.6rem;
-        border-radius: 3px;
-        background: rgba(20, 16, 14, 0.8);
-        border: 1px solid var(--line);
-        font-size: 12px;
-        color: var(--dim);
+      button, select, input { font: inherit; color: inherit; }
+
+      /* ---- the map ------------------------------------------------------ */
+
+      .stage {
+        position: relative;
+        display: grid;
+        place-items: center;
+        padding: 1rem;
+        min-height: 0;
+      }
+      .frame {
+        position: relative;
+        width: min(100%, calc(100vh - 2rem));
+        aspect-ratio: 1;
       }
       canvas.view {
-        display: block;
+        position: absolute;
+        inset: 0;
         width: 100%;
-        aspect-ratio: 1;
-        background: #0b0908;
-        border: 1px solid var(--line);
-        border-radius: 4px;
+        height: 100%;
+        border-radius: 6px;
+        background: #070605;
       }
+      #flat { cursor: crosshair; touch-action: none; }
       #gl { display: none; cursor: grab; }
       #gl:active { cursor: grabbing; }
       body.three #flat { display: none; }
       body.three #gl { display: block; }
-      figcaption { margin-top: 0.5rem; font-size: 12px; color: var(--dim); }
-      #outcome {
-        margin-top: 0.6rem;
-        padding: 0.5rem 0.75rem;
-        border: 1px solid var(--line);
-        border-left: 3px solid var(--hot);
-        border-radius: 3px;
-        background: var(--panel);
-        font-size: 13.5px;
-        display: none;
+
+      .brand {
+        position: absolute;
+        top: 0.9rem;
+        left: 1rem;
+        pointer-events: none;
+        text-shadow: 0 1px 8px rgba(0, 0, 0, 0.7);
       }
-      #outcome.show { display: block; }
-      #outcome b { color: var(--hot); }
-      .timeline {
-        margin-top: 0.75rem;
+      .brand b {
+        display: block;
+        font-size: 1.35rem;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+      }
+      .brand b i { font-style: normal; color: var(--ember); }
+      .brand span { font-size: 12.5px; color: rgba(242, 235, 228, 0.75); }
+
+      .pill {
+        position: absolute;
+        padding: 0.3rem 0.65rem;
+        border-radius: 99px;
+        background: rgba(13, 11, 10, 0.78);
+        backdrop-filter: blur(6px);
+        font-size: 12.5px;
+        color: var(--ink);
+      }
+      #loading { top: 0.9rem; left: 50%; transform: translateX(-50%); }
+      #hint { bottom: 4.6rem; left: 50%; transform: translateX(-50%); white-space: nowrap; }
+      #hint kbd { font: inherit; color: var(--flame); }
+
+      .hud {
+        position: absolute;
+        left: 0.75rem;
+        right: 0.75rem;
+        bottom: 0.75rem;
         display: flex;
         align-items: center;
         gap: 0.75rem;
+        padding: 0.5rem 0.75rem;
+        border-radius: 8px;
+        background: rgba(13, 11, 10, 0.8);
+        backdrop-filter: blur(8px);
       }
-      .timeline input[type="range"] { flex: 1; margin: 0; }
-      .timeline button { flex: none; width: 5.5rem; }
-      .timeline .clock {
-        font-family: ui-monospace, monospace;
-        font-size: 12.5px;
-        font-variant-numeric: tabular-nums;
-        color: var(--dim);
-        white-space: nowrap;
-      }
-      aside { display: flex; flex-direction: column; gap: 1rem; }
-      fieldset {
-        border: 1px solid var(--line);
-        border-radius: 4px;
-        background: var(--panel);
-        padding: 0.9rem 1rem 1.1rem;
-        margin: 0;
-      }
-      legend {
-        color: var(--dim);
-        font-size: 12px;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        padding: 0 0.4rem;
-      }
-      label { display: block; font-size: 13px; color: var(--dim); margin-top: 0.7rem; }
-      label:first-of-type { margin-top: 0; }
-      label span { color: var(--ink); float: right; font-variant-numeric: tabular-nums; }
-      input[type="range"] { width: 100%; margin: 0.3rem 0 0; accent-color: var(--hot); }
-      .row { display: flex; gap: 0.5rem; }
-      button {
-        flex: 1;
-        font: inherit;
-        padding: 0.45rem 0.5rem;
-        color: var(--ink);
-        background: #2b2320;
-        border: 1px solid var(--line);
-        border-radius: 3px;
+      .hud input[type="range"] { flex: 1; min-width: 4rem; }
+      #playback {
+        flex: none;
+        width: 2.2rem;
+        height: 2.2rem;
+        border-radius: 50%;
+        border: 0;
+        background: var(--ember);
+        color: #1a0d05;
+        font-size: 13px;
         cursor: pointer;
       }
-      button:hover:not(:disabled) { border-color: var(--hot); }
-      button:disabled { opacity: 0.45; cursor: default; }
-      button.on { background: var(--hot); border-color: var(--hot); color: #1a1210; }
-      .check {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        margin-top: 0.8rem;
+      #playback:disabled { background: var(--raised); color: var(--dim); cursor: default; }
+      .stat { text-align: right; line-height: 1.15; font-variant-numeric: tabular-nums; }
+      .stat b { display: block; font-size: 1.05rem; }
+      .stat span { font-size: 11px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.06em; }
+
+      #outcome {
+        position: absolute;
+        left: 0.75rem;
+        right: 0.75rem;
+        bottom: 4.4rem;
+        padding: 0.55rem 0.8rem;
+        border-radius: 8px;
+        background: rgba(34, 27, 24, 0.92);
+        border-left: 3px solid var(--ember);
         font-size: 13px;
-        color: var(--dim);
+        display: none;
       }
-      .check input { accent-color: var(--hot); }
-      .check label { margin: 0; }
+      #outcome.show { display: block; }
+      #outcome b { color: var(--flame); }
+
+      #legend {
+        position: absolute;
+        top: 0.9rem;
+        right: 1rem;
+        padding: 0.45rem 0.65rem;
+        border-radius: 6px;
+        background: rgba(13, 11, 10, 0.78);
+        font-size: 12px;
+        display: none;
+      }
+      body.fuel #legend { display: block; }
+      .key { display: flex; align-items: center; gap: 0.4rem; }
+      .sw { width: 10px; height: 10px; border-radius: 2px; }
+
+      /* ---- the rail ----------------------------------------------------- */
+
+      aside {
+        background: var(--rail);
+        border-left: 1px solid var(--line);
+        overflow-y: auto;
+        padding: 0.9rem 1rem 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.1rem;
+      }
+      section h2 {
+        margin: 0 0 0.5rem;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--dim);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+      .seg {
+        display: grid;
+        grid-auto-flow: column;
+        grid-auto-columns: 1fr;
+        padding: 3px;
+        gap: 3px;
+        border-radius: 8px;
+        background: var(--ground);
+      }
+      .seg button {
+        border: 0;
+        border-radius: 6px;
+        padding: 0.35rem 0.4rem;
+        background: transparent;
+        color: var(--dim);
+        cursor: pointer;
+      }
+      .seg button.on { background: var(--raised); color: var(--ink); }
+      .seg button:disabled { opacity: 0.4; cursor: default; }
+
+      .chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+      .chip {
+        border: 1px solid var(--line);
+        border-radius: 99px;
+        padding: 0.25rem 0.7rem;
+        background: transparent;
+        cursor: pointer;
+        font-size: 13px;
+      }
+      .chip:hover:not(:disabled) { border-color: var(--ember); }
+      .chip.on { background: var(--ember); border-color: var(--ember); color: #1a0d05; }
+      .chip:disabled { opacity: 0.4; cursor: default; }
+
+      #run {
+        width: 100%;
+        padding: 0.65rem;
+        border: 0;
+        border-radius: 8px;
+        background: linear-gradient(90deg, #e2470c, var(--ember) 60%, var(--flame));
+        color: #1a0d05;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      #run:disabled { filter: grayscale(0.7) brightness(0.7); cursor: progress; }
+
+      .wind { display: grid; grid-template-columns: 6.5rem 1fr; gap: 0.8rem; align-items: center; }
+      #dial { width: 100%; aspect-ratio: 1; cursor: grab; touch-action: none; display: block; }
+      #dial:active { cursor: grabbing; }
+      .readout { font-size: 1.4rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+      .readout small { font-size: 12px; color: var(--dim); font-weight: 400; }
+
+      .field { margin-top: 0.55rem; }
+      .field:first-child { margin-top: 0; }
+      .field label { display: flex; justify-content: space-between; gap: 0.5rem; font-size: 13px; }
+      .field label output { font-variant-numeric: tabular-nums; color: var(--flame); }
+      .field code { display: block; font: 11px var(--mono); color: var(--dim); }
+      input[type="range"] { width: 100%; margin: 0.25rem 0 0; accent-color: var(--ember); }
+      select {
+        width: 100%;
+        padding: 0.4rem 0.5rem;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--raised);
+      }
+
+      .research { display: none; }
+      body.researching .research { display: block; }
+      .research section + section { margin-top: 1.1rem; }
+
       dl {
         margin: 0;
         display: grid;
-        grid-template-columns: auto auto;
-        gap: 0.25rem 1rem;
-        font-family: ui-monospace, monospace;
-        font-size: 12.5px;
+        grid-template-columns: auto 1fr;
+        gap: 0.15rem 0.8rem;
+        font: 12px var(--mono);
       }
       dt { color: var(--dim); }
       dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
-      .key { display: flex; align-items: center; gap: 0.45rem; font-size: 12.5px; color: var(--dim); margin-top: 0.4rem; }
-      .sw { width: 12px; height: 12px; border-radius: 2px; flex: none; }
-      .hint { font-size: 12px; color: var(--dim); margin: 0.5rem 0 0; }
-      @media (max-width: 50rem) { main { grid-template-columns: minmax(0, 1fr); } }
+      .linkish {
+        border: 0;
+        padding: 0;
+        background: none;
+        color: var(--dim);
+        text-decoration: underline dotted;
+        cursor: pointer;
+        font-size: 12px;
+      }
+      .linkish:hover { color: var(--ink); }
+      #credit { font-size: 11px; color: var(--dim); margin: 0; }
+
+      @media (max-width: 52rem) {
+        body { grid-template-columns: minmax(0, 1fr); overflow: auto; }
+        .frame { width: 100%; }
+        .stage { padding: 0.5rem; }
+        aside { border-left: 0; border-top: 1px solid var(--line); }
+        #hint { white-space: normal; text-align: center; width: max-content; max-width: 90%; }
+      }
     </style>
   </head>
   <body>
-    <main>
-      <header>
-        <h1>ForeFire in the browser</h1>
-        <p>
-          Starting over the Ajaccio hinterland, Corsica — the site of the
-          repository's own test case — but the map goes anywhere: drag, zoom,
-          and click to place the ignition. The fuel map and the terrain are
-          decoded from map tiles in this tab, and Rothermel's rate of spread
-          reads both, so the fire runs uphill and stops at bare ground. The
-          whole run is computed up front — a fraction of a second to a few
-          seconds — and the timeline scrubs through it.
-        </p>
-      </header>
-
-      <figure>
-        <div class="stage">
-          <canvas id="flat" class="view" width="1024" height="1024"></canvas>
-          <canvas id="gl" class="view" width="1024" height="1024"></canvas>
-          <div id="loading" hidden>fetching tiles…</div>
-        </div>
-        <p class="hint" id="mapHint">
-          Drag to pan, scroll to zoom, click to move the ignition point.
-          Changing the ground clears the run.
-        </p>
-
-        <div class="timeline">
-          <button id="playback" disabled>Play</button>
-          <input id="scrub" type="range" min="0" max="0" value="0" step="1" disabled />
-          <span class="clock" id="clock">—</span>
-        </div>
-
+    <div class="stage">
+      <div class="frame">
+        <canvas id="flat" class="view" width="1024" height="1024"></canvas>
+        <canvas id="gl" class="view" width="1024" height="1024"></canvas>
+        <div class="brand"><b>Fore<i>Fire</i></b><span>wildfire spread, running in this tab</span></div>
+        <div id="loading" class="pill" hidden>loading terrain…</div>
+        <div id="legend"></div>
+        <div id="hint" class="pill"><kbd>click</kbd> to light a fire · <kbd>drag</kbd> to move · <kbd>scroll</kbd> to zoom</div>
         <div id="outcome"></div>
-        <figcaption id="credit">Loading imagery and terrain…</figcaption>
-      </figure>
+        <div class="hud">
+          <button id="playback" disabled title="Play / pause">▶</button>
+          <input id="scrub" type="range" min="0" max="0" value="0" step="1" disabled aria-label="Timeline" />
+          <div class="stat"><b id="hudTime">—</b><span>elapsed</span></div>
+          <div class="stat"><b id="hudArea">—</b><span>burnt</span></div>
+        </div>
+      </div>
+    </div>
 
-      <aside>
-        <fieldset>
-          <legend>Ground</legend>
+    <aside>
+      <div class="seg" role="tablist">
+        <button id="modeExplore" class="on" title="Light fires and play with the wind">Explore</button>
+        <button id="modeResearch" title="Model, tuning, numerics and fuel">Research</button>
+      </div>
+
+      <section>
+        <h2>Scenario</h2>
+        <div class="chips" id="presets"></div>
+      </section>
+
+      <section>
+        <h2>Wind</h2>
+        <div class="wind">
+          <svg id="dial" viewBox="-50 -50 100 100" aria-label="Wind direction, drag to turn">
+            <circle r="46" fill="#0d0b0a" stroke="#33291f" />
+            <g fill="#8f8178" font-size="9" text-anchor="middle" dominant-baseline="central">
+              <text y="-37">N</text><text x="37">E</text><text y="37">S</text><text x="-37">W</text>
+            </g>
+            <g id="arrow">
+              <line x1="-26" y1="0" x2="22" y2="0" stroke="#ff6a13" stroke-width="4" stroke-linecap="round" />
+              <path d="M30 0 L16 -9 L16 9 Z" fill="#ff6a13" />
+            </g>
+          </svg>
+          <div>
+            <div class="readout"><span id="speedOut">8</span> <small>m/s</small></div>
+            <div class="readout"><small id="dirOut">toward E</small></div>
+            <input id="speed" type="range" min="0" max="30" step="1" value="8" aria-label="Wind speed" />
+          </div>
+        </div>
+        <div class="field" id="turnRow" hidden>
+          <label>Turns by <output id="turnOut">4°</output></label>
+          <input id="turn" type="range" min="1" max="24" step="1" value="4" aria-label="Turn per step" />
+        </div>
+      </section>
+
+      <button id="run">Light fire at the marker</button>
+
+      <section>
+        <h2>View</h2>
+        <div class="seg">
+          <button id="view2d" class="on">Map</button>
+          <button id="view3d" disabled>3D terrain</button>
+        </div>
+        <div class="chips" style="margin-top: 0.5rem">
+          <button class="chip" id="showFuel" disabled>Fuel</button>
+          <button class="chip on" id="showRelief" disabled>Relief</button>
+          <button class="chip on" id="showTrail">Trail</button>
+        </div>
+        <div class="field" id="exagRow" hidden>
+          <label>Relief ×<output id="exagOut">2.5</output></label>
+          <input id="exag" type="range" min="1" max="6" step="0.5" value="2.5" aria-label="Vertical exaggeration" />
+        </div>
+      </section>
+
+      <div class="research">
+        <section>
+          <h2>Model</h2>
+          <select id="model" aria-label="Propagation model"></select>
+          <div id="tuning" style="margin-top: 0.55rem"></div>
+        </section>
+        <section>
+          <h2>Numerics</h2>
+          <div id="numerics"></div>
+        </section>
+        <section>
+          <h2>Fuel &amp; moisture</h2>
+          <div id="fuelParams"></div>
+        </section>
+        <section>
+          <h2>Run</h2>
           <dl>
-            <dt>centre</dt><dd id="mCentre">—</dd>
-            <dt>domain</dt><dd id="mSide">—</dd>
-            <dt>cell</dt><dd id="mCell">—</dd>
-            <dt>tile zoom</dt><dd id="mZoom">—</dd>
-            <dt>elevation</dt><dd id="mElev">—</dd>
+            <dt>engine</dt><dd id="dEngine">—</dd>
+            <dt>step</dt><dd id="dStep">—</dd>
+            <dt>front nodes</dt><dd id="dNodes">—</dd>
+            <dt>fronts</dt><dd id="dFronts">—</dd>
+            <dt>compute</dt><dd id="dWall">—</dd>
+            <dt>centre</dt><dd id="dCentre">—</dd>
+            <dt>domain</dt><dd id="dSide">—</dd>
+            <dt>cell</dt><dd id="dCell">—</dd>
+            <dt>elevation</dt><dd id="dElev">—</dd>
+            <dt>fuel cover</dt><dd id="dCover">—</dd>
           </dl>
-          <div class="row" style="margin-top: 0.8rem">
-            <button id="recentre">Back to Corsica</button>
-          </div>
-        </fieldset>
+          <p style="margin: 0.6rem 0 0"><button class="linkish" id="resetParams">Reset parameters</button></p>
+        </section>
+      </div>
 
-        <fieldset>
-          <legend>Run</legend>
-          <div class="row">
-            <button id="simulate" disabled>Simulate</button>
-          </div>
-          <label
-            >Step length <span id="dtOut">30 s</span>
-            <input id="dt" type="range" min="10" max="120" step="10" value="30" />
-          </label>
-          <label
-            >Max steps <span id="stepsOut">400</span>
-            <input id="steps" type="range" min="50" max="800" step="50" value="400" />
-          </label>
-        </fieldset>
-
-        <fieldset>
-          <legend>Wind</legend>
-          <div class="row">
-            <button id="modeFixed" class="on">Fixed</button>
-            <button id="modeTurning">Turning</button>
-          </div>
-          <label
-            >Speed <span id="speedOut">8 m/s</span>
-            <input id="speed" type="range" min="0" max="30" step="1" value="8" />
-          </label>
-          <label
-            >Direction <span id="dirOut">0°</span>
-            <input id="dir" type="range" min="0" max="359" step="5" value="0" />
-          </label>
-          <label id="turnRow" hidden
-            >Turn per step <span id="turnOut">6°</span>
-            <input id="turn" type="range" min="1" max="24" step="1" value="6" />
-          </label>
-          <p class="hint">0° is due east; the fire runs downwind.</p>
-        </fieldset>
-
-        <fieldset>
-          <legend>View</legend>
-          <div class="row">
-            <button id="view2d" class="on">2D map</button>
-            <button id="view3d">3D terrain</button>
-          </div>
-          <label id="exagRow" hidden
-            >Vertical exaggeration <span id="exagOut">2.5×</span>
-            <input id="exag" type="range" min="1" max="6" step="0.5" value="2.5" />
-          </label>
-          <div class="check">
-            <input id="showFuel" type="checkbox" />
-            <label for="showFuel">show fuel classes</label>
-          </div>
-          <div class="check">
-            <input id="showRelief" type="checkbox" checked />
-            <label for="showRelief">relief shading</label>
-          </div>
-          <div class="check">
-            <input id="showTrail" type="checkbox" checked />
-            <label for="showTrail">perimeter history</label>
-          </div>
-          <div id="legend"></div>
-          <p class="hint" id="glHint" hidden>
-            Drag to orbit, scroll to zoom, click the ground to move the
-            ignition point.
-          </p>
-        </fieldset>
-
-        <fieldset>
-          <legend>State</legend>
-          <dl>
-            <dt>sim time</dt><dd id="mTime">—</dd>
-            <dt>step</dt><dd id="mStep">—</dd>
-            <dt>burnt area</dt><dd id="mArea">—</dd>
-            <dt>front nodes</dt><dd id="mNodes">—</dd>
-            <dt>fronts</dt><dd id="mFronts">—</dd>
-            <dt>compute</dt><dd id="mWall">—</dd>
-          </dl>
-        </fieldset>
-      </aside>
-    </main>
+      <div>
+        <button class="linkish" id="recentre">Back to Corsica</button>
+        <p id="credit">Imagery © Esri, Maxar, Earthstar Geographics · elevation Terrarium/SRTM</p>
+      </div>
+    </aside>
 
     <script type="module">
       import {
         buildLandscape,
+        classify,
         fuelOverlay,
+        fuelsTable,
         hillshade,
-        zoomFor,
         mPerDegLon,
         M_PER_DEG_LAT,
         SIDE_LIMITS,
         FUELS,
-        FUELS_TABLE,
+        FUEL_DEFAULTS,
+        CLASS_DEFAULTS,
       } from "./landscape.mjs";
       import { createTerrainView } from "./terrain3d.mjs";
 
@@ -307,32 +411,62 @@
       const HOME = { lon: 8.7, lat: 41.952, side: 4000 };
       const GRID = 256; // fuel and elevation cells per side
 
-      // Where the user is looking. `land.site` is where the tiles on screen
-      // actually came from; the two differ while a pan is settling.
-      let site = { ...HOME };
+      // Models that run on the demo's Rothermel-style fuel table with only
+      // slope and wind. The Balbi variants that also want moisture and
+      // temperature layers abort here, and BalbiNov2011 misplaces the front.
+      const MODELS = [
+        ["Rothermel", "Rothermel (1972)"],
+        ["BalbiNov2011Curv", "Balbi 2011, curvature"],
+        ["BalbiUnsteady", "Balbi, unsteady"],
+        ["TroisPourcent", "3% rule"],
+        ["Iso", "Isotropic, constant speed"],
+      ];
 
+      // Every research control, with the ForeFire name it sets. `group` places
+      // it in the rail; `to` is "params" (setDouble), "run" or "fuel".
+      const PARAMS = [
+        { key: "propagationSpeedAdjustmentFactor", label: "Speed factor", group: "tuning", to: "params", min: 0.1, max: 2, step: 0.05, value: 0.6 },
+        { key: "windReductionFactor", label: "Wind reduction", group: "tuning", to: "params", min: 0, max: 1, step: 0.05, value: 0.4 },
+        { key: "dt", label: "Time step", unit: "s", group: "numerics", to: "run", min: 10, max: 120, step: 10, value: 30, code: "step[dt=…]" },
+        { key: "steps", label: "Max steps", group: "numerics", to: "run", min: 50, max: 800, step: 50, value: 400, code: "step count" },
+        { key: "perimeterResolution", label: "Perimeter resolution", unit: "m", group: "numerics", to: "params", min: 4, max: 40, step: 1, value: 10 },
+        { key: "spatialIncrement", label: "Spatial increment", unit: "m", group: "numerics", to: "params", min: 0.5, max: 10, step: 0.5, value: 3 },
+        { key: "deadMoisture", label: "Dead fuel moisture", group: "fuelParams", to: "fuel", min: 0.02, max: 0.4, step: 0.01, value: FUEL_DEFAULTS.deadMoisture, code: "fuels.csv Md" },
+        { key: "liveMoisture", label: "Live fuel moisture", group: "fuelParams", to: "fuel", min: 0.3, max: 2, step: 0.05, value: FUEL_DEFAULTS.liveMoisture, code: "fuels.csv Ml" },
+        { key: "depth5", label: "Shrub bed depth", unit: "m", group: "fuelParams", to: "fuel", min: 0.05, max: 2, step: 0.05, value: FUEL_DEFAULTS.depth[5], code: "fuels.csv e, index 5" },
+        { key: "depth4", label: "Grass bed depth", unit: "m", group: "fuelParams", to: "fuel", min: 0.05, max: 1, step: 0.01, value: FUEL_DEFAULTS.depth[4], code: "fuels.csv e, index 4" },
+        { key: "shrub", label: "Shrub above", group: "fuelParams", to: "class", min: 0, max: 60, step: 1, value: CLASS_DEFAULTS.shrub, code: "excess green g−(r+b)/2" },
+        { key: "grass", label: "Grass above", group: "fuelParams", to: "class", min: 0, max: 60, step: 1, value: CLASS_DEFAULTS.grass, code: "excess green g−(r+b)/2" },
+      ];
+      const value = Object.fromEntries(PARAMS.map((p) => [p.key, p.value]));
+
+      const PRESETS = [
+        { label: "Breeze", wind: { speed: 5, angleDeg: 30, turning: false } },
+        { label: "Mistral", wind: { speed: 16, angleDeg: 315, turning: false } },
+        { label: "No wind", wind: { speed: 0, angleDeg: 0, turning: false } },
+        { label: "Wind shift", wind: { speed: 8, angleDeg: 0, turning: true, turnPerStep: 4 } },
+      ];
+
+      let site = { ...HOME };
       const $ = (id) => document.getElementById(id);
       const flat = $("flat");
       const ctx = flat.getContext("2d");
-      const worker = new Worker("./worker.mjs", { type: "module" });
 
-      let land = null; // imagery, fuel, altitude
-      let overlay = null; // classified fuel raster
-      let relief = null; // hillshade raster
-      let timeline = null; // { frames, outcome, ... }
+      let land = null; // imagery, greenness, fuel, altitude
+      let overlay = null;
+      let relief = null;
+      let timeline = null;
       let cursor = 0;
       let playing = false;
-      let terrain = null; // 3D view, once built
-      let engineReady = false;
-      let dirty = true; // repaint needed
+      let terrain = null;
+      let dirty = true;
       // Held as a place on Earth, not as domain metres: panning and zooming
       // both move the domain under it, and anything stored in domain
       // coordinates would drift across the ground as the view changed.
       let ignitionLL = { lon: site.lon, lat: site.lat };
       let reloadTimer = null;
+      const wind = { speed: 8, angleDeg: 0, turning: false, turnPerStep: 4 };
 
-      /*! The ignition point in the current domain's metres, clamped inside it
-       *  so a pan that carries it off the map still leaves somewhere to light. */
       function ignitionXY() {
         const east = (ignitionLL.lon - site.lon) * mPerDegLon(site.lat);
         const north = (ignitionLL.lat - site.lat) * M_PER_DEG_LAT;
@@ -341,15 +475,113 @@
         return [clamp(site.side / 2 + east), clamp(site.side / 2 + north)];
       }
 
-      const wind = { speed: 8, angleDeg: 0, turning: false, turnPerStep: 6 };
+      const fmtArea = (m2) => (m2 >= 1e4 ? `${(m2 / 1e4).toFixed(m2 < 1e5 ? 1 : 0)} ha` : `${m2.toFixed(0)} m²`);
+      const clock = (s) => {
+        const h = Math.floor(s / 3600);
+        const m = Math.floor((s % 3600) / 60);
+        return h ? `${h}h${String(m).padStart(2, "0")}` : `${m} min`;
+      };
+
+      // ---- building the rail -----------------------------------------------
 
       $("legend").innerHTML = FUELS.map(
-        (f) =>
-          `<div class="key"><span class="sw" style="background:rgb(${f.rgb})"></span>` +
-          `${f.label} <span style="opacity:.7">— ${f.note}</span></div>`
+        (f) => `<div class="key"><span class="sw" style="background:rgb(${f.rgb})"></span>${f.label}</div>`
       ).join("");
 
-      // ---- landscape -------------------------------------------------------
+      $("model").innerHTML = MODELS.map(([k, label]) => `<option value="${k}">${label}</option>`).join("");
+
+      for (const p of PARAMS) {
+        const field = document.createElement("div");
+        field.className = "field";
+        field.innerHTML =
+          `<label for="p_${p.key}">${p.label}<output id="o_${p.key}"></output></label>` +
+          `<code>${p.code ?? p.key}</code>` +
+          `<input id="p_${p.key}" type="range" min="${p.min}" max="${p.max}" step="${p.step}" value="${p.value}" />`;
+        $(p.group).append(field);
+        const input = field.querySelector("input");
+        input.addEventListener("input", () => setParam(p, +input.value));
+      }
+
+      function setParam(p, v) {
+        value[p.key] = v;
+        $(`p_${p.key}`).value = String(v);
+        $(`o_${p.key}`).textContent = p.unit ? `${v} ${p.unit}` : String(v);
+        if (p.to === "class") reclassify();
+      }
+      for (const p of PARAMS) setParam(p, p.value);
+
+      $("resetParams").addEventListener("click", () => {
+        for (const p of PARAMS) setParam(p, p.value);
+        $("model").value = MODELS[0][0];
+      });
+
+      for (const preset of PRESETS) {
+        const chip = document.createElement("button");
+        chip.className = "chip";
+        chip.textContent = preset.label;
+        chip.addEventListener("click", () => {
+          setWind({ turnPerStep: wind.turnPerStep, ...preset.wind });
+          for (const c of $("presets").children) c.classList.toggle("on", c === chip);
+        });
+        $("presets").append(chip);
+      }
+
+      function setMode(research) {
+        document.body.classList.toggle("researching", research);
+        $("modeExplore").classList.toggle("on", !research);
+        $("modeResearch").classList.toggle("on", research);
+      }
+      $("modeExplore").addEventListener("click", () => setMode(false));
+      $("modeResearch").addEventListener("click", () => setMode(true));
+
+      // ---- wind --------------------------------------------------------------
+
+      const COMPASS = ["E", "NE", "N", "NW", "W", "SW", "S", "SE"];
+
+      function setWind(next) {
+        Object.assign(wind, next);
+        // The dial's y axis points down, the domain's points up.
+        $("arrow").setAttribute("transform", `rotate(${-wind.angleDeg})`);
+        $("arrow").style.opacity = wind.speed ? 1 : 0.25;
+        $("speed").value = String(wind.speed);
+        $("speedOut").textContent = wind.speed;
+        $("dirOut").textContent = wind.speed
+          ? `toward ${COMPASS[Math.round(wind.angleDeg / 45) % 8]}${wind.turning ? ", turning" : ""}`
+          : "calm";
+        $("turnRow").hidden = !wind.turning;
+        $("turn").value = String(wind.turnPerStep);
+        $("turnOut").textContent = `${wind.turnPerStep}° a step`;
+        dirty = true;
+      }
+      setWind({});
+
+      const clearPreset = () => {
+        for (const c of $("presets").children) c.classList.remove("on");
+      };
+      $("speed").addEventListener("input", () => {
+        setWind({ speed: +$("speed").value });
+        clearPreset();
+      });
+      $("turn").addEventListener("input", () => setWind({ turnPerStep: +$("turn").value }));
+
+      let dialing = false;
+      const dialAngle = (e) => {
+        const r = $("dial").getBoundingClientRect();
+        const dx = e.clientX - (r.left + r.width / 2);
+        const dy = e.clientY - (r.top + r.height / 2);
+        const deg = (Math.atan2(-dy, dx) * 180) / Math.PI;
+        return (Math.round(deg / 5) * 5 + 360) % 360;
+      };
+      $("dial").addEventListener("pointerdown", (e) => {
+        dialing = true;
+        $("dial").setPointerCapture(e.pointerId);
+        setWind({ angleDeg: dialAngle(e), turning: false });
+        clearPreset();
+      });
+      $("dial").addEventListener("pointermove", (e) => dialing && setWind({ angleDeg: dialAngle(e) }));
+      $("dial").addEventListener("pointerup", () => (dialing = false));
+
+      // ---- landscape ---------------------------------------------------------
 
       let loadToken = 0;
 
@@ -360,155 +592,169 @@
           const result = await buildLandscape({ ...site, grid: GRID });
           if (token !== loadToken) return; // a newer pan overtook this one
           land = result;
-          overlay = fuelOverlay(land.fuel, land.nx);
           relief = hillshade(land.altitude, land.nx, land.site.side / land.nx);
-
-          // The terrain mesh belongs to the old ground; rebuild it on demand.
-          terrain = null;
+          reclassify();
+          terrain = null; // the mesh belongs to the old ground
           if (document.body.classList.contains("three")) setView(true);
-
-          const total = land.nx * land.ny;
-          const pct = (n) => Math.round((100 * n) / total);
-          $("credit").innerHTML =
-            "Imagery © Esri, Maxar, Earthstar Geographics · elevation from Terrarium/SRTM. " +
-            `Decoded in-browser at ${land.metresPerPx.toFixed(1)} m/px: ` +
-            FUELS.map((f) => `${pct(land.counts[f.index])}% ${f.label}`).join(", ") +
-            `; ${land.elevation.lo.toFixed(0)}–${land.elevation.hi.toFixed(0)} m elevation.`;
-
-          // Copied rather than transferred: the elevation field is also the 3D
-          // view's mesh, and transferring would detach it here. Under a
-          // megabyte, cloned once.
-          worker.postMessage({
-            type: "landscape",
-            fuel: land.fuel,
-            altitude: land.altitude,
-            nx: land.nx,
-            ny: land.ny,
-            side: land.site.side,
-            fuelsTable: FUELS_TABLE,
-            defaultFuel: FUELS[0].index,
-          });
           for (const id of ["showFuel", "showRelief", "view3d"]) $(id).disabled = false;
         } catch (err) {
           if (token !== loadToken) return;
           console.warn("map tiles unavailable:", err);
           land = null;
-          $("credit").textContent =
-            "Map tiles unavailable — falling back to uniform fuel on flat ground.";
+          $("credit").textContent = "Map tiles unavailable: running on uniform shrub over flat ground.";
           for (const id of ["showFuel", "showRelief", "view3d"]) $(id).disabled = true;
         } finally {
           if (token === loadToken) {
             $("loading").hidden = true;
             updateSiteReadout();
             dirty = true;
-            maybeEnable();
           }
         }
       }
       loadLandscape();
 
-      /*! Pan and zoom keep changing the square; refetching on every wheel tick
-       *  would hammer the tile hosts, so the fetch waits for the gesture to
-       *  settle while the canvas previews the move with the tiles it has. */
+      function reclassify() {
+        if (!land) return;
+        const { fuel, counts } = classify(land.greenness, { shrub: value.shrub, grass: value.grass });
+        land.fuel = fuel;
+        land.counts = counts;
+        overlay = fuelOverlay(fuel, land.nx);
+        const pct = (n) => Math.round((100 * n) / (land.nx * land.ny));
+        $("dCover").textContent = FUELS.map((f) => pct(counts[f.index]) + "%").join(" / ");
+        dirty = true;
+      }
+
       function siteChanged() {
-        timeline = null;
-        $("scrub").disabled = true;
-        $("playback").disabled = true;
-        $("outcome").className = "";
-        play(false);
+        clearRun();
         updateSiteReadout();
         dirty = true;
         clearTimeout(reloadTimer);
+        // Wait for the gesture to settle rather than hammer the tile hosts;
+        // the canvas previews the move with the tiles it already has.
         reloadTimer = setTimeout(loadLandscape, 350);
       }
 
       function updateSiteReadout() {
-        const ns = site.lat >= 0 ? "N" : "S";
-        const ew = site.lon >= 0 ? "E" : "W";
-        $("mCentre").textContent =
-          `${Math.abs(site.lat).toFixed(4)}°${ns} ${Math.abs(site.lon).toFixed(4)}°${ew}`;
-        $("mSide").textContent =
-          site.side >= 1000 ? `${(site.side / 1000).toFixed(1)} km` : `${site.side.toFixed(0)} m`;
-        $("mCell").textContent = `${(site.side / GRID).toFixed(1)} m`;
-        $("mZoom").textContent = `z${zoomFor(site.lat, site.side)}`;
-        $("mElev").textContent = land
-          ? `${land.elevation.lo.toFixed(0)}–${land.elevation.hi.toFixed(0)} m`
-          : "—";
+        $("dCentre").textContent = `${site.lat.toFixed(4)}, ${site.lon.toFixed(4)}`;
+        $("dSide").textContent = site.side >= 1000 ? `${(site.side / 1000).toFixed(1)} km` : `${site.side.toFixed(0)} m`;
+        $("dCell").textContent = `${(site.side / GRID).toFixed(1)} m`;
+        $("dElev").textContent = land ? `${land.elevation.lo.toFixed(0)}–${land.elevation.hi.toFixed(0)} m` : "—";
       }
 
-      function maybeEnable() {
-        if (engineReady) $("simulate").disabled = false;
+      // ---- running -----------------------------------------------------------
+
+      // One worker per run: the engine's state is process-wide (#175), so a
+      // reused module would keep the first run's propagation model.
+      let current = null;
+
+      function runFire() {
+        if (current) current.terminate();
+        $("hint").hidden = true;
+        $("run").disabled = true;
+        $("run").textContent = "Computing…";
+        $("outcome").className = "";
+        play(false);
+
+        const side = land ? land.site.side : site.side;
+        const run = {
+          land: {
+            side,
+            nx: land ? land.nx : GRID,
+            ny: land ? land.ny : GRID,
+            fuel: land ? land.fuel : null,
+            altitude: land ? land.altitude : null,
+            fuelsTable: fuelsTable({
+              deadMoisture: value.deadMoisture,
+              liveMoisture: value.liveMoisture,
+              depth: { 5: value.depth5, 4: value.depth4 },
+            }),
+            defaultFuel: FUELS[0].index,
+          },
+          model: $("model").value,
+          params: Object.fromEntries(PARAMS.filter((p) => p.to === "params").map((p) => [p.key, value[p.key]])),
+          steps: value.steps,
+          dt: value.dt,
+          ignition: ignitionXY(),
+          wind: { ...wind },
+        };
+
+        const worker = new Worker("./worker.mjs", { type: "module" });
+        current = worker;
+        const done = () => {
+          worker.terminate();
+          if (current === worker) current = null;
+          $("run").disabled = false;
+          $("run").textContent = "Light fire at the marker";
+        };
+        worker.onmessage = ({ data }) => {
+          if (current !== worker) return;
+          if (data.type === "ready") {
+            $("dEngine").textContent = data.version;
+            worker.postMessage({ type: "simulate", run });
+          } else if (data.type === "progress") {
+            $("run").textContent = `Computing… ${Math.round((100 * data.done) / data.total)}%`;
+          } else if (data.type === "timeline") {
+            done();
+            showTimeline(data);
+          } else if (data.type === "failed") {
+            done();
+            showFailure(data.message);
+          }
+        };
+        worker.onerror = (e) => {
+          if (current !== worker) return;
+          done();
+          showFailure(e.message || "the engine stopped");
+        };
+      }
+      $("run").addEventListener("click", runFire);
+
+      function clearRun() {
+        timeline = null;
+        $("scrub").disabled = true;
+        $("playback").disabled = true;
+        $("outcome").className = "";
+        $("hudTime").textContent = $("hudArea").textContent = "—";
+        play(false);
       }
 
-      // ---- worker ----------------------------------------------------------
-
-      worker.onmessage = ({ data }) => {
-        if (data.type === "ready") {
-          engineReady = true;
-          maybeEnable();
-          return;
-        }
-        if (data.type === "failed") {
-          $("outcome").className = "show";
-          $("outcome").innerHTML = `<b>Simulation failed:</b> ${data.message}`;
-          $("simulate").disabled = false;
-          $("simulate").textContent = "Simulate";
-          return;
-        }
-        if (data.type === "timeline") {
-          timeline = data;
-          cursor = 0;
-          $("scrub").max = String(data.frames.length - 1);
-          $("scrub").value = "0";
-          $("scrub").disabled = false;
-          $("playback").disabled = false;
-          $("simulate").disabled = false;
-          $("simulate").textContent = "Simulate";
-          $("mWall").textContent = `${data.wallMs.toFixed(0)} ms`;
-          showOutcome(data);
-          play(true);
-        }
-      };
+      function showTimeline(data) {
+        timeline = data;
+        cursor = 0;
+        $("scrub").max = String(data.frames.length - 1);
+        $("scrub").value = "0";
+        $("scrub").disabled = false;
+        $("playback").disabled = false;
+        $("dWall").textContent = `${data.wallMs.toFixed(0)} ms`;
+        showOutcome(data);
+        play(true);
+      }
 
       const OUTCOMES = {
-        "left-domain": (t, a) =>
-          `<b>Fire reached the edge of the domain</b> at ${clock(t)}, having burnt ${a}. ` +
-          `The simulation stops there — beyond the 4 km square there is no data to burn.`,
-        "burnt-out": (t, a) =>
-          `<b>Fire went out</b> at ${clock(t)}, having burnt ${a}. ` +
-          `Nothing left within reach would carry it.`,
-        stalled: (t, a) =>
-          `<b>Fire stopped spreading</b> at ${clock(t)} at ${a}. ` +
-          `The perimeter is hemmed in by ground that will not burn.`,
-        "never-caught": (t) =>
-          `<b>The fire never caught.</b> The ignition point is on ground with no fuel bed — ` +
-          `move the wind up, or pick a run where it starts in vegetation.`,
-        "step-limit": (t, a) =>
-          `<b>Still burning</b> at ${clock(t)} after the step limit, at ${a}. ` +
-          `Raise "max steps" to follow it further.`,
+        "left-domain": (t, a) => `<b>Reached the edge</b> at ${clock(t)}, ${a} burnt.`,
+        "burnt-out": (t, a) => `<b>Burnt out</b> at ${clock(t)}, ${a} burnt.`,
+        stalled: (t, a) => `<b>Stopped spreading</b> at ${clock(t)}, ${a} burnt: hemmed in by ground that won't burn.`,
+        "never-caught": () => `<b>Didn't catch.</b> The marker is on bare ground; try somewhere greener.`,
+        "step-limit": (t, a) => `<b>Still burning</b> at ${clock(t)}, ${a} burnt. Raise max steps under Research to go on.`,
       };
 
       function showOutcome(data) {
-        const ha = `${(data.peakArea / 1e4).toFixed(0)} ha`;
         const render = OUTCOMES[data.outcome.kind];
         $("outcome").className = "show";
-        $("outcome").innerHTML = render
-          ? render(data.outcome.t, ha)
-          : `Run ended: ${data.outcome.kind}`;
+        $("outcome").innerHTML = render ? render(data.outcome.t, fmtArea(data.peakArea)) : `Run ended: ${data.outcome.kind}`;
       }
 
-      // ---- playback --------------------------------------------------------
+      function showFailure(message) {
+        clearRun();
+        $("outcome").className = "show";
+        $("outcome").innerHTML = `<b>Run failed:</b> ${message}`;
+      }
 
-      const clock = (s) => {
-        const h = Math.floor(s / 3600);
-        const m = Math.floor((s % 3600) / 60);
-        return h ? `${h} h ${String(m).padStart(2, "0")} min` : `${m} min`;
-      };
+      // ---- playback ----------------------------------------------------------
 
       function play(on) {
         playing = on;
-        $("playback").textContent = on ? "Pause" : "Play";
-        $("playback").classList.toggle("on", on);
+        $("playback").textContent = on ? "❚❚" : "▶";
       }
 
       let lastAdvance = 0;
@@ -516,7 +762,8 @@
         stepTilt(now);
         if (playing && timeline && now - lastAdvance > 60) {
           lastAdvance = now;
-          cursor = cursor + 1 >= timeline.frames.length ? 0 : cursor + 1;
+          if (cursor + 1 >= timeline.frames.length) play(false);
+          else cursor++;
           $("scrub").value = String(cursor);
           dirty = true;
         }
@@ -528,12 +775,23 @@
       }
       requestAnimationFrame(loop);
 
-      // ---- drawing ---------------------------------------------------------
+      $("playback").addEventListener("click", () => {
+        if (timeline && !playing && cursor === timeline.frames.length - 1) cursor = 0;
+        play(!playing);
+      });
+      $("scrub").addEventListener("input", () => {
+        cursor = +$("scrub").value;
+        play(false);
+        dirty = true;
+      });
+
+      // ---- drawing -----------------------------------------------------------
+
+      const isOn = (id) => $(id).classList.contains("on");
 
       function paint() {
-        // The 2D canvas is drawn either way: in 3D it is hidden, but it is
-        // still the texture the mesh wears, which is why the two views can
-        // never disagree about what is on the ground.
+        // Drawn in 3D too: the 2D canvas is the texture the mesh wears, which
+        // is why the two views can never disagree about what is on the ground.
         drawMap();
         updateReadout();
         if (terrain && document.body.classList.contains("three")) {
@@ -542,13 +800,8 @@
         }
       }
 
-      /*!
-       * Where the loaded tiles belong on screen right now.
-       *
-       * Normally the whole canvas. Between a pan or zoom and the tiles landing
-       * it is offset and scaled, so the old imagery slides and grows under the
-       * cursor instead of the view freezing until the network answers.
-       */
+      /*! Where the loaded tiles belong on screen right now: the whole canvas,
+       *  or offset and scaled while a pan or zoom waits for new tiles. */
       function groundRect(size) {
         if (!land) return null;
         const scale = land.site.side / site.side;
@@ -556,29 +809,23 @@
         const dEast = (site.lon - land.site.lon) * mPerDegLon(site.lat);
         const dNorth = (site.lat - land.site.lat) * M_PER_DEG_LAT;
         const w = size * scale;
-        return {
-          x: (size - w) / 2 - dEast * pxPerM,
-          y: (size - w) / 2 + dNorth * pxPerM,
-          w,
-        };
+        return { x: (size - w) / 2 - dEast * pxPerM, y: (size - w) / 2 + dNorth * pxPerM, w };
       }
 
       function drawMap() {
         const size = flat.width;
-        ctx.fillStyle = "#0b0908";
+        ctx.fillStyle = "#070605";
         ctx.fillRect(0, 0, size, size);
 
         const g = groundRect(size);
         if (g && land.image) ctx.drawImage(land.image, g.x, g.y, g.w, g.w);
-
-        if (g && relief && $("showRelief").checked) {
+        if (g && relief && isOn("showRelief")) {
           ctx.save();
           ctx.globalCompositeOperation = "multiply";
           ctx.drawImage(relief, g.x, g.y, g.w, g.w);
           ctx.restore();
         }
-
-        if (g && overlay && $("showFuel").checked) {
+        if (g && overlay && isOn("showFuel")) {
           ctx.save();
           ctx.globalAlpha = 0.55;
           // Nearest-neighbour: these are classes, and smoothing them invents
@@ -590,6 +837,7 @@
 
         if (!timeline) {
           drawIgnition(size);
+          drawWind(wind.angleDeg, size);
           return;
         }
         const s = size / timeline.domain;
@@ -605,80 +853,70 @@
           return p;
         };
 
-        if ($("showTrail").checked) {
+        if (isOn("showTrail")) {
           ctx.lineWidth = 1;
           const first = Math.max(0, cursor - 60);
           for (let i = first; i < cursor; i += 2) {
             const age = (i - first) / Math.max(1, cursor - first);
-            ctx.strokeStyle = `rgba(255,122,26,${0.05 + age * 0.25})`;
+            ctx.strokeStyle = `rgba(255,106,19,${0.05 + age * 0.3})`;
             for (const c of timeline.frames[i].fronts) ctx.stroke(path(c));
           }
         }
 
         const frame = timeline.frames[cursor];
         ctx.lineWidth = 2.5;
-        ctx.strokeStyle = "#ffc47a";
-        ctx.fillStyle = "rgba(255,80,10,0.32)";
+        ctx.strokeStyle = "#ffb347";
+        ctx.fillStyle = "rgba(255,70,0,0.35)";
         for (const c of frame.fronts) {
           const p = path(c);
           ctx.fill(p);
           ctx.stroke(p);
         }
-
         drawIgnition(size);
         drawWind(frame.windDeg, size);
       }
 
       function drawIgnition(size) {
         const s = size / site.side;
-        const xy = ignitionXY();
-        const x = xy[0] * s;
-        const y = size - xy[1] * s;
+        const [ix, iy] = ignitionXY();
+        const x = ix * s;
+        const y = size - iy * s;
         ctx.save();
-        ctx.strokeStyle = "rgba(255,255,255,0.9)";
+        ctx.strokeStyle = "rgba(255,255,255,0.95)";
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.arc(x, y, 9, 0, 2 * Math.PI);
         ctx.stroke();
+        ctx.fillStyle = "#ff6a13";
         ctx.beginPath();
-        ctx.moveTo(x - 16, y);
-        ctx.lineTo(x - 12, y);
-        ctx.moveTo(x + 12, y);
-        ctx.lineTo(x + 16, y);
-        ctx.moveTo(x, y - 16);
-        ctx.lineTo(x, y - 12);
-        ctx.moveTo(x, y + 12);
-        ctx.lineTo(x, y + 16);
-        ctx.stroke();
+        ctx.arc(x, y, 4, 0, 2 * Math.PI);
+        ctx.fill();
         ctx.restore();
       }
 
       function drawWind(deg, size) {
         if (!wind.speed) return;
-        const cx = size - 96;
-        const cy = 96;
-        const r = 38 * (0.35 + (0.65 * wind.speed) / 30);
+        const cx = 70;
+        const cy = size - 150;
+        const r = 30 * (0.4 + (0.6 * wind.speed) / 30);
         const rad = (deg * Math.PI) / 180;
         const dx = Math.cos(rad);
         const dy = -Math.sin(rad);
-
         ctx.save();
-        // A disc behind it, or the arrow disappears over pale ground.
-        ctx.fillStyle = "rgba(20,16,14,0.55)";
+        ctx.fillStyle = "rgba(13,11,10,0.6)";
         ctx.beginPath();
-        ctx.arc(cx, cy, 52, 0, 2 * Math.PI);
+        ctx.arc(cx, cy, 42, 0, 2 * Math.PI);
         ctx.fill();
-        ctx.strokeStyle = "rgba(237,230,225,0.9)";
-        ctx.fillStyle = "rgba(237,230,225,0.9)";
-        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = ctx.fillStyle = "#f2ebe4";
+        ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.moveTo(cx - dx * r, cy - dy * r);
         ctx.lineTo(cx + dx * r, cy + dy * r);
         ctx.stroke();
         ctx.beginPath();
-        ctx.moveTo(cx + dx * r, cy + dy * r);
-        ctx.lineTo(cx + dx * (r - 13) - dy * 8, cy + dy * (r - 13) + dx * 8);
-        ctx.lineTo(cx + dx * (r - 13) + dy * 8, cy + dy * (r - 13) - dx * 8);
+        ctx.moveTo(cx + dx * (r + 4), cy + dy * (r + 4));
+        ctx.lineTo(cx + dx * (r - 9) - dy * 7, cy + dy * (r - 9) + dx * 7);
+        ctx.lineTo(cx + dx * (r - 9) + dy * 7, cy + dy * (r - 9) - dx * 7);
         ctx.fill();
         ctx.restore();
       }
@@ -686,85 +924,26 @@
       function updateReadout() {
         if (!timeline) return;
         const f = timeline.frames[cursor];
-        $("clock").textContent = `${clock(f.t)} · ${cursor + 1}/${timeline.frames.length}`;
-        $("mTime").textContent = clock(f.t);
-        $("mStep").textContent = f.step;
-        $("mArea").textContent = `${(f.area / 1e4).toFixed(1)} ha`;
-        $("mNodes").textContent = f.nodes;
-        $("mFronts").textContent = f.fronts.length;
+        $("hudTime").textContent = clock(f.t);
+        $("hudArea").textContent = fmtArea(f.area);
+        $("dStep").textContent = `${f.step} of ${timeline.frames.at(-1).step}`;
+        $("dNodes").textContent = f.nodes;
+        $("dFronts").textContent = f.fronts.length;
       }
-
-      // ---- controls --------------------------------------------------------
-
-      $("simulate").addEventListener("click", () => {
-        $("simulate").disabled = true;
-        $("simulate").textContent = "Computing…";
-        $("outcome").className = "";
-        play(false);
-        worker.postMessage({
-          type: "simulate",
-          run: {
-            steps: +$("steps").value,
-            dt: +$("dt").value,
-            ignition: ignitionXY(),
-            wind: { ...wind },
-          },
-        });
-      });
-
-      $("playback").addEventListener("click", () => play(!playing));
-      $("scrub").addEventListener("input", () => {
-        cursor = +$("scrub").value;
-        play(false);
-        dirty = true;
-      });
-
-      $("dt").addEventListener("input", () => ($("dtOut").textContent = `${$("dt").value} s`));
-      $("steps").addEventListener("input", () => ($("stepsOut").textContent = $("steps").value));
-
-      // Wind mode is two explicit buttons rather than a checkbox beside the
-      // direction slider: with a checkbox, choosing 0° fired no input event
-      // (the slider was already there), the turning mode stayed on, and the
-      // fire went its own way regardless of what the dial said.
-      function setWindMode(turning) {
-        wind.turning = turning;
-        $("modeFixed").classList.toggle("on", !turning);
-        $("modeTurning").classList.toggle("on", turning);
-        $("turnRow").hidden = !turning;
-      }
-      $("modeFixed").addEventListener("click", () => setWindMode(false));
-      $("modeTurning").addEventListener("click", () => setWindMode(true));
-
-      $("speed").addEventListener("input", () => {
-        wind.speed = +$("speed").value;
-        $("speedOut").textContent = `${wind.speed} m/s`;
-      });
-      $("dir").addEventListener("input", () => {
-        wind.angleDeg = +$("dir").value;
-        $("dirOut").textContent = `${wind.angleDeg}°`;
-      });
-      $("turn").addEventListener("input", () => {
-        wind.turnPerStep = +$("turn").value;
-        $("turnOut").textContent = `${wind.turnPerStep}°`;
-      });
 
       for (const id of ["showFuel", "showRelief", "showTrail"])
-        $(id).addEventListener("change", () => (dirty = true));
+        $(id).addEventListener("click", () => {
+          $(id).classList.toggle("on");
+          if (id === "showFuel") document.body.classList.toggle("fuel", isOn(id));
+          dirty = true;
+        });
 
-      // ---- panning, zooming and choosing where it starts -------------------
+      // ---- the map: pan, zoom, and click to light ---------------------------
 
       // A press that ends without travelling is a click; anything further is a
       // pan. One pointer, two jobs, and no modifier key to explain.
       const CLICK_SLOP = 4;
       let pan = null;
-
-      const canvasPoint = (e) => {
-        const r = flat.getBoundingClientRect();
-        return {
-          x: ((e.clientX - r.left) / r.width) * flat.width,
-          y: ((e.clientY - r.top) / r.height) * flat.height,
-        };
-      };
 
       flat.addEventListener("pointerdown", (e) => {
         pan = { x: e.clientX, y: e.clientY, travelled: 0, rect: flat.getBoundingClientRect() };
@@ -779,8 +958,6 @@
         if (pan.travelled < CLICK_SLOP) return;
         // Metres of ground per CSS pixel, so the map tracks the cursor exactly.
         const perPx = site.side / pan.rect.width;
-        // Dragging right pulls the ground east-ward across the screen, which
-        // moves the centre west; dragging down reveals what lies north.
         site.lon -= (dx * perPx) / mPerDegLon(site.lat);
         site.lat += (dy * perPx) / M_PER_DEG_LAT;
         pan.x = e.clientX;
@@ -791,14 +968,14 @@
       flat.addEventListener("pointerup", (e) => {
         if (!pan) return;
         if (pan.travelled < CLICK_SLOP) {
-          const p = canvasPoint(e);
-          const east = (p.x / flat.width - 0.5) * site.side;
-          const north = (0.5 - p.y / flat.height) * site.side;
+          const r = flat.getBoundingClientRect();
+          const east = ((e.clientX - r.left) / r.width - 0.5) * site.side;
+          const north = (0.5 - (e.clientY - r.top) / r.height) * site.side;
           ignitionLL = {
             lon: site.lon + east / mPerDegLon(site.lat),
             lat: site.lat + north / M_PER_DEG_LAT,
           };
-          dirty = true;
+          runFire();
         }
         pan = null;
       });
@@ -821,32 +998,23 @@
         siteChanged();
       });
 
-      // ---- 2D / 3D ---------------------------------------------------------
+      // ---- 2D / 3D -----------------------------------------------------------
 
-      // The two views are one renderer at two camera poses, so switching is a
-      // camera move rather than a swap. The GL canvas takes over while still
+      // One renderer at two camera poses: the GL canvas takes over while still
       // in the flat pose, where it draws what the 2D canvas draws, and only
-      // then tilts up — so the handover itself is never visible.
+      // then tilts up, so the handover itself is never visible.
       const TILT_MS = 750;
-      // Starts flat, because the page starts on the 2D map. Starting at 1
-      // would make the first switch to 3D a jump cut, the very thing this is
-      // here to avoid.
       let tilt = { from: 0, to: 0, started: 0, value: 0 };
 
       function setView(three) {
         if (three && !terrain) {
-          if (!land || !land.altitude) return; // no terrain without tiles
+          if (!land || !land.altitude) return;
           try {
-            terrain = createTerrainView($("gl"), {
-              altitude: land.altitude,
-              grid: land.nx,
-              side: land.site.side,
-            });
+            terrain = createTerrainView($("gl"), { altitude: land.altitude, grid: land.nx, side: land.site.side });
             terrain.setExaggeration(+$("exag").value);
             terrain.setTransition(tilt.value);
           } catch (err) {
             console.warn("3D unavailable:", err);
-            $("credit").textContent += " 3D view unavailable: " + err.message;
             $("view3d").disabled = true;
             return;
           }
@@ -854,15 +1022,11 @@
         $("view2d").classList.toggle("on", !three);
         $("view3d").classList.toggle("on", three);
         $("exagRow").hidden = !three;
-        $("glHint").hidden = !three;
-        // Hand over to GL immediately on the way out, and hold it until the
-        // camera is flat again on the way back.
         if (three) document.body.classList.add("three");
         tilt = { from: tilt.value, to: three ? 1 : 0, started: performance.now() };
         dirty = true;
       }
 
-      // Ease in and out, so the tilt starts and finishes without a lurch.
       const easeInOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
 
       function stepTilt(now) {
@@ -881,13 +1045,12 @@
       $("view3d").addEventListener("click", () => setView(true));
 
       $("exag").addEventListener("input", () => {
-        $("exagOut").textContent = `${$("exag").value}×`;
+        $("exagOut").textContent = $("exag").value;
         if (terrain) terrain.setExaggeration(+$("exag").value);
         dirty = true;
       });
 
-      // Same one-pointer-two-jobs split as the 2D map: travel means orbit,
-      // staying put means place the ignition.
+      // Same split as the 2D map: travel orbits, staying put lights a fire.
       let drag = null;
       $("gl").addEventListener("pointerdown", (e) => {
         drag = { x: e.clientX, y: e.clientY, travelled: 0 };
@@ -907,7 +1070,6 @@
       $("gl").addEventListener("pointerup", (e) => {
         if (drag && drag.travelled < CLICK_SLOP && terrain && land) {
           const r = $("gl").getBoundingClientRect();
-          // Normalised device coordinates: -1 to 1, y up.
           const ndcX = ((e.clientX - r.left) / r.width) * 2 - 1;
           const ndcY = 1 - ((e.clientY - r.top) / r.height) * 2;
           const hit = terrain.pick(ndcX, ndcY, r.width / r.height);
@@ -920,7 +1082,7 @@
               lon: land.site.lon + east / mPerDegLon(land.site.lat),
               lat: land.site.lat + north / M_PER_DEG_LAT,
             };
-            dirty = true;
+            runFire();
           }
         }
         drag = null;

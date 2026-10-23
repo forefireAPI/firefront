@@ -38,6 +38,46 @@ export const FUELS = [
 
 export const FUELS_TABLE = [FUEL_HEADER, ...FUELS.map((f) => FUEL_ROWS[f.index])].join("\n");
 
+/*! The defaults below are the values in tests/runff/fuels.csv. */
+export const FUEL_DEFAULTS = { deadMoisture: 0.1, liveMoisture: 1.0, depth: { 5: 0.6, 4: 0.19 } };
+
+/*!
+ * The fuel table with dead and live moisture (Md, Ml) and the burnable classes'
+ * bed depth (e) overridden. Index 0 keeps its zero depth: it is the barrier.
+ */
+export function fuelsTable({ deadMoisture, liveMoisture, depth }) {
+	const columns = FUEL_HEADER.split(";");
+	const col = (name) => columns.indexOf(name);
+	const rows = FUELS.map((f) => {
+		const cells = FUEL_ROWS[f.index].split(";");
+		cells[col("Md")] = String(deadMoisture);
+		cells[col("Ml")] = String(liveMoisture);
+		if (depth[f.index] !== undefined) cells[col("e")] = String(depth[f.index]);
+		return cells.join(";");
+	});
+	return [FUEL_HEADER, ...rows].join("\n");
+}
+
+/*! Excess-green cut-offs between the classes; see classify(). */
+export const CLASS_DEFAULTS = { shrub: 20, grass: 10 };
+
+/*!
+ * Fuel indices from the per-cell excess green `g - (r+b)/2`. Excess green
+ * separates vegetation from rock, road and roof about as well as anything this
+ * cheap can; water lands below both cuts.
+ */
+export function classify(greenness, { shrub, grass }) {
+	const fuel = new Int32Array(greenness.length);
+	const counts = { 5: 0, 4: 0, 0: 0 };
+	for (let i = 0; i < greenness.length; i++) {
+		const g = greenness[i];
+		const index = g >= shrub ? 5 : g >= grass ? 4 : 0;
+		fuel[i] = index;
+		counts[index]++;
+	}
+	return { fuel, counts };
+}
+
 /*! Web Mercator: fractional pixel coordinates at a given zoom. */
 function project(lon, lat, zoom) {
 	const n = 2 ** zoom;
@@ -137,9 +177,8 @@ export async function buildLandscape({ lon, lat, side, grid, zoom = zoomFor(lat,
 	const rgb = resample(image, grid);
 	const dem = resample(terrain, grid);
 
-	const fuel = new Int32Array(grid * grid);
+	const greenness = new Float32Array(grid * grid);
 	const altitude = new Float64Array(grid * grid);
-	const counts = { 5: 0, 4: 0, 0: 0 };
 	let lo = Infinity;
 	let hi = -Infinity;
 
@@ -150,12 +189,7 @@ export async function buildLandscape({ lon, lat, side, grid, zoom = zoomFor(lat,
 		for (let x = 0; x < grid; x++) {
 			const i = (row * grid + x) * 4;
 
-			// Excess green separates vegetation from rock, road and roof about
-			// as well as anything this cheap can. Water lands below both cuts.
-			const excessGreen = rgb[i + 1] - (rgb[i] + rgb[i + 2]) / 2;
-			const index = excessGreen >= 20 ? 5 : excessGreen >= 10 ? 4 : 0;
-			fuel[x + grid * y] = index;
-			counts[index]++;
+			greenness[x + grid * y] = rgb[i + 1] - (rgb[i] + rgb[i + 2]) / 2;
 
 			const metres = dem[i] * 256 + dem[i + 1] + dem[i + 2] / 256 - 32768;
 			altitude[x + grid * y] = metres;
@@ -164,8 +198,13 @@ export async function buildLandscape({ lon, lat, side, grid, zoom = zoomFor(lat,
 		}
 	}
 
+	// Kept alongside the fuel map so the class cut-offs can move without
+	// fetching the tiles again.
+	const { fuel, counts } = classify(greenness, CLASS_DEFAULTS);
+
 	return {
 		image,
+		greenness,
 		fuel,
 		altitude,
 		nx: grid,

@@ -9,26 +9,19 @@
  *
  * The fuel map and terrain arrive from the main thread, which is where they
  * have to be built: decoding map tiles needs a canvas, and workers have no DOM.
+ *
+ * Each worker runs exactly one simulation. The engine's state is process-wide
+ * (#175): a second FireDomain in the same module keeps the first one's
+ * propagation model, so changing the model between runs would silently do
+ * nothing. A fresh worker is a fresh module, and costs a few tens of ms.
  */
 
 import createForeFire from "./forefire.mjs";
 
 let Module = null;
 
-// Replaced by the real landscape as soon as the main thread has one; until
-// then a uniform burnable field on flat ground, so the demo works offline.
-let land = {
-	side: 4000,
-	nx: 200,
-	ny: 200,
-	fuel: null,
-	altitude: null,
-	fuelsTable: null,
-	defaultFuel: 5,
-};
-
-// Rothermel with the parameters from tests/runff/params.ff. Its rate of spread
-// reads the slope, which is what makes the terrain matter.
+// The parameters from tests/runff/params.ff. The page overrides the ones its
+// research panel exposes.
 const SOLVER = {
 	spatialIncrement: 3,
 	minimalPropagativeFrontDepth: 20,
@@ -41,17 +34,15 @@ const SOLVER = {
 	windReductionFactor: 0.4,
 	propagationSpeedAdjustmentFactor: 0.6,
 };
-const MODEL = "Rothermel";
 
-function build() {
+function build(land, model, solver) {
 	const { side, nx, ny } = land;
 	const ff = new Module.ForeFire();
 
-	if (land.fuelsTable) ff.setString("fuelsTable", land.fuelsTable);
-	else ff.setString("fuelsTable", "Index;vv_coeff;Kcurv;beta\n1;1.0;1.0;1.0");
+	ff.setString("fuelsTable", land.fuelsTable);
 	ff.setDouble("defaultFuelType", land.defaultFuel);
-	for (const [key, value] of Object.entries(SOLVER)) ff.setDouble(key, value);
-	ff.setString("propagationModel", land.fuelsTable ? MODEL : "WindDriven");
+	for (const [key, value] of Object.entries(solver)) ff.setDouble(key, value);
+	ff.setString("propagationModel", model);
 
 	ff.execute(`FireDomain[sw=(0,0,0);ne=(${side},${side},0);t=0]`);
 
@@ -71,7 +62,7 @@ function build() {
 		ff.addScalarLayer("data", "altitude", 0, 0, 0, S, S, 0, nx, ny, 1, 1, land.altitude);
 
 	const ok = [
-		ff.addLayer("propagation", land.fuelsTable ? MODEL : "WindDriven", "propagationModel"),
+		ff.addLayer("propagation", model, "propagationModel"),
 		ff.addIndexLayer("table", "fuel", 0, 0, 0, S, S, 0, nx, ny, 1, 1, fuel),
 		ff.addScalarLayer("windScalDir", "windU", 0, 0, 0, S, S, 0, nx, ny, 2, 1, windU),
 		ff.addScalarLayer("windScalDir", "windV", 0, 0, 0, S, S, 0, nx, ny, 2, 1, windV),
@@ -142,8 +133,9 @@ function touchesEdge(fronts, side, margin) {
  * burnt out. A slower death, where the perimeter survives but stops advancing,
  * is caught by the area-plateau test below.
  */
-function simulate({ steps, dt, wind, ignition }) {
-	const ff = build();
+function simulate({ land, model, params, steps, dt, wind, ignition }) {
+	const solver = { ...SOLVER, ...params };
+	const ff = build(land, model, solver);
 	const [ix, iy] = ignition;
 	ff.execute(`startFire[loc=(${ix},${iy},0.);t=0]`);
 
@@ -181,7 +173,7 @@ function simulate({ steps, dt, wind, ignition }) {
 			frames.pop(); // nothing to draw, and it would blank the canvas
 			outcome = {
 				kind:
-					last && touchesEdge(last.fronts, land.side, 3 * SOLVER.perimeterResolution)
+					last && touchesEdge(last.fronts, land.side, 3 * solver.perimeterResolution)
 						? "left-domain"
 						: "burnt-out",
 				t: last ? last.t : 0,
@@ -229,19 +221,6 @@ function windAt(step, wind) {
 }
 
 self.onmessage = ({ data: msg }) => {
-	if (msg.type === "landscape") {
-		land = {
-			side: msg.side,
-			nx: msg.nx,
-			ny: msg.ny,
-			fuel: msg.fuel,
-			altitude: msg.altitude,
-			fuelsTable: msg.fuelsTable,
-			defaultFuel: msg.defaultFuel,
-		};
-		self.postMessage({ type: "landscapeReady" });
-		return;
-	}
 	if (msg.type === "simulate") {
 		try {
 			const result = simulate(msg.run);

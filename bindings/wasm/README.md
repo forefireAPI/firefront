@@ -70,6 +70,28 @@ front** — a few hundred milliseconds for a modest fire, a few seconds for one
 that burns 800 ha — and the page then scrubs the result on a timeline. Off the
 main thread is what keeps the page answering while that happens.
 
+Each run gets a fresh worker. The engine's state is process-wide (#175), so a
+second `FireDomain` in the same module keeps the first one's propagation model,
+and switching models between runs would silently do nothing.
+
+### Explore and Research
+
+The page has two modes over the same map:
+
+- **Explore**, the default: click the map to light a fire, pick a wind on the
+  dial or from a few scenarios, and watch it play back.
+- **Research** adds the propagation model, `propagationSpeedAdjustmentFactor`
+  and `windReductionFactor`, the time step, step count, `perimeterResolution`
+  and `spatialIncrement`, dead and live fuel moisture and bed depths (the `Md`,
+  `Ml` and `e` columns of the fuel table), and the excess-green cut-offs
+  between fuel classes. Each control shows the ForeFire name it sets.
+
+The models on offer are the ones that run on this fuel table with only slope
+and wind: Rothermel, BalbiNov2011Curv, BalbiUnsteady, TroisPourcent and Iso.
+Balbi2015, Balbi2020 and BalbiNov2011TMdMl also need moisture and temperature
+layers and abort without them; BalbiNov2011 places the front far from the
+ignition.
+
 ### The landscape comes from map tiles
 
 `landscape.mjs` fetches two tiled layers for a square of ground and decodes
@@ -78,7 +100,7 @@ a `Float64Array` out, straight into `addIndexLayer` and `addScalarLayer`.
 
 The page opens on a 4 km square of the Ajaccio hinterland — the site of
 `tests/runff/run.ff` — but the map is live: drag to pan, scroll to resize the
-domain between 500 m and 30 km, and click to place the ignition. The tile zoom
+domain between 500 m and 30 km, and click to light a fire. The tile zoom
 is chosen from the domain size so the mosaic stays around a thousand pixels and
 36 tiles whatever the scale. Changing the ground clears the run, since the old
 fronts belong to ground that is no longer under them; the fetch is debounced
@@ -100,8 +122,8 @@ into three rows of the repository's own `tests/runff/fuels.csv`:
 **Elevation**, from Terrarium-encoded SRTM, `r*256 + g + b/256 - 32768` metres.
 The site runs from 11 m to 761 m.
 
-Both are load-bearing, because the model is **Rothermel** with the parameters
-from `tests/runff/params.ff`, and its rate of spread reads the fuel bed and the
+Both are load-bearing, because the default model is **Rothermel** with the
+parameters from `tests/runff/params.ff`, and its rate of spread reads the fuel bed and the
 slope. Index 0 has no fuel bed, so the fire stops at clearings, tracks and
 rooftops. And on a bare slope with no wind at all, ten minutes of spread grows
 with the grade while the downhill side stays put:
@@ -152,7 +174,7 @@ handover. Going back holds the GL canvas until the camera is flat again.
 The flat pose stops a third of a degree short of vertical on purpose — straight
 down puts the view direction on the up vector and `lookAt` divides by zero.
 
-Clicking the terrain moves the ignition point, which needs a ray cast rather
+Clicking the terrain lights a fire there, which needs a ray cast rather
 than a coordinate transform: `rayFor` rebuilds the world-space ray through a
 pixel from the same camera basis `lookAt` uses, and `raycastHeightfield`
 marches it until it drops through the surface, then bisects onto the crossing.
