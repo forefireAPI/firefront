@@ -86,6 +86,13 @@ The page has two modes over the same map:
   `Ml` and `e` columns of the fuel table), and the excess-green cut-offs
   between fuel classes. Each control shows the ForeFire name it sets.
 
+Two layers read the run itself. **Arrival** colours the burnt ground by when
+it caught fire, with labelled isochrones at a round interval: the arrival-time
+map ForeFire writes natively, rebuilt from the perimeter of every frame.
+**Spread** colours the front by each node's rate of spread, the length of the
+`vel` that `print[]` reports, scaled to the run's 95th percentile so a few fast
+nodes on a tight curve do not wash it out.
+
 The models on offer are the ones that run on this fuel table with only slope
 and wind: Rothermel, BalbiNov2011Curv, BalbiUnsteady, TroisPourcent and Iso.
 Balbi2015, Balbi2020 and BalbiNov2011TMdMl also need moisture and temperature

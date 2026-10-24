@@ -66,6 +66,8 @@ Merged since v2.5.0, not yet released.
   back in 2D or on 3D terrain. Explore mode lights a fire where you click;
   Research mode exposes the model, its tuning factors, the numerics, and the
   fuel moisture and classes. ([#171])
+- The browser demo colours the burnt area by arrival time, with labelled
+  isochrones, and the fire front by its rate of spread. ([#171])
 
 ### Fixed
 
